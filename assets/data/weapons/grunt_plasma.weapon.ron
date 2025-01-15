@@ -1,0 +1,43 @@
+(
+    key: 30,
+    display_name: "Grunt: Plasma",
+    fire_rate_millis: 1000,
+    burst_config: Some((
+        shots_per_burst: 6,
+        burst_rate_millis: 100,
+    )),
+    ammo: None,
+    spread: 0.01,
+    barrel_positions: [
+        (0.0, -0.0, 0.0),
+    ],
+    projectiles_per_barrel: 1,
+    projectile_config: (
+        speed: 20.0,
+        damage: 10,
+        splash_damage_radius: 0.0,
+        splash_damage_knockback: 0.0,
+        fx: (
+            half_size: 0.5,
+            color: Rgba(
+                red: 8.0,
+                green: 4.0,
+                blue: 0.0,
+                alpha: 1.0,
+            ),
+            hit_particles: None,
+            hit_sound: None,
+            impact_decal: Some(Scorch(Rgba(
+                red: 8.0,
+                green: 4.0,
+                blue: 0.0,
+                alpha: 1.0,
+            ))),
+            flight_sound: Some("event:/Weapons/PlasmaHiss"),
+            light_color: None,
+            light_intensity: Some(1.0),
+        ),
+    ),
+    fire_sound: "event:/Bots/GruntPlasmaShoot",
+    recoil: 0.0,
+)

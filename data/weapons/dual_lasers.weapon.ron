@@ -1,0 +1,46 @@
+(
+    key: 2,
+    display_name: "Dual Lasers",
+    fire_rate_millis: 100,
+    burst_config: None,
+    ammo: None,
+    spread: 0.0,
+    barrel_positions: [
+        (0.45, -0.2, 0.0),
+        (-0.45, -0.2, 0.0),
+    ],
+    projectiles_per_barrel: 1,
+    projectile_config: (
+        speed: 80.0,
+        damage: 20,
+        splash_damage_radius: 0.0,
+        splash_damage_knockback: 0.0,
+        fx: (
+            half_size: 0.75,
+            color: Rgba(
+                red: 0.0,
+                green: 2.0,
+                blue: 8.0,
+                alpha: 1.0,
+            ),
+            hit_particles: None,
+            hit_sound: None,
+            impact_decal: Some(Scorch(Rgba(
+                red: 0.0,
+                green: 1.0,
+                blue: 4.0,
+                alpha: 1.0,
+            ))),
+            flight_sound: Some("event:/Weapons/PlasmaHiss"),
+            light_color: Some(Rgba(
+                red: 0.0,
+                green: 1.0,
+                blue: 4.0,
+                alpha: 1.0,
+            )),
+            light_intensity: Some(1.0),
+        ),
+    ),
+    fire_sound: "event:/Weapons/DualLasers",
+    recoil: 0.0,
+)

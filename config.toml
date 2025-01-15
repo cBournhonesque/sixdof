@@ -1,0 +1,59 @@
+roll_speed = 2.5
+mouse_sensitivity = 0.0012000000569969416
+
+[bindings.move_forward]
+Keyboard = "KeyW"
+
+[bindings.move_backward]
+Keyboard = "KeyS"
+
+[bindings.move_left]
+Keyboard = "KeyA"
+
+[bindings.move_right]
+Keyboard = "KeyD"
+
+[bindings.move_up]
+Keyboard = "ShiftLeft"
+
+[bindings.move_down]
+Keyboard = "ControlLeft"
+
+[bindings.move_roll_left]
+Keyboard = "KeyQ"
+
+[bindings.move_roll_right]
+Keyboard = "KeyE"
+
+[bindings.shoot_primary]
+Mouse = "Left"
+
+[bindings.shoot_secondary]
+Mouse = "Right"
+
+[bindings.weapon_1]
+Keyboard = "Digit1"
+
+[bindings.weapon_2]
+Keyboard = "Digit2"
+
+[bindings.weapon_3]
+Keyboard = "Digit3"
+
+[bindings.weapon_4]
+Keyboard = "Digit4"
+
+[bindings.weapon_5]
+Keyboard = "Digit5"
+
+[bindings.weapon_6]
+Keyboard = "Digit6"
+
+[bindings.weapon_7]
+Keyboard = "Digit7"
+
+[bindings.weapon_8]
+Keyboard = "Digit8"
+
+[bindings.weapon_9]
+Keyboard = "Digit9"

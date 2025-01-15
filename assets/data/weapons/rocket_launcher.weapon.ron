@@ -1,0 +1,128 @@
+(
+    key: 4,
+    display_name: "Rocket Launcher",
+    fire_rate_millis: 800,
+    burst_config: None,
+    ammo: None,
+    spread: 0.0,
+    barrel_positions: [
+        (0.0, -0.0, 0.0),
+    ],
+    projectiles_per_barrel: 1,
+    projectile_config: (
+        speed: 50.0,
+        damage: 100,
+        splash_damage_radius: 5.0,
+        splash_damage_knockback: 20.0,
+        fx: (
+            half_size: 1.0,
+            color: Rgba(
+                red: 0.0,
+                green: 8.0,
+                blue: 0.0,
+                alpha: 1.0,
+            ),
+            hit_particles: Some((
+                translation: (0.0, 0.0, 0.0),
+                direction: None,
+                core: Some((
+                    quad_count: 5,
+                    drag: 0.8,
+                    base_color: Rgba(
+                        red: 0.0,
+                        green: 28.0,
+                        blue: 0.0,
+                        alpha: 1.0,
+                    ),
+                    base_quad_half_size: (2.0, 2.0),
+                    initial_quad_scale: 2.0,
+                    final_quad_scale: 3.5,
+                    initial_speed: 5.0,
+                    lifetime_seconds: 0.5,
+                )),
+                sparks: Some((
+                    quad_count: 50,
+                    drag: 0.5,
+                    base_quad_half_size: (0.1, 0.1),
+                    initial_quad_scale: 2.0,
+                    final_quad_scale: 1.0,
+                    initial_speed: 20.0,
+                    lifetime_seconds: 0.25,
+                    base_color: Rgba(
+                        red: 1.0,
+                        green: 22.0,
+                        blue: 1.0,
+                        alpha: 1.0,
+                    ),
+                )),
+                smoke: Some((
+                    quad_count: 15,
+                    drag: 2.0,
+                    base_color: Rgba(
+                        red: 0.75,
+                        green: 0.75,
+                        blue: 0.75,
+                        alpha: 1.0,
+                    ),
+                    base_quad_half_size: (3.0, 3.0),
+                    initial_quad_scale: 1.0,
+                    final_quad_scale: 2.0,
+                    initial_speed: 2.0,
+                    lifetime_seconds: 5.0,
+                    alpha_curve: (
+                        knots: [
+                            (
+                                position: (0.0, 1.0),
+                                interpolation: Bezier,
+                                left_tangent: (
+                                    position: (-0.09939496, 0.010983521),
+                                    mode: Aligned,
+                                ),
+                                right_tangent: (
+                                    position: (0.7586257, -0.08383103),
+                                    mode: Aligned,
+                                ),
+                            ),
+                            (
+                                position: (1.0, 0.0),
+                                interpolation: Bezier,
+                                left_tangent: (
+                                    position: (-0.22789994, 0.017530248),
+                                    mode: Aligned,
+                                ),
+                                right_tangent: (
+                                    position: (0.09970613, -0.0076694763),
+                                    mode: Aligned,
+                                ),
+                            ),
+                        ],
+                        max_iters: 8,
+                        max_error: 0.00001,
+                    ),
+                )),
+                light: Some((
+                    color: Rgba(
+                        red: 0.0,
+                        green: 8.0,
+                        blue: 0.0,
+                        alpha: 1.0,
+                    ),
+                    intensity: 100.0,
+                    lifetime_seconds: 1.5,
+                )),
+            )),
+            hit_sound: Some("event:/Weapons/RocketExplosion"),
+            impact_decal: Some(Explosion),
+            flight_sound: Some("event:/Weapons/RocketHiss"),
+            light_color: Some(Rgba(
+                red: 0.0,
+                green: 8.0,
+                blue: 0.0,
+                alpha: 1.0,
+            )),
+            light_intensity: Some(1.0),
+        ),
+    ),
+    fire_sound: "event:/Weapons/RocketLauncher",
+    recoil: 0.0,
+)
