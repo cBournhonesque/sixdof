@@ -1,82 +1,109 @@
-[package]
-name = "sixdof"
+[workspace]
+resolver = "2"
+members = [
+    "client", "renderer",
+    "server",
+    "shared",
+]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0 OR CC0-1.0"
 
-[[bin]]
-name = "quantsum"
-path = "src/main.rs"
+[workspace.dependencies]
+lightyear_examples_common = { git = "https://github.com/cBournhonesque/lightyear", branch = "main", default-features = false }
+lightyear = { git = "https://github.com/cBournhonesque/lightyear", branch = "main", default-features = false, features = [
+    "leafwing",
+    "avian3d"
+] }
+bevy = { version = "0.15", default-features = false, features = [
+    "multi_threaded",
+    "bevy_state",
+    "serialize",
+    "bevy_asset",
+    "bevy_state",
+    "bevy_color",
+    "multi_threaded",
+    "sysinfo_plugin",
+] }
+avian3d = { version = "0.2", default-features = false, features = [
+    "3d",
+    "f32",
+    "parry-f32",
+    "parallel",
+    "serialize",
+] }
+leafwing-input-manager = { version = "0.16", default-features = false, features = [
+    "keyboard",
+] }
+serde = "1.0"
 
-[dependencies]
-
-# error handling
-anyhow = "1.0.77"
-
-# random generator
-rand = "0.8.5"
-
-# serialization
-serde = { version = "1.0.197", features = ["derive"] }
-
-# used to serialize the game config
-toml = "0.8.12"
-
-# used for hand-crafted network serialization
-byteorder = "1.5.0"
-
-# network serialization, chosen because it's fast and efficient
-bincode = "1.3.3"
-
-# used for the cli
-clap = { version = "4.5.3", features = ["derive"] }
-
-# used for logging
-log = "0.4.21"
-
-########################################################################
-# the engine
-bevy = { version = "0.13.1", features = ["serialize"] }
-
-# networking
-bevy_renet = { version = "0.0.11", features = ["serde", "transport"] }
-
-# visualize networking
-renet_visualizer = { version = "0.0.8", features = ["bevy"] }
-
-# physics
-bevy_rapier3d = { version = "0.25.0", features = [
-    "debug-render",
-    "enhanced-determinism",
+# debug/ui
+bevy_egui = { version = "0.32", default-features = false, features = [
+    "open_url",
+    "default_fonts",
+    "render",
+] }
+bevy-inspector-egui = { git = "https://github.com/blip-radar/bevy-inspector-egui.git", branch = "egui-0.30", default-features = false, features = [
+    "bevy_pbr",
+    "bevy_image",
+    "bevy_render",
+    "egui_open_url",
 ] }
 
-# useful tool to inspect entities and components from a GUI
-bevy-inspector-egui = "0.23.4"
 
-# used for dev & temporary UI 
-bevy_egui = { version = "0.26.0", features = ["immutable_ctx"] }
+# Idiomatic Bevy code often triggers these lints, and the CI workflow treats them as errors.
+# In some cases they may still signal poor code quality however, so consider commenting out these lines.
+[workspace.lints.clippy]
+# Bevy supplies arguments to systems via dependency injection, so it's natural for systems to
+# request more than 7 arguments -- which triggers this lint.
+too_many_arguments = "allow"
+# Queries that access many components may trigger this lint.
+type_complexity = "allow"
 
-# in-house crate for map editing
-qevy = { git = "https://github.com/BrianWiz/qevy.git", branch = "master"}
+[workspace.lints.rust]
+unused_variables = "allow"
+unused_mut = "allow"
+dead_code = "allow"
+unused_imports = "allow"
 
+# Compile with Performance Optimizations:
+# https://bevyengine.org/learn/quick-start/getting-started/setup/#compile-with-performance-optimizations
 
-# decals (@naasblod on Discord)
-bevy_contact_projective_decals = { git = "https://github.com/naasblod/bevy_contact_projective_decals.git" }
+# Enable a small amount of optimization in the dev profile.
+[profile.dev]
+opt-level = 1
 
-# audio (recommended by @ixml (GitGillie) on Discord)
-bevy_fmod = { git = "https://github.com/BrianWiz/bevy_fmod.git", branch = "child-spatial-fix" }
-
-# dependency for bevy_fmod
-libfmod = "2.206.4"
-
-# Used to import common assets such as ron files. ie. weapons.
-bevy_common_assets = { version = "0.10.0", features = ["ron"] }
-thiserror = "1.0.58"
-mlua = { version = "0.9.6", features = ["lua54", "macros", "vendored"] }
-
-# Enable max optimizations for dependencies, but not for our code:
+# Enable a large amount of optimization in the dev profile for dependencies.
 [profile.dev.package."*"]
 opt-level = 3
 
-# Enable only a small amount of optimization in debug mode
-[profile.dev]
+# Remove expensive debug assertions due to <https://github.com/bevyengine/bevy/issues/14291>
+[profile.dev.package.wgpu-types]
+debug-assertions = false
+
+# The default profile is optimized for Wasm builds because
+# that's what [Trunk reads](https://github.com/trunk-rs/trunk/issues/605).
+# Optimize for size in the wasm-release profile to reduce load times and bandwidth usage on web.
+[profile.release]
+# Compile the entire crate as one unit.
+# Slows compile times, marginal improvements.
+codegen-units = 1
+# Do a second optimization pass over the entire program, including dependencies.
+# Slows compile times, marginal improvements.
+lto = "thin"
+# Optimize with size in mind (also try "z", sometimes it is better).
+# Slightly slows compile times, great improvements to file size and runtime performance.
+opt-level = "s"
+# Strip all debugging information from the binary to slightly reduce file size.
+strip = "debuginfo"
+
+# Override some settings for native builds.
+[profile.release-native]
+# Default to release profile values.
+inherits = "release"
+# Optimize with performance in mind.
 opt-level = 3
+# Keep debug information in the binary.
+strip = "none"

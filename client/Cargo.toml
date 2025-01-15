@@ -1,0 +1,14 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared = { path = "../shared", default-features = false }
+renderer = { path = "../renderer", default-features = false }
+lightyear_examples_common =  { workspace = true, features = ["client"]}
+lightyear.workspace = true
+bevy.workspace = true
+avian3d.workspace = true
+bevy_egui.workspace = true
+bevy-inspector-egui.workspace = true
