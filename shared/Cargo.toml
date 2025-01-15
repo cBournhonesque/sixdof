@@ -1,0 +1,13 @@
+[package]
+name = "shared"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+qevy = { git = "https://github.com/BrianWiz/qevy.git", branch = "master" }
+lightyear_examples_common.workspace = true
+lightyear.workspace = true
+leafwing-input-manager.workspace = true
+bevy.workspace = true
+avian3d.workspace = true
+serde.workspace = true
