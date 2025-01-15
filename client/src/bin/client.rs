@@ -1,22 +1,17 @@
-use std::net::SocketAddr;
 use bevy::asset::AssetPlugin;
 use bevy::DefaultPlugins;
 use bevy::prelude::*;
-use lightyear::client::config::ClientConfig;
-use lightyear::client::plugin::ClientPlugins;
+use lightyear::prelude::client::*;
 use lightyear::prelude::ReplicationConfig;
-use lightyear_examples_common::app::{Cli, Mode};
 use lightyear_examples_common::settings::get_client_net_config;
-use lightyear_examples_common::shared::{shared_config, REPLICATION_INTERVAL};
-use shared::prelude::get_settings;
+use shared::prelude::{get_settings, shared_config, REPLICATION_INTERVAL};
 fn main() {
     let settings = get_settings();
 
-    // TODO: maybe have a separate launcher that is shared across all? instead of a client binary
+    // TODO: maybe have a separate launcher that is shared across client/server/etc.? instead of a client binary
+    //  similar to what is done in lightyear_examples_common
 
-    let client_id = None;
-    // use the cli-provided client id if it exists, otherwise use the settings client id
-    let client_id = client_id.unwrap_or(settings.client.client_id);
+    let client_id = settings.client.client_id;
     let mut app = App::new();
     app.add_plugins(
         DefaultPlugins
@@ -46,6 +41,13 @@ fn main() {
     app.add_plugins(shared::SharedPlugin);
     app.add_plugins(client::ClientPlugin);
     app.add_plugins(renderer::RendererPlugin);
+
+    app.add_systems(Startup, connect_client);
+
     // run the app
     app.run();
+}
+
+fn connect_client(mut commands: Commands) {
+    commands.connect_client();
 }

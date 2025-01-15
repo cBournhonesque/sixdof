@@ -32,7 +32,10 @@ impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         // PLUGINS
         // TODO: possible disable rendering by loading headless map
-        app.add_plugins(qevy::MapAssetLoaderPlugin::default());
+        app.add_plugins(qevy::MapAssetLoaderPlugin {
+            headless: true,
+            ..default()
+        });
 
         // RESOURCES
         app.init_resource::<GameModeController>();

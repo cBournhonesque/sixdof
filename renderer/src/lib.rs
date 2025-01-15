@@ -1,3 +1,5 @@
+mod camera;
+
 use bevy::prelude::*;
 
 pub struct RendererPlugin;

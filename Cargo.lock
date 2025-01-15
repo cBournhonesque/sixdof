@@ -3636,7 +3636,7 @@ dependencies = [
 [[package]]
 name = "lightyear"
 version = "0.18.0"
-source = "git+https://github.com/cBournhonesque/lightyear?branch=main#0d82236da5828c14d997a9f0f37260fee54c6575"
+source = "git+https://github.com/cBournhonesque/lightyear?branch=main#025a46f19666e30dc63383f1abdf66fbacfc4b2a"
 dependencies = [
  "async-channel",
  "async-compat",
@@ -3680,7 +3680,7 @@ dependencies = [
 [[package]]
 name = "lightyear_examples_common"
 version = "0.18.0"
-source = "git+https://github.com/cBournhonesque/lightyear?branch=main#0d82236da5828c14d997a9f0f37260fee54c6575"
+source = "git+https://github.com/cBournhonesque/lightyear?branch=main#025a46f19666e30dc63383f1abdf66fbacfc4b2a"
 dependencies = [
  "anyhow",
  "async-compat",
@@ -3698,7 +3698,7 @@ dependencies = [
 [[package]]
 name = "lightyear_macros"
 version = "0.18.0"
-source = "git+https://github.com/cBournhonesque/lightyear?branch=main#0d82236da5828c14d997a9f0f37260fee54c6575"
+source = "git+https://github.com/cBournhonesque/lightyear?branch=main#025a46f19666e30dc63383f1abdf66fbacfc4b2a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4772,6 +4772,7 @@ source = "git+https://github.com/BrianWiz/qevy.git?branch=master#6e95e5e5ce71107
 dependencies = [
  "anyhow",
  "async-lock",
+ "avian3d",
  "bevy",
  "bevy_rapier3d",
  "qevy-derive",
@@ -5456,8 +5457,10 @@ version = "0.1.0"
 dependencies = [
  "avian3d",
  "bevy",
+ "bevy-inspector-egui",
  "lightyear",
  "lightyear_examples_common",
+ "renderer",
  "shared",
 ]
 

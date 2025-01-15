@@ -5,7 +5,9 @@ edition = "2021"
 
 [dependencies]
 shared = { path = "../shared", default-features = false }
-lightyear_examples_common.workspace = true
+renderer = { path = "../renderer", default-features = false }
+lightyear_examples_common = { workspace = true, features = ["server"]}
 lightyear.workspace = true
 bevy.workspace = true
 avian3d.workspace = true
+bevy-inspector-egui.workspace = true
