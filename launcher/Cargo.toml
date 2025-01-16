@@ -1,0 +1,26 @@
+[package]
+name = "launcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["client", "server"]
+client = ["gui", "dep:client"]
+server = ["dep:server", "dep:lightyear_examples_common"]
+gui = ["dep:renderer"]
+
+
+[dependencies]
+shared = { path = "../shared", default-features = false }
+renderer = { path = "../renderer", default-features = false, optional = true }
+client = { path = "../client", default-features = false, optional = true }
+server = { path = "../server", default-features = false, optional = true }
+bevy.workspace = true
+lightyear.workspace = true
+lightyear_examples_common = { workspace = true, features = ["server"], optional = true}
+clap = "4.5"
+crossbeam-channel = "0.5.14"
+
+[lints]
+workspace = true

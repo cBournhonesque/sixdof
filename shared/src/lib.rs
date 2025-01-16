@@ -1,12 +1,12 @@
 use bevy::app::App;
-use bevy::asset::AssetPlugin;
-use bevy::prelude::{default, Plugin};
+use bevy::prelude::*;
 
 mod network;
 mod map;
 mod states;
 mod physics;
 pub mod player;
+
 
 pub mod prelude {
     pub use crate::network::settings::*;
@@ -19,8 +19,6 @@ pub mod prelude {
 pub struct SharedPlugin {
     pub headless: bool
 }
-
-const DEFAULT_UNPROCESSED_FILE_PATH: &'static str = "../assets";
 
 impl Plugin for SharedPlugin {
     fn build(&self, app: &mut App) {

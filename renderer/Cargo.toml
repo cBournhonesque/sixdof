@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 shared = { path = "../shared", default-features = false }
+lightyear.workspace = true
 bevy = { workspace = true, features = [
     "bevy_asset",
     "bevy_render",

@@ -75,10 +75,11 @@ fn load_map_system(
     info!("Loading map: {}", gamemode_controller.map);
     info!("Setting gamemode: {:?}", gamemode_controller.game_mode);
 
-    commands.spawn(
+    commands.spawn((
         qevy::components::Map {
             asset: asset_server.load(format!("{}.map", gamemode_controller.map)), // map must be under `assets` folder
             ..default()
-        }
-    );
+        },
+        Name::from("Map")
+    ));
 }

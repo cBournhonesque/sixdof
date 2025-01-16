@@ -18,6 +18,7 @@ fn spawn_player_on_connect(mut commands: Commands, mut events: EventReader<Conne
         // TODO: use spawn-events so we can control spawn position, etc.
         commands.spawn(
             (
+                Name::from("Player"),
                 Replicate {
                     sync: SyncTarget {
                         prediction: NetworkTarget::Single(event.client_id),

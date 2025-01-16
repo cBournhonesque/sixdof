@@ -1929,8 +1929,6 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_egui",
  "lightyear",
- "lightyear_examples_common",
- "renderer",
  "shared",
 ]
 
@@ -3545,6 +3543,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "launcher"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "clap",
+ "client",
+ "crossbeam-channel",
+ "lightyear",
+ "lightyear_examples_common",
+ "renderer",
+ "server",
+ "shared",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3685,7 +3698,6 @@ dependencies = [
  "anyhow",
  "async-compat",
  "bevy",
- "bevy-inspector-egui",
  "cfg-if",
  "clap",
  "crossbeam-channel",
@@ -5113,6 +5125,7 @@ name = "renderer"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "lightyear",
  "shared",
 ]
 
@@ -5457,10 +5470,7 @@ version = "0.1.0"
 dependencies = [
  "avian3d",
  "bevy",
- "bevy-inspector-egui",
  "lightyear",
- "lightyear_examples_common",
- "renderer",
  "shared",
 ]
 

@@ -1,4 +1,4 @@
-use bevy::prelude::{default, App, Plugin, Reflect, Transform};
+use bevy::prelude::*;
 use leafwing_input_manager::Actionlike;
 use lightyear::prelude::*;
 use avian3d::prelude::*;
@@ -34,6 +34,9 @@ impl Plugin for ProtocolPlugin {
         // TODO: MapLoad, RespawnCounter,
 
         // Components
+        app.register_component::<Name>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Once)
+            .add_interpolation(ComponentSyncMode::Once);
         app.register_component::<Player>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Simple)
             .add_interpolation(ComponentSyncMode::Simple);
