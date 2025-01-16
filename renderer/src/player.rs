@@ -1,9 +1,8 @@
 use bevy::color::palettes::basic::BLUE;
 use bevy::core_pipeline::prepass::DepthPrepass;
-use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
 use bevy::render::camera::Exposure;
-use lightyear::prelude::client::{Confirmed, PredictionSet};
+use lightyear::prelude::client::{Confirmed};
 use lightyear::shared::replication::components::Controlled;
 use shared::player::Player;
 
@@ -37,6 +36,8 @@ fn spawn_visuals(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     query.iter().for_each(|(parent, is_controlled)| {
+        // add visibility
+        commands.entity(parent).insert(Visibility::default());
         // add lights
         // TODO: why do we need it as a child? so we can specify a direction (via Transform) to the light?
         commands.entity(parent).with_children(|parent| {

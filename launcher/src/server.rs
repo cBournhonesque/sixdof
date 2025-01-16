@@ -27,7 +27,14 @@ impl ServerApp {
         #[cfg(not(feature = "gui"))]
         app.add_plugins((
             MinimalPlugins,
-            log_plugin(),
+            // needed to load the map asset
+            AssetPlugin {
+                // https://github.com/bevyengine/bevy/issues/10157
+                meta_check: bevy::asset::AssetMetaCheck::Never,
+                file_path: settings::ASSETS_PATH.to_string(),
+                ..default()
+            },
+            settings::log_plugin(),
             StatesPlugin,
             HierarchyPlugin,
             DiagnosticsPlugin,

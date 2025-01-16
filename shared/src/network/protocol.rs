@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use leafwing_input_manager::Actionlike;
+use leafwing_input_manager::{Actionlike, InputControlKind};
 use lightyear::prelude::*;
 use avian3d::prelude::*;
 use lightyear::prelude::client::ComponentSyncMode;
@@ -14,9 +14,24 @@ pub struct Channel1;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy, Hash, Reflect, Actionlike)]
 pub enum PlayerInput {
-    Look,
-    Shoot,
-    Jump
+    #[actionlike(DualAxis)]
+    Pan,
+    MoveForward,
+    MoveBackward,
+    MoveLeft,
+    MoveRight,
+    MoveUp,
+    MoveDown,
+    MoveRollLeft,
+    MoveRollRight,
+    ShootPrimary,
+    ShootSecondary,
+    Jump,
+    Weapon1,
+    Weapon2,
+    Weapon3,
+    Weapon4,
+    Weapon5
 }
 
 impl Plugin for ProtocolPlugin {

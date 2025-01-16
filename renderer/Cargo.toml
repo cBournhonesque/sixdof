@@ -4,9 +4,14 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[features]
+client = []
+server = []
+
 [dependencies]
 shared = { path = "../shared", default-features = false }
 lightyear.workspace = true
+bevy-inspector-egui.workspace = true
 bevy = { workspace = true, features = [
     "bevy_asset",
     "bevy_render",

@@ -9,7 +9,7 @@ pub mod player;
 
 
 pub mod prelude {
-    pub use crate::network::settings::*;
+    pub use crate::network::{protocol::*, settings::*};
     pub use crate::map::*;
     pub use crate::states::*;
     pub use crate::player::Player;
@@ -25,6 +25,7 @@ impl Plugin for SharedPlugin {
         // PLUGINS
         app.add_plugins(network::protocol::ProtocolPlugin);
         app.add_plugins(map::MapPlugin { headless: self.headless});
+        app.add_plugins(physics::PhysicsPlugin);
         app.add_plugins(player::PlayerPlugin);
     }
 }

@@ -36,6 +36,7 @@ avian3d = { version = "0.2", default-features = false, features = [
 ] }
 leafwing-input-manager = { version = "0.16", default-features = false, features = [
     "keyboard",
+    "mouse"
 ] }
 serde = "1.0"
 

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use lightyear::prelude::server::*;
 use shared::player::Player;
 use avian3d::prelude::*;
-use lightyear::prelude::NetworkTarget;
+use lightyear::prelude::{NetworkTarget, ReplicateHierarchy};
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -27,6 +27,11 @@ fn spawn_player_on_connect(mut commands: Commands, mut events: EventReader<Conne
                     controlled_by: ControlledBy {
                         target: NetworkTarget::Single(event.client_id),
                         ..default()
+                    },
+                    // in case the renderer is enabled on the server, we don't want the visuals to be replicated!
+                    hierarchy: ReplicateHierarchy {
+                        enabled: false,
+                        recursive: false,
                     },
                     // TODO: all predicted entities must be part of the same replication group
                     ..default()
