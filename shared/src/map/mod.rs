@@ -2,7 +2,10 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use crate::states::AppState;
 
-pub struct MapPlugin;
+#[derive(Default)]
+pub struct MapPlugin {
+    pub(crate) headless: bool,
+}
 
 #[derive(Resource, Debug)]
 pub struct GameModeController {
@@ -31,9 +34,8 @@ pub enum GameMode {
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         // PLUGINS
-        // TODO: possible disable rendering by loading headless map
         app.add_plugins(qevy::MapAssetLoaderPlugin {
-            headless: true,
+            headless: self.headless,
             ..default()
         });
 

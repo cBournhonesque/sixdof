@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use lightyear::prelude::client::*;
 use lightyear::prelude::ReplicationConfig;
 use lightyear_examples_common::settings::get_client_net_config;
-use shared::prelude::{get_settings, shared_config, REPLICATION_INTERVAL};
+use shared::prelude::{get_settings, shared_config, ASSETS_PATH, REPLICATION_INTERVAL};
 fn main() {
     let settings = get_settings();
 
@@ -19,7 +19,7 @@ fn main() {
             .set(AssetPlugin {
                 // https://github.com/bevyengine/bevy/issues/10157
                 meta_check: bevy::asset::AssetMetaCheck::Never,
-                file_path: "../assets".to_string(),
+                file_path: ASSETS_PATH.to_string(),
                 ..default()
             })
     );
@@ -38,7 +38,7 @@ fn main() {
     };
     // add lightyear plugins before the protocol
     app.add_plugins(ClientPlugins { config });
-    app.add_plugins(shared::SharedPlugin);
+    app.add_plugins(shared::SharedPlugin { headless: false });
     app.add_plugins(client::ClientPlugin);
     app.add_plugins(renderer::RendererPlugin);
 

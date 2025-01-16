@@ -4,11 +4,11 @@ use lightyear_examples_common::settings::{
     SharedSettings, WebTransportCertificateSettings,
 };
 use std::net::Ipv4Addr;
-use std::string::ToString;
 use bevy::utils::Duration;
 
 pub const TICK_RATE: f64 = 64.0;
 pub const REPLICATION_INTERVAL:  Duration = Duration::from_millis(100);
+pub const ASSETS_PATH: &'static str = "../assets";
 
 pub fn shared_config(mode: Mode) -> SharedConfig {
     SharedConfig {

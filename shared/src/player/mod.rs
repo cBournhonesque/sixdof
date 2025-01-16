@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-
+use lightyear::prelude::ClientId;
+use serde::{Deserialize, Serialize};
 
 pub struct PlayerPlugin;
 
@@ -8,10 +9,9 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Player {
-    pub visuals: Option<Entity>,
-    pub id: u8,
+    pub id: ClientId,
     pub name: String,
     pub frags: u16,
     pub deaths: u16,

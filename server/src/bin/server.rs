@@ -6,7 +6,7 @@ use bevy::state::app::StatesPlugin;
 use lightyear::prelude::server::*;
 use lightyear::prelude::ReplicationConfig;
 use lightyear_examples_common::settings::get_server_net_configs;
-use shared::prelude::{get_settings, shared_config, REPLICATION_INTERVAL};
+use shared::prelude::{get_settings, shared_config, ASSETS_PATH, REPLICATION_INTERVAL};
 
 fn main() {
     let settings = get_settings();
@@ -25,7 +25,7 @@ fn main() {
         AssetPlugin {
             // https://github.com/bevyengine/bevy/issues/10157
             meta_check: bevy::asset::AssetMetaCheck::Never,
-            file_path: "../assets".to_string(),
+            file_path: ASSETS_PATH.to_string(),
             ..default()
         },
         StatesPlugin,
@@ -49,7 +49,7 @@ fn main() {
     };
     // add lightyear plugins before the protocol
     app.add_plugins(ServerPlugins { config });
-    app.add_plugins(shared::SharedPlugin);
+    app.add_plugins(shared::SharedPlugin { headless: true});
     app.add_plugins(server::ServerPlugin);
     app.add_plugins(renderer::RendererPlugin);
 

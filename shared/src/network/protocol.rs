@@ -4,6 +4,7 @@ use lightyear::prelude::*;
 use avian3d::prelude::*;
 use lightyear::prelude::client::ComponentSyncMode;
 use lightyear::utils::avian3d::{position, rotation};
+use crate::player::Player;
 
 pub struct ProtocolPlugin;
 
@@ -33,6 +34,10 @@ impl Plugin for ProtocolPlugin {
         // TODO: MapLoad, RespawnCounter,
 
         // Components
+        app.register_component::<Player>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Simple)
+            .add_interpolation(ComponentSyncMode::Simple);
+
         // Fully replicated, but not visual, so no need for lerp/corrections:
         app.register_component::<LinearVelocity>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full);

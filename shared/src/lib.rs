@@ -15,8 +15,10 @@ pub mod prelude {
     pub use crate::player::Player;
 }
 
-#[derive(Clone)]
-pub struct SharedPlugin;
+#[derive(Clone, Default)]
+pub struct SharedPlugin {
+    pub headless: bool
+}
 
 const DEFAULT_UNPROCESSED_FILE_PATH: &'static str = "../assets";
 
@@ -24,7 +26,7 @@ impl Plugin for SharedPlugin {
     fn build(&self, app: &mut App) {
         // PLUGINS
         app.add_plugins(network::protocol::ProtocolPlugin);
-        app.add_plugins(map::MapPlugin);
+        app.add_plugins(map::MapPlugin { headless: self.headless});
         app.add_plugins(player::PlayerPlugin);
     }
 }
