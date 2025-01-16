@@ -42,8 +42,8 @@ fn add_input_map(
                 (PlayerInput::MoveBackward, KeyCode::KeyS),
                 (PlayerInput::MoveLeft, KeyCode::KeyA),
                 (PlayerInput::MoveRight, KeyCode::KeyD),
-                (PlayerInput::MoveUp, KeyCode::ShiftLeft),
-                (PlayerInput::MoveDown, KeyCode::ControlLeft),
+                (PlayerInput::MoveUp, KeyCode::Space),
+                (PlayerInput::MoveDown, KeyCode::ShiftLeft),
                 (PlayerInput::MoveRollLeft, KeyCode::KeyQ),
                 (PlayerInput::MoveRollRight, KeyCode::KeyE),
                 (PlayerInput::Weapon1, KeyCode::Digit1),
@@ -54,7 +54,7 @@ fn add_input_map(
         ])
             .with(PlayerInput::ShootPrimary, MouseButton::Left)
             .with(PlayerInput::ShootSecondary, MouseButton::Right)
-            .with_dual_axis(PlayerInput::Pan, MouseMove::default())
+            .with_dual_axis(PlayerInput::Look, MouseMove::default())
         );
     }
 }

@@ -11,6 +11,10 @@ impl Plugin for RendererPlugin {
         // TODO: add option to disable inspector
         app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
         app.add_plugins(player::PlayerPlugin);
+        app.insert_resource(AmbientLight {
+            brightness: 0.0,
+            ..default()
+        });
 
         // SYSTEMS
         // TODO: separate client renderer from server renderer?

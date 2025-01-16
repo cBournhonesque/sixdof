@@ -2,7 +2,7 @@ use bevy::color::palettes::basic::BLUE;
 use bevy::core_pipeline::prepass::DepthPrepass;
 use bevy::prelude::*;
 use bevy::render::camera::Exposure;
-use lightyear::prelude::client::{Confirmed};
+use lightyear::prelude::client::Confirmed;
 use lightyear::shared::replication::components::Controlled;
 use shared::player::Player;
 
@@ -15,14 +15,6 @@ impl Plugin for PlayerPlugin {
         app.add_systems(Update, spawn_visuals);
     }
 }
-
-
-// TODO: do we need these 2 marker components?
-#[derive(Component)]
-pub struct LocalPlayerVisuals;
-
-#[derive(Component)]
-pub struct PlayerVisuals;
 
 // NOTE: we cannot use observers because we add Player before adding Confirmed/Predicted
 //  or should we do Trigger<OnAdd, (Predicted, Interpolated)>?
@@ -52,8 +44,6 @@ fn spawn_visuals(
                 parent.spawn((
                     SpotLight {
                         color: Color::srgb(1.0, 0.95, 0.9),
-                        intensity: 4000.0,
-                        range: 800.0,
                         outer_angle: 0.75,
                         inner_angle: 0.1,
                         shadows_enabled: true,
@@ -87,15 +77,9 @@ fn spawn_visuals(
                     ..default()
                 },
                 Projection::Perspective(PerspectiveProjection {
-                    fov: 1.5708,
+                    fov: 90.0_f32.to_radians(),
                     ..default()
                 }),
-                Exposure {
-                    ev100: -1.0,
-                    ..default()
-                },
-                DepthPrepass,
-                // default transform so that when the camera looks in the same direction as the controlled player
                 Transform::default(),
             ));
         }

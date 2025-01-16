@@ -15,7 +15,7 @@ pub struct Channel1;
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy, Hash, Reflect, Actionlike)]
 pub enum PlayerInput {
     #[actionlike(DualAxis)]
-    Pan,
+    Look,
     MoveForward,
     MoveBackward,
     MoveLeft,
@@ -26,7 +26,6 @@ pub enum PlayerInput {
     MoveRollRight,
     ShootPrimary,
     ShootSecondary,
-    Jump,
     Weapon1,
     Weapon2,
     Weapon3,
