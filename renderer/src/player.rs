@@ -1,7 +1,6 @@
 use bevy::color::palettes::basic::BLUE;
 use bevy::core_pipeline::prepass::DepthPrepass;
 use bevy::prelude::*;
-use bevy::render::camera::Exposure;
 use lightyear::prelude::client::{Confirmed, Predicted, VisualInterpolateStatus};
 use lightyear::shared::replication::components::Controlled;
 use shared::player::Player;
