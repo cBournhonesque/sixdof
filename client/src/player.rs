@@ -24,7 +24,11 @@ impl Plugin for PlayerPlugin {
         //         .before(InputSystemSet::BufferClientInputs)
         //         .run_if(not(is_in_rollback)),
         // );
-        app.add_systems(Update, handle_predicted_spawn);
+
+        // make sure that client cannot apply inputs before the connection is synced
+        // we add the system in Last so that on the first time the InputMap is spawned, we don't immediately
+        // send an InputMessage to the server
+        app.add_systems(Last, handle_predicted_spawn.run_if(is_synced));
     }
 }
 

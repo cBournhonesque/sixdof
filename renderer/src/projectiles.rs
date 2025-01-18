@@ -1,5 +1,6 @@
 use bevy::color::palettes::basic::BLUE;
 use bevy::prelude::*;
+use lightyear::prelude::client::VisualInterpolateStatus;
 use shared::projectiles::Projectile;
 
 pub(crate) struct ProjectilesPlugin;
@@ -29,6 +30,7 @@ fn spawn_visuals(
                 base_color: BLUE.into(),
                 ..Default::default()
             })),
+            VisualInterpolateStatus::<Transform>::default(),
         )
     );
 }
