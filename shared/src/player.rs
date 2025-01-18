@@ -18,7 +18,7 @@ impl Plugin for PlayerPlugin {
 
         // DEBUG
         // app.add_systems(FixedUpdate, debug_input.before(move_player));
-        // app.add_systems(FixedPostUpdate, debug_player.after(PhysicsSet::Sync));
+        // app.add_systems(RunFixedMainLoop, debug_after_sync.after(RunFixedMainLoopSystem::AfterFixedMainLoop));
 
         app.add_systems(FixedUpdate, move_player);
     }
@@ -29,54 +29,78 @@ impl Plugin for PlayerPlugin {
 pub fn debug_input(
     tick_manager: Res<TickManager>,
     rollback: Option<Res<Rollback>>,
-    query: Query<(Entity, &ActionState<PlayerInput>, &Transform),
+    query: Query<(Entity, &ActionState<PlayerInput>, (&Transform, &Position, &Rotation)),
         Or<(With<Predicted>, With<Replicating>)>>
 ) {
     let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
         tick_manager.tick_or_rollback_tick(r.as_ref())
     });
     let is_rollback = rollback.map_or(false, |r| r.is_rollback());
-    for (entity, action_state, transform) in query.iter() {
+    for (entity, action_state, info) in query.iter() {
         let look = action_state.axis_pair(&PlayerInput::Look);
         info!(
             ?is_rollback,
             ?tick,
             ?entity,
             ?look,
-            ?transform,
-            "Before Physics"
+            ?info,
+            "BeforeInputs"
         );
     }
 }
 
 /// Print the transform after physics have been applied (and position/rotation have been synced to Transform)
-pub fn debug_player(
+pub fn debug_after_sync(
     tick_manager: Res<TickManager>,
     rollback: Option<Res<Rollback>>,
-    query: Query<(Entity, &Transform),
+    query: Query<(Entity, (&Transform, &Position, &Rotation)),
         Or<(With<Predicted>, With<Replicating>)>>
 ) {
     let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
         tick_manager.tick_or_rollback_tick(r.as_ref())
     });
     let is_rollback = rollback.map_or(false, |r| r.is_rollback());
-    for (entity, transform) in query.iter() {
+    for (entity, info) in query.iter() {
         info!(
             ?is_rollback,
             ?tick,
             ?entity,
-            ?transform,
+            ?info,
             "After Physics"
         );
     }
 }
 
+// TODO: this doesn't work if we modify Position/Rotation, but it works if we modify Transform. Why?
+//  ANSWER: because visual interpolation is updated in FixedLast, but we only sync after RunFixedMainLoop,
+//  so the VisualInterpolation Transform values are always Zero
+//  So either:
+//  - run SyncPlugin in FixedPostUpdate, and then we can update Position/Rotation (or Transform)
+//  - run SyncPlugin in RunFixedMain, and then we update Transform from inputs. (but we need to make sure that
+//    there are no velocities, etc.)
+// PreUpdate:
+//  - receive confirmed Position/Rotation from server
+//  - restore non-interpolated Transform
+// FixedPreUpdate:
+//  - update inputs
+// FixedUpdate:
+//  - option 1: (WORKS) use inputs to modify Transform
+//  - option 2: (DOESN'T WORK) use inputs to modify Position/Rotation
+// FixedPostUpdate:
+//  - run Physics
+// FixedLast:
+//  - update VisualInterpolation values
+// RunFixedMainLoop:
+//  - sync Position/Rotation to Transform
+// PostUpdate:
+//  - Visually interpolate Transform
+//  - Sync Transform to children, and to GlobalTransform
 pub fn move_player(
     // tick_manager: Res<TickManager>,
     // rollback: Option<Res<Rollback>>,
     mut query: Query<(
         &Player,
-        &mut Transform,
+        &Transform,
         &ActionState<PlayerInput>,
     ),
     Or<(With<Predicted>, With<Replicating>)>>

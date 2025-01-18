@@ -12,8 +12,8 @@ edition = "2021"
 license = "MIT OR Apache-2.0 OR CC0-1.0"
 
 [workspace.dependencies]
-lightyear_examples_common = { git = "https://github.com/cBournhonesque/lightyear", branch = "main", default-features = false }
-lightyear = { git = "https://github.com/cBournhonesque/lightyear", branch = "main", default-features = false, features = [
+lightyear_examples_common = { git = "https://github.com/cBournhonesque/lightyear", branch = "cb/sixdof", default-features = false }
+lightyear = { git = "https://github.com/cBournhonesque/lightyear", branch = "cb/sixdof", default-features = false, features = [
     "leafwing",
     "avian3d"
 ] }
