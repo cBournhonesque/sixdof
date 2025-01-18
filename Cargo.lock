@@ -3650,7 +3650,7 @@ dependencies = [
 [[package]]
 name = "lightyear"
 version = "0.18.0"
-source = "git+https://github.com/cBournhonesque/lightyear?branch=cb%2Fsixdof#5555b42c3a1bf579640ca881209a83ca163aeef1"
+source = "git+https://github.com/cBournhonesque/lightyear?branch=cb%2Fsixdof#d5619ad933c25e9147ea0d2eedca4940479d6f50"
 dependencies = [
  "async-channel",
  "async-compat",
@@ -3694,7 +3694,7 @@ dependencies = [
 [[package]]
 name = "lightyear_examples_common"
 version = "0.18.0"
-source = "git+https://github.com/cBournhonesque/lightyear?branch=cb%2Fsixdof#5555b42c3a1bf579640ca881209a83ca163aeef1"
+source = "git+https://github.com/cBournhonesque/lightyear?branch=cb%2Fsixdof#d5619ad933c25e9147ea0d2eedca4940479d6f50"
 dependencies = [
  "anyhow",
  "async-compat",
@@ -3711,7 +3711,7 @@ dependencies = [
 [[package]]
 name = "lightyear_macros"
 version = "0.18.0"
-source = "git+https://github.com/cBournhonesque/lightyear?branch=cb%2Fsixdof#5555b42c3a1bf579640ca881209a83ca163aeef1"
+source = "git+https://github.com/cBournhonesque/lightyear?branch=cb%2Fsixdof#d5619ad933c25e9147ea0d2eedca4940479d6f50"
 dependencies = [
  "proc-macro2",
  "quote",

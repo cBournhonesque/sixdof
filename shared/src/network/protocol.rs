@@ -81,13 +81,13 @@ impl Plugin for ProtocolPlugin {
         // // out rendering between fixedupdate ticks.
         app.register_component::<Position>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full)
-            .add_interpolation_fn(position::lerp)
-            .add_correction_fn(position::lerp);
+            .add_interpolation_fn(position::lerp);
+            // .add_correction_fn(position::lerp);
 
         app.register_component::<Rotation>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full)
-            .add_interpolation_fn(rotation::lerp)
-            .add_correction_fn(rotation::lerp);
+            .add_interpolation_fn(rotation::lerp);
+            // .add_correction_fn(rotation::lerp);
 
         // do not replicate Transform but make sure to register an interpolation function
         // for it so that we can do visual interpolation

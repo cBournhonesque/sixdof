@@ -9,12 +9,10 @@ impl Plugin for PhysicsPlugin {
         // PLUGINS
         app.add_plugins(PhysicsPlugins::default()
                             .build()
-                            // disable sync to add the sync plugin in a different schedule
-                            .disable::<SyncPlugin>()
                             .disable::<PhysicsInterpolationPlugin>());
-        // as an optimization, we run the sync plugin in RunFixedMainLoop (outside FixedMainLoop)
-        // so that in the case of a rollback we don't do the sync again
-        app.add_plugins(SyncPlugin::new(RunFixedMainLoop));
+        // // as an optimization, we run the sync plugin in RunFixedMainLoop (outside FixedMainLoop)
+        // // so that in the case of a rollback we don't do the sync again
+        // app.add_plugins(SyncPlugin::new(RunFixedMainLoop));
 
         // RESOURCES
 
