@@ -1,16 +1,33 @@
 mod player;
 mod projectiles;
+mod bot;
 
+use bevy::ecs::query::QueryFilter;
 use bevy::prelude::*;
 use lightyear::client::interpolation::VisualInterpolationPlugin;
+use lightyear::prelude::client::{Interpolated, Predicted};
+use lightyear::prelude::server::ReplicationTarget;
 
 pub struct RendererPlugin;
+
+
+/// Convenient for filter for entities that should be visible
+/// Works either on the client or the server
+#[derive(QueryFilter)]
+pub struct VisibleFilter {
+    a: Or<(
+        With<Predicted>,
+        With<Interpolated>,
+        With<ReplicationTarget>,
+    )>,
+}
 
 impl Plugin for RendererPlugin {
     fn build(&self, app: &mut App) {
         // PLUGINS
         // TODO: add option to disable inspector
         app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
+        app.add_plugins(bot::BotPlugin);
         app.add_plugins(player::PlayerPlugin);
         app.add_plugins(projectiles::ProjectilesPlugin);
         app.insert_resource(AmbientLight {

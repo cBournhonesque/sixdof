@@ -7,6 +7,7 @@ mod states;
 mod physics;
 pub mod player;
 pub mod projectiles;
+pub mod bot;
 
 pub mod prelude {
     pub use crate::network::{protocol::*, settings::*};

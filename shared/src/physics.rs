@@ -16,16 +16,6 @@ impl Plugin for PhysicsPlugin {
 
         // RESOURCES
 
-        // Position and Rotation are the primary source of truth so no need to
-        // sync changes from Transform to Position.
-        // NOTE: this is CRUCIAL to avoid rollbacks! presumably because on the client
-        //  we modify Transform in PostUpdate, which triggers the Sync from transform->position systems in avian
-        //  Maybe those systems cause some numerical instability?
-        app.insert_resource(avian3d::sync::SyncConfig {
-            transform_to_position: false,
-            position_to_transform: true,
-            ..default()
-        });
         // disable sleeping
         app.insert_resource(SleepingThreshold {
             linear: -0.01,

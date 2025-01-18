@@ -6,6 +6,7 @@ use lightyear::prelude::client::{ComponentSyncMode, LerpFn};
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
 use lightyear::utils::bevy::TransformLinearInterpolation;
+use crate::bot::Bot;
 
 pub struct ProtocolPlugin;
 
@@ -55,6 +56,8 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<Player>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Simple)
             .add_interpolation(ComponentSyncMode::Simple);
+        app.register_component::<Bot>(ChannelDirection::ServerToClient)
+            .add_interpolation(ComponentSyncMode::Once);
 
         // Fully replicated, but not visual, so no need for lerp/corrections:
         app.register_component::<LinearVelocity>(ChannelDirection::ServerToClient)
@@ -79,20 +82,29 @@ impl Plugin for ProtocolPlugin {
         // //
         // // They also set `interpolation_fn` which is used by the VisualInterpolationPlugin to smooth
         // // out rendering between fixedupdate ticks.
-        app.register_component::<Position>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full)
-            .add_interpolation_fn(position::lerp);
-            // .add_correction_fn(position::lerp);
+        // app.register_component::<Position>(ChannelDirection::ServerToClient)
+        //     .add_prediction(ComponentSyncMode::Full)
+        //     .add_interpolation(ComponentSyncMode::Full)
+        //     .add_interpolation_fn(position::lerp);
+        //     // .add_correction_fn(position::lerp);
 
-        app.register_component::<Rotation>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full)
-            .add_interpolation_fn(rotation::lerp);
-            // .add_correction_fn(rotation::lerp);
+        // app.register_component::<Rotation>(ChannelDirection::ServerToClient)
+        //     .add_prediction(ComponentSyncMode::Full)
+        //     .add_interpolation(ComponentSyncMode::Full)
+        //     .add_interpolation_fn(rotation::lerp);
+        //     // .add_correction_fn(rotation::lerp);
 
         // do not replicate Transform but make sure to register an interpolation function
         // for it so that we can do visual interpolation
         // (another option would be to replicate transform and not use Position/Rotation at all)
-        app.add_interpolation::<Transform>(ComponentSyncMode::None);
-        app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
+        // app.add_interpolation::<Transform>(ComponentSyncMode::None);
+        // app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
+
+        // Try replicating only Transform
+        app.register_component::<Transform>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Full)
+            .add_interpolation(ComponentSyncMode::Full)
+            .add_interpolation_fn(TransformLinearInterpolation::lerp);
+
     }
 }

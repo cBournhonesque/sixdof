@@ -17,8 +17,8 @@ impl Plugin for PlayerPlugin {
         // SYSTEMS
 
         // DEBUG
-        // app.add_systems(FixedUpdate, debug_input.before(move_player));
-        // app.add_systems(FixedLast, debug_after_sync);
+        app.add_systems(FixedUpdate, debug_input.before(move_player));
+        app.add_systems(FixedLast, debug_after_sync);
         // app.add_systems(RunFixedMainLoop, debug_after_sync.after(RunFixedMainLoopSystem::AfterFixedMainLoop));
 
         app.add_systems(FixedUpdate, move_player);
@@ -81,6 +81,7 @@ pub fn debug_after_sync(
 //  - run SyncPlugin in FixedPostUpdate, and then we can update Position/Rotation (or Transform)
 //  - run SyncPlugin in RunFixedMain, and then we update Transform from inputs. (but we need to make sure that
 //    there are no velocities, etc.). But then Position/Rotation always stay at 0.0 so we never detect rollbacks!
+//    So it doesn't work!
 // PreUpdate:
 //  - receive confirmed Position/Rotation from server
 //  - restore non-interpolated Transform
@@ -103,8 +104,7 @@ pub fn move_player(
     // rollback: Option<Res<Rollback>>,
     mut query: Query<(
         &Player,
-        &mut Position,
-        &mut Rotation,
+        &mut Transform,
         &ActionState<PlayerInput>,
     ),
     Or<(With<Predicted>, With<Replicating>)>>
@@ -113,7 +113,7 @@ pub fn move_player(
     //     tick_manager.tick_or_rollback_tick(r.as_ref())
     // });
     // let is_rollback = rollback.map_or(false, |r| r.is_rollback());
-    for (_player, mut position, mut rotation, action_state) in query.iter_mut() {
+    for (_player, mut transform, action_state) in query.iter_mut() {
         let mut wish_dir = Vec3::ZERO;
 
         let mouse_data = action_state.axis_pair(&PlayerInput::Look);
@@ -121,24 +121,24 @@ pub fn move_player(
             let yaw = -mouse_data.x * LOOK_ROTATION_SPEED;
             let pitch = -mouse_data.y * LOOK_ROTATION_SPEED;
             
-            let right = rotation.0 * Vec3::X;
-            let up = rotation.0 * Vec3::Y;
+            let right = transform.rotation * Vec3::X;
+            let up = transform.rotation * Vec3::Y;
             
             let pitch_rot = Quat::from_axis_angle(right, pitch);
             let yaw_rot = Quat::from_axis_angle(up, yaw);
             
-            rotation.0 = pitch_rot * yaw_rot * rotation.0;
+            transform.rotation = pitch_rot * yaw_rot * transform.rotation;
         }
         
         if action_state.pressed(&PlayerInput::MoveRollLeft) {
-            let forward = rotation.0 * Vec3::NEG_Z;
+            let forward = transform.rotation * Vec3::NEG_Z;
             let roll_rot = Quat::from_axis_angle(forward, -ROLL_SPEED);
-            rotation.0 = roll_rot * rotation.0;
+            transform.rotation = roll_rot * transform.rotation;
         }
         if action_state.pressed(&PlayerInput::MoveRollRight) {
-            let forward = rotation.0 * Vec3::NEG_Z;
+            let forward = transform.rotation * Vec3::NEG_Z;
             let roll_rot = Quat::from_axis_angle(forward, ROLL_SPEED);
-            rotation.0 = roll_rot * rotation.0;
+            transform.rotation = roll_rot * transform.rotation;
         }
         
         if action_state.pressed(&PlayerInput::MoveForward) {
@@ -162,13 +162,13 @@ pub fn move_player(
 
         if wish_dir != Vec3::ZERO {
             let wish_dir = wish_dir.normalize();
-            let world_wish_dir = rotation.0 * wish_dir;
+            let world_wish_dir = transform.rotation * wish_dir;
             let movement = world_wish_dir * MOVE_SPEED;
-            position.0 += movement;
+            transform.translation += movement;
         }
 
-        // TODO: do not run this if rotation.0 did not change to not trigger change detection
-        rotation.0 = rotation.0.normalize();
+        // TODO: do not run this if transform.rotation did not change to not trigger change detection
+        transform.rotation = transform.rotation.normalize();
         // info!(
         //     ?is_rollback,
         //     ?tick,

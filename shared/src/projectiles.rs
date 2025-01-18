@@ -32,7 +32,7 @@ pub fn debug_after_physics(
     tick_manager: Res<TickManager>,
     rollback: Option<Res<Rollback>>,
     query: Query<
-        (Entity, (&Position, &Rotation)),
+        (Entity, (&Transform, &Position, &Rotation)),
         (With<Projectile>, Or<(With<Predicted>, With<Replicating>)>)
     >
 ) {
@@ -112,6 +112,8 @@ pub(crate) fn shoot_replicated_projectiles(
 }
 
 /// Shoot projectiles from the current weapon when the shoot action is pressed
+/// The projectiles are moved by physics. This is probably unnecessary and very CPU-intensive?
+/// We just need to do a raycast/shapecast from the initial bullet firing point, while tracking the speed of the bullet
 pub(crate) fn shoot_projectiles(
     mut commands: Commands,
     query: Query<
@@ -137,7 +139,7 @@ pub(crate) fn shoot_projectiles(
                 // TODO: change projectile speed
                 LinearVelocity(direction * 5.0),
                 // TODO: change projectile shape
-                Collider::sphere(0.1),
+                Collider::sphere(0.05),
                 RigidBody::Dynamic,
             ));
         }
