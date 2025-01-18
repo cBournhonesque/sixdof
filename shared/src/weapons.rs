@@ -65,3 +65,68 @@ pub(crate) fn shoot_projectiles(
         }
     }
 }
+
+/// The resource that contains all the weapon configurations.
+#[derive(Resource)]
+pub enum WeaponConfigurations {
+    DualLasers(WeaponConfiguration),
+    RocketLauncher(WeaponConfiguration),
+}
+
+/// A weapon configuration is basically what it sounds like, 
+/// it defines all the behaviors of a weapon.
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct WeaponConfiguration {
+    pub name: String,
+    pub description: String,
+    pub barrel_positions: Vec<Vec3>,
+    pub barrel_mode: BarrelMode,
+    pub fire_mode: FireMode,
+    pub crosshair: CrosshairConfiguration,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct ProjectileConfiguration {
+    speed: f32,
+    /// The lifetime of the projectile in seconds before it is removed from the world. 
+    /// Will attempt to apply splash damage upon removal.
+    lifetime: f32,
+    direct_damage: f32,
+    splash_damage_radius: f32,
+    splash_damage_max: f32,
+    splash_damage_min: f32,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub enum BarrelMode {
+    /// All barrels fire at the same time.
+    Simultaneous,
+    /// Barrels fire one after the other.
+    Sequential,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub enum FireMode {
+    /// An automatic weapon just fires continuously with a delay between each shot.
+    Auto {
+        delay: f32,
+    },
+    /// A burst fires a number of shots in a burst, with a delay between each shot.
+    Burst {
+        /// The number of shots in a burst.
+        shots: u32,
+        /// The delay between each shot in a burst.
+        delay: f32,
+        /// The delay after the burst is finished before starting another burst.
+        delay_after_burst: f32,
+    },
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct CrosshairConfiguration {
+    pub color: Color,
+    
+    /// The image to use for the crosshair. 
+    /// Relative to assets/crosshairs/
+    pub image: String,
+}
