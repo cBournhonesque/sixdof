@@ -7,7 +7,7 @@ mod states;
 mod physics;
 pub mod player;
 pub mod projectiles;
-pub mod weapons;
+pub mod bot;
 
 pub mod prelude {
     pub use crate::network::{protocol::*, settings::*};
@@ -29,6 +29,5 @@ impl Plugin for SharedPlugin {
         app.add_plugins(physics::PhysicsPlugin);
         app.add_plugins(player::PlayerPlugin);
         app.add_plugins(projectiles::ProjectilesPlugin);
-        app.add_plugins(weapons::WeaponsPlugin);
     }
 }

@@ -1,5 +1,7 @@
+use avian3d::math::AsF32;
 use bevy::prelude::*;
 use avian3d::prelude::*;
+use avian3d::sync::SyncSet;
 
 pub struct PhysicsPlugin;
 
@@ -9,28 +11,75 @@ impl Plugin for PhysicsPlugin {
         // PLUGINS
         app.add_plugins(PhysicsPlugins::default()
                             .build()
+                            // we disable the SyncPlugin because:
+            // 1. The SyncPlugin transform_to_position system causes numerical inconsistencies (presumably because of the use of GlobalTransform)
+            // 2. The SyncPlugin only works on RigidBodies but we want to run it on all entities (for example for interpolated entities we do not add
+            //    a RigidBody) so instead we roll out our own SyncPlugin
+            // 3. We still need to run the SyncPlugin in FixedPostUpdate; if we run it in RunFixedMainLoop, the visual interpolation will have
+            //    empty Transform values when updating VisualInterpolation
+                            .disable::<SyncPlugin>()
                             .disable::<PhysicsInterpolationPlugin>());
-        // // as an optimization, we run the sync plugin in RunFixedMainLoop (outside FixedMainLoop)
-        // // so that in the case of a rollback we don't do the sync again
-        // app.add_plugins(SyncPlugin::new(RunFixedMainLoop));
+
+        // SYSTEMS
+        app.add_systems(
+            FixedPostUpdate,
+            position_to_transform
+                .in_set(SyncSet::PositionToTransform)
+        );
 
         // RESOURCES
-
-        // Position and Rotation are the primary source of truth so no need to
-        // sync changes from Transform to Position.
-        // NOTE: this is CRUCIAL to avoid rollbacks! presumably because on the client
-        //  we modify Transform in PostUpdate, which triggers the Sync from transform->position systems in avian
-        //  Maybe those systems cause some numerical instability?
-        app.insert_resource(avian3d::sync::SyncConfig {
-            transform_to_position: false,
-            position_to_transform: true,
-            ..default()
-        });
         // disable sleeping
         app.insert_resource(SleepingThreshold {
             linear: -0.01,
             angular: -0.01,
         });
         app.insert_resource(Gravity::ZERO);
+    }
+}
+
+type PosToTransformComponents = (
+    &'static mut Transform,
+    &'static Position,
+    &'static Rotation,
+    Option<&'static Parent>,
+);
+
+type ParentComponents = (
+    &'static GlobalTransform,
+    Option<&'static Position>,
+    Option<&'static Rotation>,
+);
+
+pub fn position_to_transform(
+    mut query: Query<PosToTransformComponents, Or<(Changed<Position>, Changed<Rotation>)>>,
+    parents: Query<ParentComponents, With<Children>>,
+) {
+    for (mut transform, pos, rot, parent) in &mut query {
+        if let Some(parent) = parent {
+            if let Ok((parent_transform, parent_pos, parent_rot)) = parents.get(**parent) {
+                // Compute the global transform of the parent using its Position and Rotation
+                let parent_transform = parent_transform.compute_transform();
+                let parent_pos = parent_pos.map_or(parent_transform.translation, |pos| pos.f32());
+                let parent_rot = parent_rot.map_or(parent_transform.rotation, |rot| rot.f32());
+                let parent_scale = parent_transform.scale;
+                let parent_transform = Transform::from_translation(parent_pos)
+                    .with_rotation(parent_rot)
+                    .with_scale(parent_scale);
+
+                // The new local transform of the child body,
+                // computed from the its global transform and its parents global transform
+                let new_transform = GlobalTransform::from(
+                    Transform::from_translation(pos.f32()).with_rotation(rot.f32()),
+                )
+                    .reparented_to(&GlobalTransform::from(parent_transform));
+
+                transform.translation = new_transform.translation;
+                transform.rotation = new_transform.rotation;
+            }
+        } else {
+            transform.translation = pos.f32();
+            transform.rotation = rot.f32();
+            info!(?transform, ?pos, ?rot, "PosToTransform");
+        }
     }
 }

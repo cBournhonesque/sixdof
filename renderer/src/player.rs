@@ -4,29 +4,29 @@ use bevy::prelude::*;
 use lightyear::prelude::client::{Confirmed, Predicted, VisualInterpolateStatus};
 use lightyear::shared::replication::components::Controlled;
 use shared::player::Player;
+use crate::VisibleFilter;
 
 /// Responsible for render-related systems for Players
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        // make sure that we run after Prediction/Interpolation components have been added
-        app.add_systems(Update, spawn_visuals);
+        app.add_observer(spawn_visuals);
     }
 }
 
-// NOTE: we cannot use observers because we add Player before adding Confirmed/Predicted
-//  or should we do Trigger<OnAdd, (Predicted, Interpolated)>?
 /// Add meshes/visuals for spawned players
 fn spawn_visuals(
+    trigger: Trigger<OnAdd, Player>,
     // we do not want to add visuals to confirmed entities on the client
-    query: Query<(Entity, Has<Controlled>, Has<Predicted>), (Without<Confirmed>, Added<Player>)>,
+    query: Query<(Has<Controlled>, Has<Predicted>), VisibleFilter>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     // mut atomized_materials: ResMut<Assets<AtomizedMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    query.iter().for_each(|(parent, is_controlled, is_predicted)| {
+    let parent = trigger.entity();
+    if let Ok((is_controlled, is_predicted)) = query.get(parent) {
         // add visibility
         commands.entity(parent).insert(Visibility::default());
 
@@ -86,5 +86,5 @@ fn spawn_visuals(
                 }),
             ));
         }
-    });
+    }
 }

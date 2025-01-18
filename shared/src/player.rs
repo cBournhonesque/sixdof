@@ -120,16 +120,16 @@ pub fn move_player(
         if mouse_data != Vec2::ZERO {
             let yaw = -mouse_data.x * LOOK_ROTATION_SPEED;
             let pitch = -mouse_data.y * LOOK_ROTATION_SPEED;
-            
+
             let right = rotation.0 * Vec3::X;
             let up = rotation.0 * Vec3::Y;
-            
+
             let pitch_rot = Quat::from_axis_angle(right, pitch);
             let yaw_rot = Quat::from_axis_angle(up, yaw);
-            
+
             rotation.0 = pitch_rot * yaw_rot * rotation.0;
         }
-        
+
         if action_state.pressed(&PlayerInput::MoveRollLeft) {
             let forward = rotation.0 * Vec3::NEG_Z;
             let roll_rot = Quat::from_axis_angle(forward, -ROLL_SPEED);
@@ -140,7 +140,7 @@ pub fn move_player(
             let roll_rot = Quat::from_axis_angle(forward, ROLL_SPEED);
             rotation.0 = roll_rot * rotation.0;
         }
-        
+
         if action_state.pressed(&PlayerInput::MoveForward) {
             wish_dir += Vec3::NEG_Z;
         }
