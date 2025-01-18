@@ -38,7 +38,7 @@ fn spawn_bot(mut commands: Commands) {
                 ..default()
             },
             Bot,
-            Transform::from_xyz(1.0, 1.0, -1.0),
+            Transform::from_xyz(1.0, 4.0, -1.0),
             RigidBody::Kinematic,
             // TODO: contacts are not fully deterministic in avian!
             Collider::sphere(0.5),
@@ -48,18 +48,18 @@ fn spawn_bot(mut commands: Commands) {
 
 /// Move bots up and down
 /// For some reason we cannot use the TimeManager.delta() here, maybe because we're running in FixedUpdate?
-fn move_bot(time: Res<Time>, mut query: Query<&mut Transform, With<Bot>>, mut timer: Local<(Stopwatch, bool)>) {
+fn move_bot(time: Res<Time>, mut query: Query<&mut Position, With<Bot>>, mut timer: Local<(Stopwatch, bool)>) {
     let (stopwatch, go_up) = timer.deref_mut();
-    query.iter_mut().for_each(|mut transform| {
+    query.iter_mut().for_each(|mut position| {
         stopwatch.tick(time.delta());
         if stopwatch.elapsed() > Duration::from_secs_f32(2.0) {
             stopwatch.reset();
             *go_up = !*go_up;
         }
         if *go_up {
-            transform.translation.y += 0.1;
+            position.y += 0.1;
         } else {
-            transform.translation.y -= 0.1;
+            position.y -= 0.1;
         }
     });
 }
