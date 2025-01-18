@@ -11,7 +11,12 @@
         delay_after_burst: 1.0,
     ),
     crosshair: (
-        color: (r: 1.0, g: 0.7, b: 0.0, a: 1.0),
+        color: Srgba((
+            red: 1.0, 
+            green: 0.2, 
+            blue: 0.0, 
+            alpha: 1.0
+        )),
         image: "kenney_crosshair_pack/crosshair043.png",
     ),
     projectile: (
