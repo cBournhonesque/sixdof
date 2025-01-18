@@ -100,7 +100,7 @@ pub fn move_player(
     // rollback: Option<Res<Rollback>>,
     mut query: Query<(
         &Player,
-        &Transform,
+        &mut Transform,
         &ActionState<PlayerInput>,
     ),
     Or<(With<Predicted>, With<Replicating>)>>
