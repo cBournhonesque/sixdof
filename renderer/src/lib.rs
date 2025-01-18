@@ -1,5 +1,5 @@
 mod player;
-mod weapon;
+mod projectiles;
 
 use bevy::prelude::*;
 use lightyear::client::interpolation::VisualInterpolationPlugin;
@@ -12,6 +12,7 @@ impl Plugin for RendererPlugin {
         // TODO: add option to disable inspector
         app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
         app.add_plugins(player::PlayerPlugin);
+        app.add_plugins(projectiles::ProjectilesPlugin);
         app.insert_resource(AmbientLight {
             brightness: 0.0,
             ..default()
