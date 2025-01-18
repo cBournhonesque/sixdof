@@ -13,7 +13,7 @@ use lightyear_examples_common::settings::WebTransportCertificateSettings;
 
 pub const TICK_RATE: f64 = 64.0;
 pub const REPLICATION_INTERVAL:  Duration = Duration::from_millis(100);
-pub const ASSETS_PATH: &'static str = "../assets";
+pub const ASSETS_HOTRELOAD: bool = true;
 
 pub const SERVER_ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5001));
 pub const PROTOCOL_ID: u64 = 0;
@@ -23,6 +23,18 @@ pub const LINK_CONDITIONER: Option<LinkConditionerConfig> = Some(LinkConditioner
     incoming_jitter: Duration::from_millis(10),
     incoming_loss: 0.0,
 });
+
+pub(crate) fn get_assets_path() -> String {
+    const ASSETS_PATH: &'static str = "../assets";
+
+    let current_dir = std::env::current_dir().expect("Failed to get current directory");
+    let asset_path = current_dir.join(ASSETS_PATH);
+    asset_path.canonicalize()
+        .expect("Failed to canonicalize asset path")
+        .to_str()
+        .expect("Failed to convert path to string")
+        .to_string()
+}
 
 pub(crate) fn shared_config() -> SharedConfig {
     SharedConfig {

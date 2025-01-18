@@ -10,4 +10,5 @@ lightyear.workspace = true
 leafwing-input-manager.workspace = true
 bevy.workspace = true
 avian3d.workspace = true
+bevy_common_assets.workspace = true
 serde.workspace = true

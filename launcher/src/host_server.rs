@@ -23,7 +23,8 @@ impl HostServer {
                 .set(AssetPlugin {
                     // https://github.com/bevyengine/bevy/issues/10157
                     meta_check: bevy::asset::AssetMetaCheck::Never,
-                    file_path: settings::ASSETS_PATH.to_string(),
+                    file_path: settings::get_assets_path(),
+                    watch_for_changes_override: Some(settings::ASSETS_HOTRELOAD),
                     ..default()
                 })
                 .set(settings::log_plugin())

@@ -1,5 +1,6 @@
 use avian3d::prelude::Position;
 use bevy::prelude::*;
+use bevy_common_assets::ron::RonAssetPlugin;
 use leafwing_input_manager::action_state::ActionState;
 use lightyear::client::prediction::Predicted;
 use lightyear::prelude::*;
@@ -11,8 +12,47 @@ pub(crate) struct WeaponsPlugin;
 
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
+        // PLUGINS
+        app.add_plugins(RonAssetPlugin::<WeaponConfiguration>::new(&["weapon.ron"]));
         // SYSTEMS
+        app.add_systems(Startup, setup_configuration);
+        app.add_systems(Update, configuration_change_watcher);
         app.add_systems(FixedUpdate, shoot_projectiles);
+    }
+}
+
+/// Loads the weapon configurations and stores them in a resource.
+fn setup_configuration(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    // @todo-brian: We might want it so that the server loads these 
+    // and then the client just receives the configurations from the server.
+    // That way, the server can configure on the fly and it all syncs up.
+    // This would be ideal during heavy development phase, and it lends itself to modding.
+    commands.insert_resource(WeaponConfigurations {
+        dual_lasers: asset_server.load("data/weapons/dual_lasers.weapon.ron"),
+        rocket_launcher: asset_server.load("data/weapons/rocket_launcher.weapon.ron"),
+    });
+}
+
+/// Watch for changes to weapon configurations and log them.
+fn configuration_change_watcher(
+    mut events: EventReader<AssetEvent<WeaponConfiguration>>,
+) {
+    for event in events.read() {
+        match event {
+            AssetEvent::LoadedWithDependencies { id: _ } => {
+                //info!("Weapon config loaded: {:?}", id);
+            }
+            AssetEvent::Modified { id: _ } => {
+                //info!("Weapon config modified: {:?}", id);
+            }
+            AssetEvent::Removed { id: _ } => {
+                //info!("Weapon config removed: {:?}", id);
+            }
+            _ => {}
+        }
     }
 }
 
@@ -68,14 +108,14 @@ pub(crate) fn shoot_projectiles(
 
 /// The resource that contains all the weapon configurations.
 #[derive(Resource)]
-pub enum WeaponConfigurations {
-    DualLasers(WeaponConfiguration),
-    RocketLauncher(WeaponConfiguration),
+pub struct WeaponConfigurations {
+    dual_lasers: Handle<WeaponConfiguration>,
+    rocket_launcher: Handle<WeaponConfiguration>,
 }
 
 /// A weapon configuration is basically what it sounds like, 
 /// it defines all the behaviors of a weapon.
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Asset, TypePath, serde::Deserialize, serde::Serialize)]
 pub struct WeaponConfiguration {
     pub name: String,
     pub description: String,
