@@ -22,7 +22,7 @@ fn spawn_visuals(
         (
             Mesh3d(meshes.add(Mesh::from(Sphere {
                 // TODO: must match the collider size
-                radius: 0.5,
+                radius: 0.1,
                 ..default()
             }))),
             MeshMaterial3d(materials.add(StandardMaterial {

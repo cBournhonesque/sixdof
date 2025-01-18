@@ -1,4 +1,4 @@
-use avian3d::prelude::{Collider, LinearVelocity, Position};
+use avian3d::prelude::{Collider, LinearVelocity, Position, RigidBody};
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 use lightyear::client::prediction::Predicted;
@@ -38,15 +38,21 @@ pub(crate) fn shoot_projectiles(
 
         // NOTE: pressed lets you shoot many bullets, which can be cool
         if action.just_pressed(&PlayerInput::ShootPrimary) {
+            let direction = transform.forward().as_vec3();
+
+            // offset a little bit from the player
+            let mut new_transform = *transform;
+            new_transform.translation += 0.5 * direction;
             let projectile = (
-                *transform,
+                new_transform,
                 Projectile,
                 // TODO: change projectile speed
-                LinearVelocity(transform.translation.normalize() * 10.0),
+                LinearVelocity(direction * 5.0),
                 // TODO: change projectile shape
-                Collider::sphere(0.5),
+                Collider::sphere(0.1),
                 // the projectile will be spawned on both client (in the predicted timeline) and the server
                 PreSpawnedPlayerObject::default(),
+                RigidBody::Dynamic,
             );
 
             // on the server, spawn and replicate the projectile
