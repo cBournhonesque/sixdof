@@ -2,7 +2,7 @@ use bevy::color::palettes::basic::BLUE;
 use bevy::core_pipeline::prepass::DepthPrepass;
 use bevy::prelude::*;
 use bevy::render::camera::Exposure;
-use lightyear::prelude::client::Confirmed;
+use lightyear::prelude::client::{Confirmed, Predicted, VisualInterpolateStatus};
 use lightyear::shared::replication::components::Controlled;
 use shared::player::Player;
 
@@ -21,15 +21,21 @@ impl Plugin for PlayerPlugin {
 /// Add meshes/visuals for spawned players
 fn spawn_visuals(
     // we do not want to add visuals to confirmed entities on the client
-    query: Query<(Entity, Has<Controlled>), (Without<Confirmed>, Added<Player>)>,
+    query: Query<(Entity, Has<Controlled>, Has<Predicted>), (Without<Confirmed>, Added<Player>)>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     // mut atomized_materials: ResMut<Assets<AtomizedMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    query.iter().for_each(|(parent, is_controlled)| {
+    query.iter().for_each(|(parent, is_controlled, is_predicted)| {
         // add visibility
         commands.entity(parent).insert(Visibility::default());
+
+        // TODO: don't do this in host-server mode!
+        // add visual interpolation on the predicted entity
+        if is_predicted {
+            commands.entity(parent).insert(VisualInterpolateStatus::<Transform>::default());
+        }
         // add lights
         // TODO: why do we need it as a child? so we can specify a direction (via Transform) to the light?
         commands.entity(parent).with_children(|parent| {
@@ -80,7 +86,6 @@ fn spawn_visuals(
                     fov: 90.0_f32.to_radians(),
                     ..default()
                 }),
-                Transform::default(),
             ));
         }
     });

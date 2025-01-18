@@ -2,6 +2,8 @@ use bevy::asset::AssetPlugin;
 use bevy::diagnostic::DiagnosticsPlugin;
 use bevy::hierarchy::HierarchyPlugin;
 use bevy::prelude::*;
+use bevy::scene::ScenePlugin;
+use bevy::render::mesh::MeshPlugin;
 use bevy::state::app::StatesPlugin;
 use lightyear::prelude::server::*;
 use crate::settings;
@@ -34,6 +36,9 @@ impl ServerApp {
                 file_path: settings::ASSETS_PATH.to_string(),
                 ..default()
             },
+            // the mesh asset is needed for avian collisions
+            MeshPlugin,
+            ScenePlugin,
             settings::log_plugin(),
             StatesPlugin,
             HierarchyPlugin,

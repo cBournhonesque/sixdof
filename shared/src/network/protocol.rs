@@ -2,9 +2,10 @@ use bevy::prelude::*;
 use leafwing_input_manager::{Actionlike, InputControlKind};
 use lightyear::prelude::*;
 use avian3d::prelude::*;
-use lightyear::prelude::client::ComponentSyncMode;
+use lightyear::prelude::client::{ComponentSyncMode, LerpFn};
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
+use lightyear::utils::bevy::TransformLinearInterpolation;
 
 pub struct ProtocolPlugin;
 
@@ -68,17 +69,16 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<ExternalImpulse>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full);
 
-        app.register_component::<Transform>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full);
+        // app.register_component::<Transform>(ChannelDirection::ServerToClient)
+        //     .add_prediction(ComponentSyncMode::Full)
+        //     .add_interpolation_fn(<TransformLinearInterpolation as LerpFn<Transform>>::lerp);
+        //     // .add_correction_fn(<TransformLinearInterpolation as LerpFn<Transform>>::lerp);
 
-        app.register_component::<ComputedMass>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full);
-
-        // Position and Rotation have a `correction_fn` set, which is used to smear rollback errors
-        // over a few frames, just for the rendering part in postudpate.
-        //
-        // They also set `interpolation_fn` which is used by the VisualInterpolationPlugin to smooth
-        // out rendering between fixedupdate ticks.
+        // // Position and Rotation have a `correction_fn` set, which is used to smear rollback errors
+        // // over a few frames, just for the rendering part in postudpate.
+        // //
+        // // They also set `interpolation_fn` which is used by the VisualInterpolationPlugin to smooth
+        // // out rendering between fixedupdate ticks.
         app.register_component::<Position>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full)
             .add_interpolation_fn(position::lerp)
@@ -88,5 +88,11 @@ impl Plugin for ProtocolPlugin {
             .add_prediction(ComponentSyncMode::Full)
             .add_interpolation_fn(rotation::lerp)
             .add_correction_fn(rotation::lerp);
+
+        // do not replicate Transform but make sure to register an interpolation function
+        // for it so that we can do visual interpolation
+        // (another option would be to replicate transform and not use Position/Rotation at all)
+        app.add_interpolation::<Transform>(ComponentSyncMode::None);
+        app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
     }
 }

@@ -73,7 +73,8 @@ fn spawn_player_on_connect(mut commands: Commands, mut events: EventReader<Conne
                 //     ],
                 // }),
                 RigidBody::Kinematic,
-                Collider::sphere(0.5),
+                // TODO: contacts are not fully deterministic in avian!
+                // Collider::sphere(0.5),
             )
         );
     }

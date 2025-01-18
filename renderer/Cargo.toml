@@ -12,6 +12,7 @@ server = []
 shared = { path = "../shared", default-features = false }
 lightyear.workspace = true
 bevy-inspector-egui.workspace = true
+avian3d.workspace = true
 bevy = { workspace = true, features = [
     "bevy_asset",
     "bevy_render",

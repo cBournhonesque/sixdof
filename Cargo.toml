@@ -21,8 +21,8 @@ bevy = { version = "0.15", default-features = false, features = [
     "multi_threaded",
     "bevy_state",
     "serialize",
+    "bevy_scene",
     "bevy_asset",
-    "bevy_state",
     "bevy_color",
     "multi_threaded",
     "sysinfo_plugin",
@@ -31,6 +31,8 @@ avian3d = { version = "0.2", default-features = false, features = [
     "3d",
     "f32",
     "parry-f32",
+    "collider-from-mesh",
+    "bevy_scene",
     "parallel",
     "serialize",
 ] }

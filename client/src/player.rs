@@ -1,4 +1,4 @@
-use avian3d::prelude::Position;
+use avian3d::prelude::{Position, RigidBody};
 use bevy::prelude::*;
 use bevy::prelude::TransformSystem::TransformPropagate;
 use bevy::window::PrimaryWindow;
@@ -24,19 +24,21 @@ impl Plugin for PlayerPlugin {
         //         .before(InputSystemSet::BufferClientInputs)
         //         .run_if(not(is_in_rollback)),
         // );
-        app.add_systems(Update, add_input_map);
+        app.add_systems(Update, handle_predicted_spawn);
         app.add_systems(PostUpdate, player_camera_system.after(TransformPropagate));
     }
 }
 
 
-/// Add an InputMap to Predicted players so they can send inputs to the server
-fn add_input_map(
+/// Handle a newly spawned Predicted player:
+/// - adds an InputMap to Predicted so that the user can control the predicted entity
+/// - adds RigidBody::Kinematic so that physics are also applied to that entity on the client side
+fn handle_predicted_spawn(
     mut commands: Commands,
     predicted_player: Query<Entity, (With<Controlled>, With<Player>, With<Predicted>, Without<InputMap<PlayerInput>>)>
 ) {
     for entity in predicted_player.iter() {
-        commands.entity(entity).insert(InputMap::<PlayerInput>::default()
+        let input_map = InputMap::<PlayerInput>::default()
             .with_multiple([
                 (PlayerInput::MoveForward, KeyCode::KeyW),
                 (PlayerInput::MoveBackward, KeyCode::KeyS),
@@ -51,11 +53,12 @@ fn add_input_map(
                 (PlayerInput::Weapon3, KeyCode::Digit3),
                 (PlayerInput::Weapon4, KeyCode::Digit4),
                 (PlayerInput::Weapon5, KeyCode::Digit5),
-        ])
+            ])
             .with(PlayerInput::ShootPrimary, MouseButton::Left)
             .with(PlayerInput::ShootSecondary, MouseButton::Right)
-            .with_dual_axis(PlayerInput::Look, MouseMove::default())
-        );
+            .with_dual_axis(PlayerInput::Look, MouseMove::default());
+
+        commands.entity(entity).insert((input_map, RigidBody::Kinematic));
     }
 }
 
