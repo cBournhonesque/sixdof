@@ -25,7 +25,6 @@ impl Plugin for PlayerPlugin {
         //         .run_if(not(is_in_rollback)),
         // );
         app.add_systems(Update, handle_predicted_spawn);
-        app.add_systems(PostUpdate, player_camera_system.after(TransformPropagate));
     }
 }
 
@@ -97,19 +96,3 @@ fn handle_predicted_spawn(
 //         }
 //     }
 // }
-
-
-
-// TODO: should this be updated in FixedPostUpdate after physics to make sure that the inputs are correct?
-/// Make the camera follow the controlled player
-pub fn player_camera_system(
-    mut camera: Query<&mut Transform, With<Camera>>,
-    player: Query<&Transform, (With<Player>, With<Controlled>, Without<Camera>)>,
-) {
-    if let Ok(mut camera_transform) = camera.get_single_mut() {
-        if let Ok(player_transform) = player.get_single() {
-            camera_transform.translation = player_transform.translation;
-            camera_transform.rotation = player_transform.rotation;
-        }
-    }
-}

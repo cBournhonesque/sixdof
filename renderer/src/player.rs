@@ -74,8 +74,7 @@ fn spawn_visuals(
             ));
         } else {
             // spawn a camera for 1-st person view
-            commands.entity(parent).with_child((
-                Name::from("Camera"),
+            commands.entity(parent).insert((
                 Camera3d::default(),
                 Camera {
                     hdr: true,
