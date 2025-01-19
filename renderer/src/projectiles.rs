@@ -1,48 +1,54 @@
 use bevy::color::palettes::basic::{BLUE, YELLOW};
 use bevy::prelude::*;
+use bevy::utils::Duration;
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::client::prediction::Predicted;
 use lightyear::prelude::client::VisualInterpolateStatus;
 use lightyear::prelude::Replicating;
 use shared::player::Player;
-use shared::prelude::{PlayerInput, RayCastBullet};
+use shared::prelude::{DespawnAfter, PlayerInput, RayCastBullet};
 use shared::projectiles::Projectile;
 
 pub(crate) struct ProjectilesPlugin;
 
 impl Plugin for ProjectilesPlugin {
     fn build(&self, app: &mut App) {
-
         // SYSTEMS
         app.add_observer(spawn_visuals);
+        app.add_systems(Update, spawn_raycast_gizmos);
         app.add_systems(PostUpdate, show_raycast_gizmos);
     }
 }
 
 
 /// When an instant projectile is spawned, add Gizmo visuals
-fn show_raycast_gizmos(
+fn spawn_raycast_gizmos(
+    mut commands: Commands,
     mut event_reader: EventReader<RayCastBullet>,
-    mut gizmos: Gizmos,
 ) {
     for event in event_reader.read() {
         info!(?event, "Shooting ray!");
-        // gizmos.line(
-        //     event.source,
-        //     event.source + event.direction.as_vec3() * 1000.0,
-        //     YELLOW,
-        // );
-        // gizmos.line(
-        //     event.source,
-        //     event.source - event.direction.as_vec3() * 1000.0,
-        //     YELLOW,
-        // );
+        commands.spawn((
+            DespawnAfter(Timer::new(Duration::from_millis(50), TimerMode::Once)),
+            event.clone(),
+        ));
+
+    }
+}
+
+/// Display the gizmos for the raycast bullets
+fn show_raycast_gizmos(
+    mut gizmos: Gizmos,
+    query: Query<&RayCastBullet>,
+) {
+    query.iter().for_each(|event| {
+        info!(?event, "PrintRay");
         gizmos.ray(
             event.source,
             event.direction.as_vec3(),
             YELLOW,
         );
-    }
+    });
 }
 
 /// When a projectile is spawn, add visuals to it

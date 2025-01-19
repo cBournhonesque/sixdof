@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 use lightyear::client::prediction::Predicted;
 use lightyear::prelude::*;
-use lightyear::prelude::client::{InterpolationDelay, Rollback};
+use lightyear::prelude::client::Rollback;
 use lightyear::prelude::server::{Replicate, SyncTarget};
 use crate::player::Player;
 use crate::prelude::{PlayerInput, PREDICTION_REPLICATION_GROUP_ID};
@@ -123,7 +123,8 @@ pub(crate) fn shoot_replicated_projectiles(
 }
 
 /// Infinite-speed bullet
-#[derive(Event, Debug)]
+/// (we make it a component so that we can display the visuals for more than 1 frame using gizmos)
+#[derive(Event, Clone, Debug)]
 pub struct RayCastBullet {
     pub shooter: Entity,
     pub source: Vector,
@@ -136,7 +137,7 @@ pub struct RayCastBullet {
 /// The projectiles are moved by physics. This is probably unnecessary and very CPU-intensive?
 /// We just need to do a raycast/shapecast from the initial bullet firing point, while tracking the speed of the bullet
 pub(crate) fn shoot_projectiles(
-    mut commands: Commands,
+    mut _commands: Commands,
     mut raycast_writer: EventWriter<RayCastBullet>,
     query: Query<
         (

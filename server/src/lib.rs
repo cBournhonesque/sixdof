@@ -1,7 +1,7 @@
 mod player;
 mod bot;
 mod projectiles;
-mod collider_history;
+mod lag_compensation;
 
 use bevy::app::{App, Startup};
 use bevy::prelude::{Commands, DefaultGizmoConfigGroup, GizmoConfigStore, Plugin};
@@ -15,7 +15,9 @@ impl Plugin for ServerPlugin {
 
         // PLUGINS
         app.add_plugins(bot::BotPlugin);
+        app.add_plugins(lag_compensation::LagCompensationPlugin);
         app.add_plugins(player::PlayerPlugin);
+        app.add_plugins(projectiles::ProjectilesPlugin);
 
 
         // SYSTEMS

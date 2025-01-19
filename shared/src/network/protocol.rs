@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use leafwing_input_manager::{Actionlike, InputControlKind};
+use leafwing_input_manager::Actionlike;
 use lightyear::prelude::*;
 use avian3d::prelude::*;
 use lightyear::prelude::client::{ComponentSyncMode, LerpFn};

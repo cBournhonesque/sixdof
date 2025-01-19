@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use lightyear::prelude::*;
 use shared::prelude::{GameLayer, ProjectileSet};
 use shared::projectiles::RayCastBullet;
-use crate::collider_history::LagCompensationSpawnTick;
+use crate::lag_compensation::LagCompensationSpawnTick;
 
 
 /// Handles projectiles colliding with walls and enemies
