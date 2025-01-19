@@ -2,7 +2,7 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use bevy::log::{Level, LogPlugin};
 use bevy::utils::Duration;
 use bevy::prelude::*;
-use bevy::window::PresentMode;
+use bevy::window::{CursorOptions, PresentMode};
 #[cfg(feature = "client")]
 use lightyear::prelude::client::*;
 use lightyear::prelude::*;
@@ -90,6 +90,10 @@ pub(crate) fn server_config() -> ServerConfig {
 pub(crate) fn window_plugin() -> WindowPlugin {
     WindowPlugin {
         primary_window: Some(Window {
+            cursor_options: CursorOptions {
+                visible: true,
+                ..default()
+            },
             title: format!("Lightyear Example: {}", env!("CARGO_PKG_NAME")),
             resolution: (1024., 768.).into(),
             present_mode: PresentMode::AutoVsync,

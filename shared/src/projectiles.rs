@@ -1,22 +1,33 @@
-use avian3d::position::Rotation;
-use avian3d::prelude::{Collider, LinearVelocity, Position, RigidBody};
+use avian3d::math::Vector;
+use avian3d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 use lightyear::client::prediction::Predicted;
 use lightyear::prelude::*;
-use lightyear::prelude::client::Rollback;
+use lightyear::prelude::client::{InterpolationDelay, Rollback};
 use lightyear::prelude::server::{Replicate, SyncTarget};
 use crate::player::Player;
 use crate::prelude::{PlayerInput, PREDICTION_REPLICATION_GROUP_ID};
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ProjectileSet {
+    /// Spawn projectiles
+    Spawn,
+    /// Handle projectile hits
+    Hits,
+}
 
 pub(crate) struct ProjectilesPlugin;
 
 impl Plugin for ProjectilesPlugin {
     fn build(&self, app: &mut App) {
+        // EVENTS
+        app.add_event::<RayCastBullet>();
+
         // SYSTEMS
         // TODO: use replicated projectiles for projectiles that can have a non-deterministic trajectory (bouncing on walls, homing missiles)
         // app.add_systems(FixedUpdate, shoot_replicated_projectiles);
-        app.add_systems(FixedUpdate, shoot_projectiles);
+        app.add_systems(FixedUpdate, shoot_projectiles.in_set(ProjectileSet::Spawn));
 
         // DEBUG
         // app.add_systems(FixedLast, debug_after_physics);
@@ -111,13 +122,25 @@ pub(crate) fn shoot_replicated_projectiles(
     }
 }
 
+/// Infinite-speed bullet
+#[derive(Event, Debug)]
+pub struct RayCastBullet {
+    pub shooter: Entity,
+    pub source: Vector,
+    pub direction: Dir3,
+    pub interpolation_delay_ticks: u16,
+    pub interpolation_overstep: f32,
+}
+
 /// Shoot projectiles from the current weapon when the shoot action is pressed
 /// The projectiles are moved by physics. This is probably unnecessary and very CPU-intensive?
 /// We just need to do a raycast/shapecast from the initial bullet firing point, while tracking the speed of the bullet
 pub(crate) fn shoot_projectiles(
     mut commands: Commands,
+    mut raycast_writer: EventWriter<RayCastBullet>,
     query: Query<
         (
+            Entity,
             &Player,
             &Transform,
             &ActionState<PlayerInput>,
@@ -125,23 +148,35 @@ pub(crate) fn shoot_projectiles(
         Or<(With<Predicted>, With<Replicating>)>,
     >,
 ) {
-    for (_player, transform, action) in query.iter() {
+    for (entity, _player, transform, action) in query.iter() {
         // NOTE: pressed lets you shoot many bullets, which can be cool
-        if action.just_pressed(&PlayerInput::ShootPrimary) {
-            let direction = transform.forward().as_vec3();
 
-            // offset a little bit from the player
-            let mut new_transform = *transform;
-            new_transform.translation += 0.5 * direction;
-            commands.spawn((
-                new_transform,
-                Projectile,
-                // TODO: change projectile speed
-                LinearVelocity(direction * 5.0),
-                // TODO: change projectile shape
-                Collider::sphere(0.05),
-                RigidBody::Dynamic,
-            ));
+        if action.just_pressed(&PlayerInput::ShootPrimary) {
+            // TODO: maybe offset the bullet a little bit from the player to avoid colliding with the player?
+            let direction = transform.forward().as_vec3();
+            raycast_writer.send(RayCastBullet {
+                shooter: entity,
+                source: transform.translation + 0.5 * direction,
+                direction: transform.forward(),
+                interpolation_delay_ticks: 0,
+                interpolation_overstep: 0.0,
+            });
+
+            // let direction = transform.forward().as_vec3();
+            // // offset a little bit from the player
+            // let mut new_transform = *transform;
+            // new_transform.translation += 0.5 * direction;
+            // commands.spawn((
+            //     new_transform,
+            //     Projectile,
+            //     // TODO: change projectile speed
+            //     LinearVelocity(direction * 5.0),
+            //     // TODO: change projectile shape
+            //     Collider::sphere(0.05),
+            //     RigidBody::Dynamic,
+            // ));
+
+
         }
     }
 }

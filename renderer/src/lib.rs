@@ -1,6 +1,8 @@
 mod player;
 mod projectiles;
 mod bot;
+#[cfg(feature = "client")]
+mod hud;
 
 use bevy::ecs::query::QueryFilter;
 use bevy::prelude::*;
@@ -35,17 +37,18 @@ impl Plugin for RendererPlugin {
             ..default()
         });
 
+
+        // RESOURCES
+        let mut store = app.world_mut().resource_mut::<GizmoConfigStore>();
+        let (config, _) = store.config_mut::<DefaultGizmoConfigGroup>();
+        config.line_width = 20.0;
+        config.depth_bias = -0.1;
+
         #[cfg(feature = "client")]
-        // we use Position and Rotation as primary source of truth, so no need to sync changes
-        // from Transform->Pos, just Pos->Transform.
-        // Also we apply visual interpolation on Transform, but that's just for visuals, we want the real
-        // value to still come from Position/Rotation
-        app.insert_resource(avian3d::sync::SyncConfig {
-            transform_to_position: false,
-            position_to_transform: true,
-            ..default()
-        });
-        app.add_plugins(VisualInterpolationPlugin::<Transform>::default());
+        {
+            app.add_plugins(VisualInterpolationPlugin::<Transform>::default());
+            app.add_plugins(hud::HudPlugin);
+        }
 
         // SYSTEMS
         // TODO: separate client renderer from server renderer? The features cfg are not enough

@@ -40,7 +40,6 @@ fn spawn_bot(mut commands: Commands) {
             Bot,
             Transform::from_xyz(1.0, 4.0, -1.0),
             RigidBody::Kinematic,
-            // TODO: contacts are not fully deterministic in avian!
             Collider::sphere(0.5),
         )
     );

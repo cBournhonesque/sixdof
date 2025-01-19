@@ -4,13 +4,15 @@ use bevy::prelude::*;
 mod network;
 mod map;
 mod states;
-mod physics;
+pub mod physics;
 pub mod player;
 pub mod projectiles;
 pub mod bot;
 
 pub mod prelude {
     pub use crate::network::{protocol::*, settings::*};
+    pub use crate::physics::*;
+    pub use crate::projectiles::*;
     pub use crate::map::*;
     pub use crate::states::*;
     pub use crate::player::Player;

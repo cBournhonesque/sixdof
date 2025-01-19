@@ -5254,6 +5254,7 @@ dependencies = [
  "avian3d",
  "bevy",
  "bevy-inspector-egui",
+ "leafwing-input-manager",
  "lightyear",
  "shared",
 ]

@@ -3,22 +3,35 @@ use bevy::prelude::*;
 use avian3d::prelude::*;
 use avian3d::sync::SyncSet;
 
-pub struct PhysicsPlugin;
+pub(crate) struct PhysicsPlugin;
 
+
+/// Collision layers
+#[derive(PhysicsLayer, Default)]
+pub enum GameLayer {
+    #[default]
+    Default,
+    Wall,
+    Projectile,
+    // TODO: should these be unified?
+    Player,
+    Bot,
+}
 
 impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         // PLUGINS
         app.add_plugins(PhysicsPlugins::default()
                             .build()
-                            // we disable the SyncPlugin because:
-            // 1. The SyncPlugin transform_to_position system causes numerical inconsistencies (presumably because of the use of GlobalTransform)
-            // 2. The SyncPlugin only works on RigidBodies but we want to run it on all entities (for example for interpolated entities we do not add
-            //    a RigidBody) so instead we roll out our own SyncPlugin
-            // 3. We still need to run the SyncPlugin in FixedPostUpdate; if we run it in RunFixedMainLoop, the visual interpolation will have
-            //    empty Transform values when updating VisualInterpolation
                             .disable::<SyncPlugin>()
                             .disable::<PhysicsInterpolationPlugin>());
+
+        // SyncPlugin
+        // 1. The SyncPlugin transform_to_position system causes issues (see https://github.com/Jondolf/avian/issues/634)
+        // 2. The SyncPlugin only works on RigidBodies but we want to run it on all entities (for example for interpolated entities we do not add
+        //    a RigidBody) so instead we roll out our own sync system
+        // 3. We still need to run the SyncPlugin in FixedPostUpdate; if we run it in RunFixedMainLoop, the visual interpolation will have
+        //    empty Transform values when updating VisualInterpolation. VisualInterpolationUpdate runs in FixedLast.
 
         // SYSTEMS
         app.add_systems(
@@ -79,7 +92,7 @@ pub fn position_to_transform(
         } else {
             transform.translation = pos.f32();
             transform.rotation = rot.f32();
-            info!(?transform, ?pos, ?rot, "PosToTransform");
+            // info!(?transform, ?pos, ?rot, "PosToTransform");
         }
     }
 }
