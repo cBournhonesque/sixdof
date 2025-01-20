@@ -4,7 +4,7 @@ mod projectiles;
 mod lag_compensation;
 
 use bevy::app::{App, Startup};
-use bevy::prelude::{Commands, DefaultGizmoConfigGroup, GizmoConfigStore, Plugin};
+use bevy::prelude::{Commands, Plugin};
 use lightyear::prelude::server::ServerCommands;
 
 pub struct ServerPlugin;

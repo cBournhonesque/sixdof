@@ -21,18 +21,34 @@ impl Plugin for ProjectilesPlugin {
 }
 
 
+// TODO: maybe this is not ne
 /// When an instant projectile is spawned, add Gizmo visuals
 fn spawn_raycast_gizmos(
     mut commands: Commands,
+    mut gizmos: Gizmos,
     mut event_reader: EventReader<RayCastBullet>,
 ) {
     for event in event_reader.read() {
         info!(?event, "Shooting ray!");
+        // gizmos.ray(
+        //     event.source,
+        //     event.direction.as_vec3() * 1000.0,
+        //     YELLOW,
+        // );
+        // NOTE: we cannot do the raycast directly forward, because then the raycast will be invisible
+        // since the user is directly looking at that direction
+        // instead we can offset the raycast
+        // let end = event.source + event.direction * 1000.0;
+        // let source = event.source;
+        let visual_raycast = RayCastBullet {
+            source: event.source,
+            direction: event.direction,
+            ..default()
+        };
         commands.spawn((
-            DespawnAfter(Timer::new(Duration::from_millis(50), TimerMode::Once)),
-            event.clone(),
+            DespawnAfter(Timer::new(Duration::from_millis(100), TimerMode::Once)),
+            visual_raycast,
         ));
-
     }
 }
 
@@ -42,10 +58,9 @@ fn show_raycast_gizmos(
     query: Query<&RayCastBullet>,
 ) {
     query.iter().for_each(|event| {
-        info!(?event, "PrintRay");
         gizmos.ray(
             event.source,
-            event.direction.as_vec3(),
+            event.direction.as_vec3() * 1000.0,
             YELLOW,
         );
     });

@@ -102,6 +102,10 @@ impl Plugin for ProtocolPlugin {
         app.add_interpolation::<Transform>(ComponentSyncMode::None);
         app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
 
+        // NOTE: we do not replicate Transform because the avian transform->position sync plugin causes inaccuracies
+        // TODO: maybe applying a TransformPropagate system in PreUpdate after the VisualInterpolation reset
+        //  would fix the problem
+
         // // Try replicating only Transform
         // app.register_component::<Transform>(ChannelDirection::ServerToClient)
         //     .add_prediction(ComponentSyncMode::Full)

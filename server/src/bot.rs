@@ -1,11 +1,13 @@
 use std::ops::DerefMut;
 use std::time::Duration;
-use avian3d::prelude::{Collider, Position, RigidBody};
+use avian3d::prelude::{Collider, CollisionLayers, Position, RigidBody};
 use bevy::prelude::*;
 use bevy::time::Stopwatch;
 use lightyear::prelude::*;
 use lightyear::prelude::server::*;
 use shared::bot::Bot;
+use shared::prelude::GameLayer;
+use crate::lag_compensation::LagCompensationHistory;
 // TODO: should bots be handled similarly to players? i.e. they share most of the same code (visuals, collisions)
 //  but they are simply controlled by the server. The server could be sending fake inputs to the bots so that their movement
 //  is the same as players
@@ -38,9 +40,11 @@ fn spawn_bot(mut commands: Commands) {
                 ..default()
             },
             Bot,
-            Transform::from_xyz(1.0, 4.0, -1.0),
+            Transform::from_xyz(1.0, 6.0, -1.0),
             RigidBody::Kinematic,
             Collider::sphere(0.5),
+            LagCompensationHistory::default(),
+            CollisionLayers::new([GameLayer::Player], [GameLayer::Wall]),
         )
     );
 }
@@ -56,9 +60,9 @@ fn move_bot(time: Res<Time>, mut query: Query<&mut Position, With<Bot>>, mut tim
             *go_up = !*go_up;
         }
         if *go_up {
-            position.y += 0.1;
+            position.y += 0.02;
         } else {
-            position.y -= 0.1;
+            position.y -= 0.02;
         }
     });
 }

@@ -133,6 +133,18 @@ pub struct RayCastBullet {
     pub interpolation_overstep: f32,
 }
 
+impl Default for RayCastBullet {
+    fn default() -> Self {
+        Self {
+            shooter: Entity::PLACEHOLDER,
+            source: Vector::ZERO,
+            direction: Dir3::Z,
+            interpolation_delay_ticks: 0,
+            interpolation_overstep: 0.0,
+        }
+    }
+}
+
 /// Shoot projectiles from the current weapon when the shoot action is pressed
 /// The projectiles are moved by physics. This is probably unnecessary and very CPU-intensive?
 /// We just need to do a raycast/shapecast from the initial bullet firing point, while tracking the speed of the bullet
@@ -154,10 +166,9 @@ pub(crate) fn shoot_projectiles(
 
         if action.just_pressed(&PlayerInput::ShootPrimary) {
             // TODO: maybe offset the bullet a little bit from the player to avoid colliding with the player?
-            let direction = transform.forward().as_vec3();
             raycast_writer.send(RayCastBullet {
                 shooter: entity,
-                source: transform.translation + 0.5 * direction,
+                source: transform.translation,
                 direction: transform.forward(),
                 interpolation_delay_ticks: 0,
                 interpolation_overstep: 0.0,

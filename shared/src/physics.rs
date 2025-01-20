@@ -13,9 +13,10 @@ pub enum GameLayer {
     Default,
     Wall,
     Projectile,
-    // TODO: should these be unified?
     Player,
-    Bot,
+    /// Used for lag compensation: we will check the collision between the bullet and the AABB bounding box
+    /// of the collider + it's history
+    LagCompensatedBroadPhase,
 }
 
 impl Plugin for PhysicsPlugin {
