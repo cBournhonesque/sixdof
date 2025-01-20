@@ -40,7 +40,7 @@ fn spawn_bot(mut commands: Commands) {
                 ..default()
             },
             Bot,
-            Transform::from_xyz(1.0, 6.0, -1.0),
+            Transform::from_xyz(1.0, 4.0, -1.0),
             RigidBody::Kinematic,
             Collider::sphere(0.5),
             LagCompensationHistory::default(),

@@ -170,7 +170,8 @@ pub(crate) fn shoot_projectiles(
                 shooter: entity,
                 source: transform.translation,
                 direction: transform.forward(),
-                interpolation_delay_ticks: 0,
+                // TODO: use values sent by the client! right now we hardcode
+                interpolation_delay_ticks: 7,
                 interpolation_overstep: 0.0,
             });
 

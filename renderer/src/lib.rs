@@ -41,8 +41,8 @@ impl Plugin for RendererPlugin {
             brightness: 0.0,
             ..default()
         });
-
-
+        #[cfg(feature = "server")]
+        app.add_plugins(lag_compensation::LagCompensationPlugin);
 
         // RESOURCES
         let mut store = app.world_mut().resource_mut::<GizmoConfigStore>();
@@ -58,6 +58,7 @@ impl Plugin for RendererPlugin {
 
         // SYSTEMS
         // TODO: separate client renderer from server renderer? The features cfg are not enough
+        //  how do we deal with host-server / listen-server modes where both client and server are enabled?
         // on the server, the camera doesn't follow a player
         #[cfg(not(feature = "client"))]
         app.add_systems(Startup, init);
@@ -65,6 +66,7 @@ impl Plugin for RendererPlugin {
 }
 
 
+// TODO: spawn a camera that is controllable on the server side to debug issues
 #[cfg(not(feature = "client"))]
 fn init(mut commands: Commands) {
     commands.spawn(Camera3d::default());

@@ -8,7 +8,16 @@ pub(crate) struct LagCompensationPlugin;
 
 impl Plugin for LagCompensationPlugin {
     fn build(&self, app: &mut App) {
+        app.add_observer(add_debug_render_broad_phase_collider_aabb);
     }
+}
+
+/// Add the DebugRender to the AABB envelopes for lag compensation
+fn add_debug_render_broad_phase_collider_aabb(
+    trigger: Trigger<OnAdd, LagCompensationHistoryBroadPhase>,
+    mut commands: Commands,
+) {
+    commands.entity(trigger.entity()).insert(DebugRender::collider(Color::WHITE));
 }
 
 

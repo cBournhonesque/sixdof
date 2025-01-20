@@ -15,35 +15,46 @@ impl Plugin for ProjectilesPlugin {
     fn build(&self, app: &mut App) {
         // SYSTEMS
         app.add_observer(spawn_visuals);
-        app.add_systems(Update, spawn_raycast_gizmos);
-        app.add_systems(PostUpdate, show_raycast_gizmos);
+        app.add_systems(Last, (spawn_raycast_gizmos, show_raycast_gizmos).chain());
     }
 }
 
+#[derive(Component, Debug)]
+struct VisualRay {
+    source: Vec3,
+    target: Vec3,
+}
 
-// TODO: maybe this is not ne
+// TODO: on the server, we should cast the ray directly from
 /// When an instant projectile is spawned, add Gizmo visuals
 fn spawn_raycast_gizmos(
     mut commands: Commands,
-    mut gizmos: Gizmos,
+    // mut gizmos: Gizmos,
     mut event_reader: EventReader<RayCastBullet>,
+    // NOTE: we cannot do the raycast directly forward, because then the raycast will be invisible
+    // since the user is directly looking at that direction
+    // instead we can offset the raycast
+    camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     for event in event_reader.read() {
-        info!(?event, "Shooting ray!");
+        let target = event.source + event.direction.as_vec3() * 1000.0;
+        // if the shot comes from the client, we need to angle the visuals otherwise the ray will be invisible
+        // since the camera is looking straight into it
+        let source = camera.get(event.shooter)
+            .map_or(event.source, |(camera, transform)| {
+                let res = camera.ndc_to_world(transform, Vec3::new(0.0, 0.5, 0.0)).unwrap();
+                info!(?res, "converting from NDC to world");
+                res
+        });
+        info!(?target, ?source, "Spawning ray visuals!");
         // gizmos.ray(
         //     event.source,
         //     event.direction.as_vec3() * 1000.0,
         //     YELLOW,
         // );
-        // NOTE: we cannot do the raycast directly forward, because then the raycast will be invisible
-        // since the user is directly looking at that direction
-        // instead we can offset the raycast
-        // let end = event.source + event.direction * 1000.0;
-        // let source = event.source;
-        let visual_raycast = RayCastBullet {
-            source: event.source,
-            direction: event.direction,
-            ..default()
+        let visual_raycast = VisualRay {
+            source,
+            target,
         };
         commands.spawn((
             DespawnAfter(Timer::new(Duration::from_millis(100), TimerMode::Once)),
@@ -55,12 +66,12 @@ fn spawn_raycast_gizmos(
 /// Display the gizmos for the raycast bullets
 fn show_raycast_gizmos(
     mut gizmos: Gizmos,
-    query: Query<&RayCastBullet>,
+    query: Query<&VisualRay>,
 ) {
     query.iter().for_each(|event| {
-        gizmos.ray(
+        gizmos.line(
             event.source,
-            event.direction.as_vec3() * 1000.0,
+            event.target,
             YELLOW,
         );
     });
