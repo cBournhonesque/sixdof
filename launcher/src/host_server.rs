@@ -1,16 +1,14 @@
-use bevy::asset::AssetPlugin;
-use bevy::DefaultPlugins;
-use bevy::prelude::*;
-use lightyear::prelude::{client::NetConfig, client::ClientPlugins, server::ServerPlugins, Mode};
 use crate::settings;
+use bevy::asset::AssetPlugin;
+use bevy::prelude::*;
+use bevy::DefaultPlugins;
+use lightyear::prelude::{client::ClientPlugins, client::NetConfig, server::ServerPlugins, Mode};
 
 pub struct HostServer(App);
 impl HostServer {
     pub fn new(client_id: u64) -> Self {
         let mut client_config = settings::client_config(client_id);
-        client_config.net = NetConfig::Local {
-            id: client_id
-        };
+        client_config.net = NetConfig::Local { id: client_id };
         client_config.shared.mode = Mode::HostServer;
         let mut server_config = settings::server_config();
         server_config.shared.mode = Mode::HostServer;
@@ -30,8 +28,12 @@ impl HostServer {
                 .set(settings::log_plugin())
                 .set(settings::window_plugin()),
         );
-        app.add_plugins(ClientPlugins { config: client_config });
-        app.add_plugins(ServerPlugins { config: server_config });
+        app.add_plugins(ClientPlugins {
+            config: client_config,
+        });
+        app.add_plugins(ServerPlugins {
+            config: server_config,
+        });
         app.add_plugins(shared::SharedPlugin { headless: false });
         app.add_plugins(client::ClientPlugin);
         app.add_plugins(server::ServerPlugin);

@@ -34,20 +34,26 @@ pub(crate) enum LagCompensationSet {
 
 impl Plugin for LagCompensationPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(spawn_lag_compensation_broad_phase_collider);
         // NOTE: we want the history at tick N to contain the collider state AFTER the physics-set ran
         // (because for example in PostUpdate::Send, we replicate the server position at tick N after the PhysicsSet ran)
         // Therefore we want to run these after the Solver, but before the SpatialQueryPipeline gets updated
-        app.add_systems(FixedPostUpdate, (
-            update_collider_history,
-            update_lag_compensation_broad_phase_collider
-        ).chain()
-        .in_set(LagCompensationSet::UpdateHistory));
+        app.add_systems(
+            FixedPostUpdate,
+                (
+                    spawn_lag_compensation_broad_phase_collider,
+                    update_collider_history,
+                    update_lag_compensation_broad_phase_collider,
+                    // we need to update the SpatialQuery pipeline so that the queries our up-to-date
+                    // with the broad-phase collider
+                    |mut spatial_query: SpatialQuery| spatial_query.update_pipeline(),
+                ).chain()
+                .in_set(LagCompensationSet::UpdateHistory)
+        );
 
-        // TODO: add a debug system to show the aabb envelope
         app.configure_sets(FixedPostUpdate, LagCompensationSet::UpdateHistory
-            .after(PhysicsStepSet::Solver)
-            .before(PhysicsStepSet::SpatialQuery)
+            // NOTE: we cannot order directly with PhysicsSetSteps because those are part of a
+            //  different schedule!
+            .after(PhysicsSet::StepSimulation)
             .before(ProjectileSet::Hits)
         );
     }
@@ -61,7 +67,7 @@ pub const MAX_COLLIDER_HISTORY_TICKS: u16 = 20;
 /// Marker component to indicate that this collider holds the history AABB manifold
 /// for lag compensation
 #[derive(Component)]
-pub(crate) struct LagCompensationHistoryBroadPhase;
+pub struct LagCompensationHistoryBroadPhase;
 
 
 /// ColliderData that will be included in the history
@@ -75,28 +81,31 @@ type ColliderData = (
 /// History of the collider data for the past few ticks
 pub(crate) type LagCompensationHistory = HistoryBuffer<(Collider, Position, Rotation, ColliderAabb)>;
 
+// NOTE: we cannot use an observer for this because the ColliderAabb is not valid when the collider is created
+//  it only gets updated on `update_aabb` which runs in the BroadPhase
 /// Spawn a child entity that will be used for broad-phase collision detection
 fn spawn_lag_compensation_broad_phase_collider(
-    trigger: Trigger<OnAdd, LagCompensationHistory>,
-    query: Query<(&ColliderAabb, &Position, &Rotation)>,
+    query: Query<(Entity, &ColliderAabb), Added<LagCompensationHistory>>,
     mut commands: Commands,
 ) {
-    let entity = trigger.entity();
-    let (collider_aabb, position, rotation) = query.get(entity).unwrap();
-    let aabb_size = collider_aabb.size();
-    commands.entity(entity).with_child((
-        Collider::cuboid(aabb_size.x, aabb_size.y, aabb_size.z),
-        // avian doesn't have any position/rotation propagation from parent to child
-        position.clone(),
-        rotation.clone(),
-        LagCompensationHistoryBroadPhase,
-        CollisionLayers::new(GameLayer::LagCompensatedBroadPhase, LayerMask::NONE),
-    ));
+    query.iter().for_each(|(entity, collider_aabb)| {
+        let aabb_size = collider_aabb.size();
+        info!(?aabb_size, "spawning broad-phase collider from aabb!");
+        commands.entity(entity).with_child((
+            Collider::cuboid(aabb_size.x, aabb_size.y, aabb_size.z),
+            // the position/rotation values don't matter here because they will be updated in the
+            // `update_lag_compensation_broad_phase_collider` system
+            Position::default(),
+            Rotation::default(),
+            LagCompensationHistoryBroadPhase,
+            CollisionLayers::new(GameLayer::LagCompensatedBroadPhase, LayerMask::NONE),
+        ));
+    });
 }
 
 /// Update the collider of the broad-phase collider to be a union of the AABB of the colliders in the history
 fn update_lag_compensation_broad_phase_collider(
-    parent_query: Query<(&Position, &Rotation, &LagCompensationHistory)>,
+    parent_query: Query<(&Position, &Rotation, &LagCompensationHistory), Without<LagCompensationHistoryBroadPhase>>,
     mut child_query: Query<(Entity, &Parent, &mut Collider, &mut ColliderAabb, &mut Position, &mut Rotation), With<LagCompensationHistoryBroadPhase>>,
 ) {
     // the ColliderAabb is not updated automatically when the Collider component is updated
@@ -106,9 +115,11 @@ fn update_lag_compensation_broad_phase_collider(
             (min.min(aabb.min), max.max(aabb.max))
         });
         // update the collider as the aabb envelope of all the colliders in the history
+        // (the `update_aabb` system runs in the BroadPhase, but we need it to run after the Solver phase)
         *collider_aabb = ColliderAabb::from_min_max(min, max);
         *collider = Collider::cuboid(max.x - min.x, max.y - min.y, max.z - min.z);
         // also update the position/rotation!
+        // (the `update_pos_rot` system runs in the BroadPhase, but we need it to run after the Solver phase)
         *position = *parent_position;
         *rotation = *parent_rotation;
     });

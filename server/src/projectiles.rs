@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use lightyear::prelude::*;
 use shared::prelude::{GameLayer, ProjectileSet};
 use shared::projectiles::RayCastBullet;
-use crate::lag_compensation::LagCompensationHistory;
+use crate::lag_compensation::{LagCompensationHistory, LagCompensationHistoryBroadPhase};
 
 /// Handles projectiles colliding with walls and enemies
 pub(crate) struct ProjectilesPlugin;
@@ -35,7 +35,7 @@ fn handle_raycast_bullet_hit(
     spatial_query: SpatialQuery,
     parent_query: Query<&LagCompensationHistory>,
     // child aabb union colliders
-    child_query: Query<&Parent>,
+    child_query: Query<&Parent, With<LagCompensationHistoryBroadPhase>>,
 ) {
     let tick = tick_manager.tick();
     for event in raycast_events.read() {

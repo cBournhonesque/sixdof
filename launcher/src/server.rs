@@ -1,12 +1,12 @@
+use crate::settings;
 use bevy::asset::AssetPlugin;
 use bevy::diagnostic::DiagnosticsPlugin;
 use bevy::hierarchy::HierarchyPlugin;
 use bevy::prelude::*;
-use bevy::scene::ScenePlugin;
 use bevy::render::mesh::MeshPlugin;
+use bevy::scene::ScenePlugin;
 use bevy::state::app::StatesPlugin;
 use lightyear::prelude::server::*;
-use crate::settings;
 
 pub struct ServerApp(App);
 
@@ -46,8 +46,12 @@ impl ServerApp {
             DiagnosticsPlugin,
         ));
 
-        app.add_plugins(ServerPlugins { config: settings::server_config() });
-        app.add_plugins(shared::SharedPlugin { headless: !cfg!(feature = "gui") });
+        app.add_plugins(ServerPlugins {
+            config: settings::server_config(),
+        });
+        app.add_plugins(shared::SharedPlugin {
+            headless: !cfg!(feature = "gui"),
+        });
         app.add_plugins(server::ServerPlugin);
         #[cfg(feature = "gui")]
         app.add_plugins(renderer::RendererPlugin);

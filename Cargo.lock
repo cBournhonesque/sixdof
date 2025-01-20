@@ -3783,6 +3783,7 @@ dependencies = [
  "anyhow",
  "async-compat",
  "bevy",
+ "bevy-inspector-egui",
  "cfg-if",
  "clap",
  "crossbeam-channel",
@@ -5256,6 +5257,7 @@ dependencies = [
  "bevy-inspector-egui",
  "leafwing-input-manager",
  "lightyear",
+ "server",
  "shared",
 ]
 
