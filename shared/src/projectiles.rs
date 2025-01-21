@@ -162,8 +162,6 @@ pub(crate) fn shoot_projectiles(
     >,
 ) {
     for (entity, _player, transform, action) in query.iter() {
-        // NOTE: pressed lets you shoot many bullets, which can be cool
-
         if action.just_pressed(&PlayerInput::ShootPrimary) {
             // TODO: maybe offset the bullet a little bit from the player to avoid colliding with the player?
             raycast_writer.send(RayCastBullet {
@@ -171,7 +169,7 @@ pub(crate) fn shoot_projectiles(
                 source: transform.translation,
                 direction: transform.forward(),
                 // TODO: use values sent by the client! right now we hardcode
-                interpolation_delay_ticks: 7,
+                interpolation_delay_ticks: 11,
                 interpolation_overstep: 0.0,
             });
 

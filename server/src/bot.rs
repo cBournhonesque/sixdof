@@ -1,6 +1,6 @@
 use std::ops::DerefMut;
-use std::time::Duration;
-use avian3d::prelude::{Collider, CollisionLayers, Position, RigidBody};
+use bevy::utils::Duration;
+use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy::time::Stopwatch;
 use lightyear::prelude::*;
@@ -23,6 +23,9 @@ impl Plugin for BotPlugin {
 
 fn spawn_bot(mut commands: Commands) {
     // TODO: use spawn-events so we can control spawn position, etc.
+    let transform = Transform::from_xyz(1.0, 4.0, -1.0);
+    let position = Position(transform.translation);
+    let rotation = Rotation(transform.rotation);
     commands.spawn(
         (
             Name::from("Bot"),
@@ -41,6 +44,10 @@ fn spawn_bot(mut commands: Commands) {
             },
             Bot,
             Transform::from_xyz(1.0, 4.0, -1.0),
+            // TODO: UNDERSTAND WHY IT IS NECESSARY TO MANUALLY INSERT THE CORRECT POSITION/ROTATION
+            //  ON THE ENTITY! I THOUGHT THE PREPARE_SET WOULD DO THIS AUTOMATICALLY
+            position,
+            rotation,
             RigidBody::Kinematic,
             Collider::sphere(0.5),
             LagCompensationHistory::default(),
@@ -51,11 +58,14 @@ fn spawn_bot(mut commands: Commands) {
 
 /// Move bots up and down
 /// For some reason we cannot use the TimeManager.delta() here, maybe because we're running in FixedUpdate?
-fn move_bot(time: Res<Time>, mut query: Query<&mut Position, With<Bot>>, mut timer: Local<(Stopwatch, bool)>) {
+fn move_bot(
+    tick_manager: Res<TickManager>,
+    time: Res<Time>, mut query: Query<&mut Position, With<Bot>>, mut timer: Local<(Stopwatch, bool)>) {
+    let tick = tick_manager.tick();
     let (stopwatch, go_up) = timer.deref_mut();
     query.iter_mut().for_each(|mut position| {
         stopwatch.tick(time.delta());
-        if stopwatch.elapsed() > Duration::from_secs_f32(2.0) {
+        if stopwatch.elapsed() > Duration::from_secs_f32(4.0) {
             stopwatch.reset();
             *go_up = !*go_up;
         }
@@ -64,6 +74,7 @@ fn move_bot(time: Res<Time>, mut query: Query<&mut Position, With<Bot>>, mut tim
         } else {
             position.y -= 0.02;
         }
+        info!(?tick, ?position, "Bot position");
     });
 }
 

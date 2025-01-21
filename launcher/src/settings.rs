@@ -12,7 +12,7 @@ use lightyear_examples_common::settings::WebTransportCertificateSettings;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 pub const TICK_RATE: f64 = 64.0;
-pub const REPLICATION_INTERVAL: Duration = Duration::from_millis(100);
+pub const REPLICATION_INTERVAL: Duration = Duration::from_millis(20);
 pub const ASSETS_HOTRELOAD: bool = true;
 
 pub const SERVER_ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5001));

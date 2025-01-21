@@ -14,7 +14,7 @@ pub(crate) struct ProjectilesPlugin;
 impl Plugin for ProjectilesPlugin {
     fn build(&self, app: &mut App) {
         // SYSTEMS
-        app.add_observer(spawn_visuals);
+        app.add_observer(spawn_projectile_visuals);
         app.add_systems(Last, (spawn_raycast_gizmos, show_raycast_gizmos).chain());
     }
 }
@@ -42,7 +42,7 @@ fn spawn_raycast_gizmos(
         // since the camera is looking straight into it
         let source = camera.get(event.shooter)
             .map_or(event.source, |(camera, transform)| {
-                let res = camera.ndc_to_world(transform, Vec3::new(0.0, 0.5, 0.0)).unwrap();
+                let res = camera.ndc_to_world(transform, Vec3::new(0.0, 0.5, 0.0)).unwrap_or_default();
                 info!(?res, "converting from NDC to world");
                 res
         });
@@ -78,7 +78,7 @@ fn show_raycast_gizmos(
 }
 
 /// When a projectile is spawn, add visuals to it
-fn spawn_visuals(
+fn spawn_projectile_visuals(
     trigger: Trigger<OnAdd, Projectile>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

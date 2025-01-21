@@ -19,6 +19,11 @@
 //! - do I even need to store the Collider in the history? We can assume that the Collider itself of a player doesn't change, no?
 //! - assuming the Collider changes, how do I interpolate the Collider?
 //!    - for now, let's assume that the collider does not change
+//! - Why do I need to manually add Position/Rotation to the bot on the server for it to have correct values?
+//!
+//! POTENTIAL ISSUES:
+//! - If the replication interval is too slow, the interpolation will be incorrect on the client (unless we store the full history)
+//! - The interpolation delay is not correct and is closer to 10-11 ticks. Try to send the correct amount in time-delta directly.
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use lightyear::prelude::*;
@@ -105,13 +110,15 @@ fn spawn_lag_compensation_broad_phase_collider(
 
 /// Update the collider of the broad-phase collider to be a union of the AABB of the colliders in the history
 fn update_lag_compensation_broad_phase_collider(
+    tick_manager: Res<TickManager>,
     parent_query: Query<(&Position, &Rotation, &LagCompensationHistory), Without<LagCompensationHistoryBroadPhase>>,
     mut child_query: Query<(Entity, &Parent, &mut Collider, &mut ColliderAabb, &mut Position, &mut Rotation), With<LagCompensationHistoryBroadPhase>>,
 ) {
+    let tick = tick_manager.tick();
     // the ColliderAabb is not updated automatically when the Collider component is updated
     child_query.iter_mut().for_each(|(entity, parent, mut collider, mut collider_aabb , mut position, mut rotation)| {
         let (parent_position, parent_rotation, history) = parent_query.get(parent.get()).unwrap();
-        let (min, max) = history.into_iter().fold((Vec3::ZERO, Vec3::ZERO), |(min, max), (_, (_, _, _, aabb))| {
+        let (min, max) = history.into_iter().fold((Vec3::MAX, Vec3::MIN), |(min, max), (_, (_, _, _, aabb))| {
             (min.min(aabb.min), max.max(aabb.max))
         });
         // update the collider as the aabb envelope of all the colliders in the history
@@ -122,6 +129,7 @@ fn update_lag_compensation_broad_phase_collider(
         // (the `update_pos_rot` system runs in the BroadPhase, but we need it to run after the Solver phase)
         *position = *parent_position;
         *rotation = *parent_rotation;
+        trace!(?tick, ?history, ?position, ?rotation, ?collider_aabb, "updated broad-phase collider");
     });
 }
 
