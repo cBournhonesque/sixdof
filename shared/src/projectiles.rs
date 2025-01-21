@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 use lightyear::client::prediction::Predicted;
 use lightyear::prelude::*;
-use lightyear::prelude::client::Rollback;
+use lightyear::prelude::client::{InterpolationDelay, Rollback};
 use lightyear::prelude::server::{Replicate, SyncTarget};
 use crate::player::Player;
 use crate::prelude::{PlayerInput, PREDICTION_REPLICATION_GROUP_ID};
@@ -129,7 +129,7 @@ pub struct RayCastBullet {
     pub shooter: Entity,
     pub source: Vector,
     pub direction: Dir3,
-    pub interpolation_delay_ticks: u16,
+    pub interpolation_tick: Tick,
     pub interpolation_overstep: f32,
 }
 
@@ -139,7 +139,7 @@ impl Default for RayCastBullet {
             shooter: Entity::PLACEHOLDER,
             source: Vector::ZERO,
             direction: Dir3::Z,
-            interpolation_delay_ticks: 0,
+            interpolation_tick: Tick(0),
             interpolation_overstep: 0.0,
         }
     }
@@ -160,18 +160,27 @@ pub(crate) fn shoot_projectiles(
         ),
         Or<(With<Predicted>, With<Replicating>)>,
     >,
+    tick_manager: Res<TickManager>,
+    connection_manager: Option<Res<ServerConnectionManager>>,
+    client_query: Query<&InterpolationDelay>,
 ) {
-    for (entity, _player, transform, action) in query.iter() {
+    for (entity, player, transform, action) in query.iter() {
         if action.just_pressed(&PlayerInput::ShootPrimary) {
-            // TODO: maybe offset the bullet a little bit from the player to avoid colliding with the player?
-            raycast_writer.send(RayCastBullet {
+            let mut ray_cast_event = RayCastBullet {
                 shooter: entity,
                 source: transform.translation,
                 direction: transform.forward(),
-                // TODO: use values sent by the client! right now we hardcode
-                interpolation_delay_ticks: 11,
-                interpolation_overstep: 0.0,
-            });
+                ..default()
+            };
+            // on the server, populate the interpolation delay values
+            if let Some(Ok(delay)) = connection_manager.as_ref().map(|m| client_query.get(m.client_entity(player.id).unwrap())) {
+                let (tick, overstep) = delay.tick_and_overstep(tick_manager.tick(), tick_manager.config.tick_duration);
+                ray_cast_event.interpolation_tick = tick;
+                ray_cast_event.interpolation_overstep = overstep;
+                info!(?delay, ?tick, ?overstep, "set interpolation values");
+            }
+            // TODO: maybe offset the bullet a little bit from the player to avoid colliding with the player?
+            raycast_writer.send(ray_cast_event);
 
             // let direction = transform.forward().as_vec3();
             // // offset a little bit from the player

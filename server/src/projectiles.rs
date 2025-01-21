@@ -50,17 +50,17 @@ fn handle_raycast_bullet_hit(
             &|entity| {
                 let parent_entity = child_query.get(entity).expect("the broad phase entity must have a parent").get();
                 let history = parent_query.get(parent_entity).expect("all lag compensated entities must have a history");
-                info!(?parent_entity, ?history, "Found collision with broadphase");
+                info!(?event.interpolation_tick, ?event.interpolation_overstep, ?parent_entity, ?history, "Found collision with broadphase");
 
-                // the start corresponds to tick Tick-D-1 (we interpolate between D-1 and D)
+                // the start corresponds to tick `interpolation_tick` (we interpolate between `interpolation_tick` and `interpolation_tick + 1`)
                 let (source_idx, (_, (start_collider, start_position, start_rotation, _))) = history.into_iter().enumerate().find(|(_, (history_tick, _))| {
-                    *history_tick == tick - (event.interpolation_delay_ticks + 1)
+                    *history_tick == event.interpolation_tick
                 }).unwrap();
                 // TODO: for now, we assume that the collider itself does not change between ticks
                 let (_, (_, target_position, target_rotation, _)) = history.into_iter().skip(source_idx + 1).next().unwrap();
                 let interpolated_position = start_position.lerp(**target_position, event.interpolation_overstep);
                 let interpolated_rotation = start_rotation.slerp(*target_rotation, event.interpolation_overstep);
-                info!(interpolation_tick = ?event.interpolation_delay_ticks, ?tick, ?interpolated_position, ?interpolated_rotation, "Interpolated collider");
+                info!(interpolation_tick = ?event.interpolation_tick, ?tick, ?interpolated_position, ?interpolated_rotation, "Interpolated collider");
 
                 // check if the raycast hit the interpolated collider
                 // skip the hit (return True) if there is no hit
