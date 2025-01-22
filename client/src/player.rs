@@ -1,9 +1,6 @@
-use avian3d::prelude::{Position, RigidBody};
+use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy::prelude::TransformSystem::TransformPropagate;
-use bevy::window::PrimaryWindow;
-use leafwing_input_manager::prelude::{ActionState, InputMap, MouseMove};
-use lightyear::client::input::leafwing::InputSystemSet;
+use leafwing_input_manager::prelude::{InputMap, MouseMove};
 use lightyear::shared::replication::components::Controlled;
 use lightyear::prelude::client::*;
 use shared::player::Player;
