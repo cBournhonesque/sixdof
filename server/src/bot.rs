@@ -61,7 +61,7 @@ fn spawn_bot(mut commands: Commands) {
 fn move_bot(
     tick_manager: Res<TickManager>,
     time: Res<Time>, mut query: Query<&mut Position, With<Bot>>, mut timer: Local<(Stopwatch, bool)>) {
-    let tick = tick_manager.tick();
+
     let (stopwatch, go_up) = timer.deref_mut();
     query.iter_mut().for_each(|mut position| {
         stopwatch.tick(time.delta());
@@ -74,7 +74,8 @@ fn move_bot(
         } else {
             position.y -= 0.02;
         }
-        info!(?tick, ?position, "Bot position");
+        // let tick = tick_manager.tick();
+        // info!(?tick, ?position, "Bot position");
     });
 }
 

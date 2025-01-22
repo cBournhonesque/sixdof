@@ -8,6 +8,6 @@ impl Plugin for PhysicsPlugin {
     fn build(&self, app: &mut App) {
         // PLUGINS
         // draw debug shapes in Last to make sure that TransformPropagate has run?
-        app.add_plugins(PhysicsDebugPlugin::new(Last));
+        // app.add_plugins(PhysicsDebugPlugin::new(Last));
     }
 }

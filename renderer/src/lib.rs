@@ -45,10 +45,6 @@ impl Plugin for RendererPlugin {
         app.add_plugins(lag_compensation::LagCompensationPlugin);
 
         // RESOURCES
-        let mut store = app.world_mut().resource_mut::<GizmoConfigStore>();
-        let (config, _) = store.config_mut::<DefaultGizmoConfigGroup>();
-        config.line_width = 20.0;
-        config.depth_bias = -0.1;
 
         #[cfg(feature = "client")]
         {

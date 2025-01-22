@@ -10,7 +10,7 @@ pub(crate) struct BotPlugin;
 impl Plugin for BotPlugin {
     fn build(&self, app: &mut App) {
         // Debug bot position (we run this in Last to be after Interpolation)
-        app.add_systems(Last, debug_bot_position);
+        // app.add_systems(Last, debug_bot_position);
     }
 }
 

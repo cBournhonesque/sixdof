@@ -25,6 +25,9 @@ impl Plugin for ProjectilesPlugin {
         app.add_event::<RayCastBullet>();
 
         // SYSTEMS
+        // TODO: shouldn't the projectile be shot from PostUpdate? after physics have run?
+        //  because as it is we are basically using the Transform from the previous frame
+
         // TODO: use replicated projectiles for projectiles that can have a non-deterministic trajectory (bouncing on walls, homing missiles)
         // app.add_systems(FixedUpdate, shoot_replicated_projectiles);
         app.add_systems(FixedUpdate, shoot_projectiles.in_set(ProjectileSet::Spawn));
@@ -164,6 +167,7 @@ pub(crate) fn shoot_projectiles(
     connection_manager: Option<Res<ServerConnectionManager>>,
     client_query: Query<&InterpolationDelay>,
 ) {
+    let tick = tick_manager.tick();
     for (entity, player, transform, action) in query.iter() {
         if action.just_pressed(&PlayerInput::ShootPrimary) {
             let mut ray_cast_event = RayCastBullet {
@@ -177,8 +181,9 @@ pub(crate) fn shoot_projectiles(
                 let (tick, overstep) = delay.tick_and_overstep(tick_manager.tick(), tick_manager.config.tick_duration);
                 ray_cast_event.interpolation_tick = tick;
                 ray_cast_event.interpolation_overstep = overstep;
-                info!(?delay, ?tick, ?overstep, "set interpolation values");
+                debug!(?delay, ?tick, ?overstep, "set interpolation values");
             }
+            debug!(?tick, ?ray_cast_event, "SpawnRayCastBullet");
             // TODO: maybe offset the bullet a little bit from the player to avoid colliding with the player?
             raycast_writer.send(ray_cast_event);
 

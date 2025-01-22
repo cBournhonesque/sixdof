@@ -1,10 +1,12 @@
+use avian3d::prelude::{Collider, Position, Rotation, SpatialQuery};
 use bevy::color::palettes::basic::{BLUE, YELLOW};
 use bevy::prelude::*;
 use bevy::utils::Duration;
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::client::prediction::Predicted;
-use lightyear::prelude::client::VisualInterpolateStatus;
+use lightyear::prelude::client::{Interpolated, VisualInterpolateStatus};
 use lightyear::prelude::Replicating;
+use shared::bot::Bot;
 use shared::player::Player;
 use shared::prelude::{DespawnAfter, PlayerInput, RayCastBullet};
 use shared::projectiles::Projectile;
@@ -35,6 +37,7 @@ fn spawn_raycast_gizmos(
     // since the user is directly looking at that direction
     // instead we can offset the raycast
     camera: Query<(&Camera, &GlobalTransform)>,
+    // bot: Query<(&Position, &Rotation), (With<Bot>, With<Interpolated>)>,
 ) {
     for event in event_reader.read() {
         let target = event.source + event.direction.as_vec3() * 1000.0;
@@ -42,11 +45,21 @@ fn spawn_raycast_gizmos(
         // since the camera is looking straight into it
         let source = camera.get(event.shooter)
             .map_or(event.source, |(camera, transform)| {
-                let res = camera.ndc_to_world(transform, Vec3::new(0.0, 0.5, 0.0)).unwrap_or_default();
-                info!(?res, "converting from NDC to world");
-                res
+                camera.ndc_to_world(transform, Vec3::new(0.0, -0.5, 0.5)).unwrap_or_default()
         });
-        info!(?target, ?source, "Spawning ray visuals!");
+        debug!(?target, ?source, ?event, "Spawning ray visuals!");
+        // if let Ok((position, rotation)) = bot.get_single() {
+        //     let collider = Collider::sphere(0.5);
+        //     let hit = collider.cast_ray(
+        //         position.clone(),
+        //         rotation.clone(),
+        //         event.source,
+        //         event.direction.as_vec3(),
+        //         1000.0,
+        //         false,
+        //     );
+        //     info!("Hit: {:?}", hit);
+        // }
         // gizmos.ray(
         //     event.source,
         //     event.direction.as_vec3() * 1000.0,
