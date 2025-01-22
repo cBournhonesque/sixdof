@@ -1,14 +1,13 @@
+use crate::settings;
 /// ListenServer where one thread runs the client and one thread runs the server
 use bevy::asset::AssetPlugin;
 use bevy::diagnostic::DiagnosticsPlugin;
 use bevy::hierarchy::HierarchyPlugin;
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
-use lightyear::prelude::client::{ClientTransport, ClientPlugins};
+use lightyear::prelude::client::{ClientPlugins, ClientTransport};
 use lightyear::prelude::server::{ServerPlugins, ServerTransport};
 use lightyear::transport::LOCAL_SOCKET;
-use crate::settings;
-
 
 pub struct Separate {
     client: App,
@@ -27,10 +26,14 @@ impl Separate {
         client_config.net = settings::build_client_netcode_config(client_id, transport_config);
 
         let mut server_config = settings::server_config();
-        server_config.net.push(settings::build_server_netcode_config(ServerTransport::Channels {
-            // even if we communicate via channels, we need to provide a socket address for the client
-            channels: vec![(LOCAL_SOCKET, to_server_recv, from_server_send)],
-        }));
+        server_config
+            .net
+            .push(settings::build_server_netcode_config(
+                ServerTransport::Channels {
+                    // even if we communicate via channels, we need to provide a socket address for the client
+                    channels: vec![(LOCAL_SOCKET, to_server_recv, from_server_send)],
+                },
+            ));
 
         // gui app
         let mut client_app = App::new();
@@ -55,14 +58,18 @@ impl Separate {
             HierarchyPlugin,
             DiagnosticsPlugin,
         ));
-        client_app.add_plugins(ClientPlugins { config: client_config });
-        server_app.add_plugins(ServerPlugins { config: server_config });
+        client_app.add_plugins(ClientPlugins {
+            config: client_config,
+        });
+        server_app.add_plugins(ServerPlugins {
+            config: server_config,
+        });
         client_app.add_plugins(shared::SharedPlugin { headless: false });
         server_app.add_plugins(shared::SharedPlugin { headless: false });
         client_app.add_plugins(renderer::RendererPlugin);
         Self {
             client: client_app,
-            server: server_app
+            server: server_app,
         }
     }
 

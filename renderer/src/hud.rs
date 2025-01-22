@@ -4,7 +4,7 @@ pub struct HudPlugin;
 
 impl Plugin for HudPlugin {
     fn build(&self, app: &mut App) {
-        // app.add_observer(spawn_hud);
+        app.add_observer(spawn_hud);
     }
 }
 

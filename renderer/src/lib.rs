@@ -4,6 +4,10 @@ mod bot;
 #[cfg(feature = "client")]
 mod hud;
 
+#[cfg(feature = "server")]
+mod lag_compensation;
+mod physics;
+
 use bevy::ecs::query::QueryFilter;
 use bevy::prelude::*;
 use lightyear::client::interpolation::VisualInterpolationPlugin;
@@ -30,19 +34,17 @@ impl Plugin for RendererPlugin {
         // TODO: add option to disable inspector
         app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
         app.add_plugins(bot::BotPlugin);
+        app.add_plugins(physics::PhysicsPlugin);
         app.add_plugins(player::PlayerPlugin);
         app.add_plugins(projectiles::ProjectilesPlugin);
         app.insert_resource(AmbientLight {
             brightness: 0.0,
             ..default()
         });
-
+        #[cfg(feature = "server")]
+        app.add_plugins(lag_compensation::LagCompensationPlugin);
 
         // RESOURCES
-        let mut store = app.world_mut().resource_mut::<GizmoConfigStore>();
-        let (config, _) = store.config_mut::<DefaultGizmoConfigGroup>();
-        config.line_width = 20.0;
-        config.depth_bias = -0.1;
 
         #[cfg(feature = "client")]
         {
@@ -52,6 +54,7 @@ impl Plugin for RendererPlugin {
 
         // SYSTEMS
         // TODO: separate client renderer from server renderer? The features cfg are not enough
+        //  how do we deal with host-server / listen-server modes where both client and server are enabled?
         // on the server, the camera doesn't follow a player
         #[cfg(not(feature = "client"))]
         app.add_systems(Startup, init);
@@ -59,8 +62,8 @@ impl Plugin for RendererPlugin {
 }
 
 
+// TODO: spawn a camera that is controllable on the server side to debug issues
 #[cfg(not(feature = "client"))]
 fn init(mut commands: Commands) {
-    dbg!("ADD CAM");
     commands.spawn(Camera3d::default());
 }

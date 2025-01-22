@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use leafwing_input_manager::Actionlike;
 use lightyear::prelude::*;
 use avian3d::prelude::*;
-use lightyear::prelude::client::{ComponentSyncMode, LerpFn};
+use lightyear::prelude::client::{ComponentSyncMode, LeafwingInputConfig, LerpFn};
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
 use lightyear::utils::bevy::TransformLinearInterpolation;
@@ -44,7 +44,13 @@ impl Plugin for ProtocolPlugin {
         });
 
         // Inputs
-        app.add_plugins(LeafwingInputPlugin::<PlayerInput>::default());
+        app.add_plugins(LeafwingInputPlugin::<PlayerInput> {
+            config: LeafwingInputConfig::<PlayerInput> {
+                // enable lag compensation for player inputs
+                lag_compensation: true,
+                ..default()
+            }
+        });
 
         // Messages
         // TODO: MapLoad, RespawnCounter,
@@ -101,6 +107,10 @@ impl Plugin for ProtocolPlugin {
         //  and remembering to apply a sync in PostUpdate)
         app.add_interpolation::<Transform>(ComponentSyncMode::None);
         app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
+
+        // NOTE: we do not replicate Transform because the avian transform->position sync plugin causes inaccuracies
+        // TODO: maybe applying a TransformPropagate system in PreUpdate after the VisualInterpolation reset
+        //  would fix the problem
 
         // // Try replicating only Transform
         // app.register_component::<Transform>(ChannelDirection::ServerToClient)

@@ -1,13 +1,13 @@
-/// Provides a CLI to start the app in different modes
-pub(crate) mod settings;
 #[cfg(feature = "client")]
 mod client;
-#[cfg(feature = "server")]
-mod server;
 #[cfg(all(feature = "client", feature = "server"))]
 mod host_server;
 #[cfg(all(feature = "client", feature = "server"))]
 mod separate;
+#[cfg(feature = "server")]
+mod server;
+/// Provides a CLI to start the app in different modes
+pub(crate) mod settings;
 
 use bevy::prelude::*;
 use clap::{Parser, Subcommand};
@@ -75,14 +75,17 @@ fn run(cli: Cli) {
                 mode: Some(Mode::HostServer { client_id: None }),
             });
             #[cfg(all(feature = "server", not(feature = "client")))]
-            run(Cli { mode: Some(Mode::Server) });
+            run(Cli {
+                mode: Some(Mode::Server),
+            });
 
             #[cfg(all(feature = "client", not(feature = "server")))]
-            run(Cli { mode: Some(Mode::Client { client_id: None }) });
+            run(Cli {
+                mode: Some(Mode::Client { client_id: None }),
+            });
         }
     }
 }
-
 
 fn main() {
     let cli = Cli::parse();

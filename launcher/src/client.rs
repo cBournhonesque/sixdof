@@ -1,7 +1,7 @@
+use crate::settings;
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
 use lightyear::client::plugin::ClientPlugins;
-use crate::settings;
 
 pub struct ClientApp(App);
 
@@ -19,9 +19,11 @@ impl ClientApp {
                     ..default()
                 })
                 .set(settings::log_plugin())
-                .set(settings::window_plugin())
+                .set(settings::window_plugin()),
         );
-        app.add_plugins(ClientPlugins { config: settings::client_config(client_id) });
+        app.add_plugins(ClientPlugins {
+            config: settings::client_config(client_id),
+        });
         app.add_plugins(shared::SharedPlugin { headless: false });
         app.add_plugins(client::ClientPlugin);
         app.add_plugins(renderer::RendererPlugin);
