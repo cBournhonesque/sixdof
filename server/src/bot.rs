@@ -60,8 +60,9 @@ fn spawn_bot(mut commands: Commands) {
 /// For some reason we cannot use the TimeManager.delta() here, maybe because we're running in FixedUpdate?
 fn move_bot(
     tick_manager: Res<TickManager>,
-    time: Res<Time>, mut query: Query<&mut Position, With<Bot>>, mut timer: Local<(Stopwatch, bool)>) {
-
+    time: Res<Time>, mut query: Query<&mut Position, With<Bot>>, mut timer: Local<(Stopwatch, bool)>)
+{
+    let tick = tick_manager.tick();
     let (stopwatch, go_up) = timer.deref_mut();
     query.iter_mut().for_each(|mut position| {
         stopwatch.tick(time.delta());
@@ -74,8 +75,7 @@ fn move_bot(
         } else {
             position.y -= 0.02;
         }
-        // let tick = tick_manager.tick();
-        // info!(?tick, ?position, "Bot position");
+        trace!(?tick, ?position, "Bot position");
     });
 }
 

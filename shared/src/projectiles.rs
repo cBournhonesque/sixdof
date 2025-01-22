@@ -22,11 +22,12 @@ pub(crate) struct ProjectilesPlugin;
 impl Plugin for ProjectilesPlugin {
     fn build(&self, app: &mut App) {
         // EVENTS
-        app.add_event::<RayCastBullet>();
+        app.add_event::<LinearProjectile>();
 
         // SYSTEMS
         // TODO: shouldn't the projectile be shot from PostUpdate? after physics have run?
-        //  because as it is we are basically using the Transform from the previous frame
+        //  (so that the direction in which we're shooting the bullet is correct,
+        //  because as it is we are basically using the Transform from the previous frame)
 
         // TODO: use replicated projectiles for projectiles that can have a non-deterministic trajectory (bouncing on walls, homing missiles)
         // app.add_systems(FixedUpdate, shoot_replicated_projectiles);
@@ -67,6 +68,7 @@ pub fn debug_after_physics(
 
 /// Shoot projectiles from the current weapon when the shoot action is pressed
 /// These projectiles are pre-spawned on the client, and replicated from the server
+#[allow(dead_code)]
 pub(crate) fn shoot_replicated_projectiles(
     tick_manager: Res<TickManager>,
     mut commands: Commands,
@@ -125,25 +127,26 @@ pub(crate) fn shoot_replicated_projectiles(
     }
 }
 
-/// Infinite-speed bullet
-/// (we make it a component so that we can display the visuals for more than 1 frame using gizmos)
+// TODO: maybe have a separate event for ray-cast vs slow bullets?
+/// Bullet that shoots in a straight line
 #[derive(Event, Clone, Debug)]
-pub struct RayCastBullet {
+pub struct LinearProjectile {
     pub shooter: Entity,
     pub source: Vector,
     pub direction: Dir3,
-    pub interpolation_tick: Tick,
-    pub interpolation_overstep: f32,
+    pub speed: f32,
+    pub interpolation_delay_ms: u16,
 }
 
-impl Default for RayCastBullet {
+impl Default for LinearProjectile {
     fn default() -> Self {
         Self {
             shooter: Entity::PLACEHOLDER,
             source: Vector::ZERO,
             direction: Dir3::Z,
-            interpolation_tick: Tick(0),
-            interpolation_overstep: 0.0,
+            // the default is to shoot raycast bullets
+            speed: 1000.0,
+            interpolation_delay_ms: 0,
         }
     }
 }
@@ -152,8 +155,8 @@ impl Default for RayCastBullet {
 /// The projectiles are moved by physics. This is probably unnecessary and very CPU-intensive?
 /// We just need to do a raycast/shapecast from the initial bullet firing point, while tracking the speed of the bullet
 pub(crate) fn shoot_projectiles(
-    mut _commands: Commands,
-    mut raycast_writer: EventWriter<RayCastBullet>,
+    mut commands: Commands,
+    mut event_writer: EventWriter<LinearProjectile>,
     query: Query<
         (
             Entity,
@@ -169,39 +172,47 @@ pub(crate) fn shoot_projectiles(
 ) {
     let tick = tick_manager.tick();
     for (entity, player, transform, action) in query.iter() {
-        if action.just_pressed(&PlayerInput::ShootPrimary) {
-            let mut ray_cast_event = RayCastBullet {
+        if action.just_pressed(&PlayerInput::ShootPrimary) || action.just_pressed(&PlayerInput::ShootSecondary) {
+            let mut linear_bullet_event = LinearProjectile {
                 shooter: entity,
                 source: transform.translation,
                 direction: transform.forward(),
                 ..default()
             };
+            // TODO: should the interpolation values be populated here or read on the client entity?
             // on the server, populate the interpolation delay values
             if let Some(Ok(delay)) = connection_manager.as_ref().map(|m| client_query.get(m.client_entity(player.id).unwrap())) {
-                let (tick, overstep) = delay.tick_and_overstep(tick_manager.tick(), tick_manager.config.tick_duration);
-                ray_cast_event.interpolation_tick = tick;
-                ray_cast_event.interpolation_overstep = overstep;
-                debug!(?delay, ?tick, ?overstep, "set interpolation values");
+                // TODO: we should use the delay at the time the bullet was fired, not the latest InterpolationDelay that
+                //  we have received
+                linear_bullet_event.interpolation_delay_ms = delay.delay_ms;
             }
-            debug!(?tick, ?ray_cast_event, "SpawnRayCastBullet");
+            // TODO: can we unify raycast and non-raycast bullets?
+            if action.just_pressed(&PlayerInput::ShootPrimary) {
+                // ray cast bullet (infinite speed)
+                // we don't need to spawn an entity, we will just do an instant raycast checkk
+                linear_bullet_event.speed = 1000.0;
+                debug!(?tick, ?linear_bullet_event, "Shoot raycast LinearBulletEvent");
+                // TODO: maybe offset the bullet a little bit from the player to avoid colliding with the player?
+                event_writer.send(linear_bullet_event);
+
+            } else {
+                // non-raycast bullet, we will spawn a non-networked entity to keep track of the position
+                // of the bullet
+                let bullet_speed = 10.0;
+                linear_bullet_event.speed = bullet_speed;
+                debug!(?tick, ?linear_bullet_event, "Shoot non-raycast LinearBullet");
+                commands.spawn((
+                    RigidBody::Kinematic,
+                    Position(transform.translation),
+                    // TODO: this is not needed on the client!
+                    // we include this component on the entity because we want to use the interpolation_delay
+                    // at the time the bullet was fired
+                    linear_bullet_event,
+                    LinearVelocity(transform.forward() * bullet_speed),
+                    Projectile
+                ));
+            }
             // TODO: maybe offset the bullet a little bit from the player to avoid colliding with the player?
-            raycast_writer.send(ray_cast_event);
-
-            // let direction = transform.forward().as_vec3();
-            // // offset a little bit from the player
-            // let mut new_transform = *transform;
-            // new_transform.translation += 0.5 * direction;
-            // commands.spawn((
-            //     new_transform,
-            //     Projectile,
-            //     // TODO: change projectile speed
-            //     LinearVelocity(direction * 5.0),
-            //     // TODO: change projectile shape
-            //     Collider::sphere(0.05),
-            //     RigidBody::Dynamic,
-            // ));
-
-
         }
     }
 }

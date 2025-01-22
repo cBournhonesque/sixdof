@@ -1,4 +1,4 @@
-use avian3d::prelude::{Collider, Position, Rotation, SpatialQuery};
+use avian3d::prelude::{Collider, LinearVelocity, PhysicsSet, Position, Rotation, SpatialQuery, SpatialQueryFilter};
 use bevy::color::palettes::basic::{BLUE, YELLOW};
 use bevy::prelude::*;
 use bevy::utils::Duration;
@@ -7,8 +7,9 @@ use lightyear::client::prediction::Predicted;
 use lightyear::prelude::client::{Interpolated, VisualInterpolateStatus};
 use lightyear::prelude::Replicating;
 use shared::bot::Bot;
+use shared::physics::GameLayer;
 use shared::player::Player;
-use shared::prelude::{DespawnAfter, PlayerInput, RayCastBullet};
+use shared::prelude::{DespawnAfter, PlayerInput, LinearProjectile};
 use shared::projectiles::Projectile;
 
 pub(crate) struct ProjectilesPlugin;
@@ -18,6 +19,9 @@ impl Plugin for ProjectilesPlugin {
         // SYSTEMS
         app.add_observer(spawn_projectile_visuals);
         app.add_systems(Last, (spawn_raycast_gizmos, show_raycast_gizmos).chain());
+
+        #[cfg(feature = "client")]
+        app.add_systems(FixedPostUpdate, despawn_projectiles.after(PhysicsSet::StepSimulation));
     }
 }
 
@@ -32,7 +36,7 @@ struct VisualRay {
 fn spawn_raycast_gizmos(
     mut commands: Commands,
     // mut gizmos: Gizmos,
-    mut event_reader: EventReader<RayCastBullet>,
+    mut event_reader: EventReader<LinearProjectile>,
     // NOTE: we cannot do the raycast directly forward, because then the raycast will be invisible
     // since the user is directly looking at that direction
     // instead we can offset the raycast
@@ -97,8 +101,9 @@ fn spawn_projectile_visuals(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.entity(trigger.entity()).with_child(
+    commands.entity(trigger.entity()).insert(
         (
+            Visibility::default(),
             Mesh3d(meshes.add(Mesh::from(Sphere {
                 // TODO: must match the collider size
                 radius: 0.05,
@@ -111,4 +116,27 @@ fn spawn_projectile_visuals(
             VisualInterpolateStatus::<Transform>::default(),
         )
     );
+}
+
+/// If a projectile colliders visually with an interpolated enemy,
+/// we should despawn the projectile.
+/// This is only relevant on the client because on the server we already despawn the bullet on collision
+#[cfg(feature = "client")]
+fn despawn_projectiles(
+    projectiles: Query<(Entity, &Position, &LinearVelocity), With<Projectile>>,
+    mut commands: Commands,
+    spatial_query: SpatialQuery,
+) {
+    projectiles.iter().for_each(|(entity, position, velocity)| {
+        if let Some(_hit) = spatial_query.cast_ray(
+            position.0,
+            Dir3::new_unchecked(velocity.normalize()),
+            velocity.length(),
+            false,
+            &SpatialQueryFilter::from_mask([GameLayer::Player]),
+        ) {
+            // despawn the bullet if it visually collides with a player
+            commands.entity(entity).despawn_recursive();
+        }
+    })
 }

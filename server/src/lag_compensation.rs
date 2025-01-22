@@ -95,7 +95,7 @@ fn spawn_lag_compensation_broad_phase_collider(
 ) {
     query.iter().for_each(|(entity, collider_aabb)| {
         let aabb_size = collider_aabb.size();
-        info!(?aabb_size, "spawning broad-phase collider from aabb!");
+        debug!(?aabb_size, "spawning broad-phase collider from aabb!");
         commands.entity(entity).with_child((
             Collider::cuboid(aabb_size.x, aabb_size.y, aabb_size.z),
             // the position/rotation values don't matter here because they will be updated in the
@@ -112,11 +112,11 @@ fn spawn_lag_compensation_broad_phase_collider(
 fn update_lag_compensation_broad_phase_collider(
     tick_manager: Res<TickManager>,
     parent_query: Query<(&Position, &Rotation, &LagCompensationHistory), Without<LagCompensationHistoryBroadPhase>>,
-    mut child_query: Query<(Entity, &Parent, &mut Collider, &mut ColliderAabb, &mut Position, &mut Rotation), With<LagCompensationHistoryBroadPhase>>,
+    mut child_query: Query<(&Parent, &mut Collider, &mut ColliderAabb, &mut Position, &mut Rotation), With<LagCompensationHistoryBroadPhase>>,
 ) {
     let tick = tick_manager.tick();
     // the ColliderAabb is not updated automatically when the Collider component is updated
-    child_query.iter_mut().for_each(|(entity, parent, mut collider, mut collider_aabb , mut position, mut rotation)| {
+    child_query.iter_mut().for_each(|(parent, mut collider, mut collider_aabb , mut position, mut rotation)| {
         let (parent_position, parent_rotation, history) = parent_query.get(parent.get()).unwrap();
         let (min, max) = history.into_iter().fold((Vec3::MAX, Vec3::MIN), |(min, max), (_, (_, _, _, aabb))| {
             (min.min(aabb.min), max.max(aabb.max))
