@@ -5,9 +5,9 @@ use bevy::prelude::*;
 use bevy::time::Stopwatch;
 use lightyear::prelude::*;
 use lightyear::prelude::server::*;
+use lightyear_avian::prelude::LagCompensationHistory;
 use shared::bot::Bot;
 use shared::prelude::GameLayer;
-use crate::lag_compensation::LagCompensationHistory;
 // TODO: should bots be handled similarly to players? i.e. they share most of the same code (visuals, collisions)
 //  but they are simply controlled by the server. The server could be sending fake inputs to the bots so that their movement
 //  is the same as players
@@ -51,6 +51,7 @@ fn spawn_bot(mut commands: Commands) {
             RigidBody::Kinematic,
             Collider::sphere(0.5),
             LagCompensationHistory::default(),
+            // we don't include bullet because they are handled separately
             CollisionLayers::new([GameLayer::Player], [GameLayer::Wall]),
         )
     );

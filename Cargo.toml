@@ -1,7 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "client", "launcher", "renderer",
+    "client",
+    "launcher",
+    "renderer",
     "server",
     "shared",
 ]
@@ -12,8 +14,12 @@ edition = "2021"
 license = "MIT OR Apache-2.0 OR CC0-1.0"
 
 [workspace.dependencies]
-lightyear_examples_common = { git = "https://github.com/cBournhonesque/lightyear", branch = "cb/sixdof", default-features = false }
-lightyear = { git = "https://github.com/cBournhonesque/lightyear", branch = "cb/sixdof", default-features = false, features = [
+lightyear_examples_common = { version = "0.19", default-features = false }
+lightyear_avian = {  version = "0.19", features = [
+    "lag_compensation",
+    "3d"
+] }
+lightyear = { version = "0.19", default-features = false, features = [
     "leafwing",
     "avian3d"
 ] }
