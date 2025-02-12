@@ -4,18 +4,11 @@ use bevy::prelude::*;
 use leafwing_input_manager::action_state::ActionState;
 use lightyear::client::prediction::Predicted;
 use lightyear::prelude::*;
-use lightyear::prelude::client::{InterpolationDelay, Rollback};
+use lightyear::prelude::client::{Rollback};
 use lightyear::prelude::server::{Replicate, SyncTarget};
 use crate::player::Player;
 use crate::prelude::{PlayerInput, PREDICTION_REPLICATION_GROUP_ID};
 
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ProjectileSet {
-    /// Spawn projectiles
-    Spawn,
-    /// Handle projectile hits
-    Hits,
-}
 
 pub(crate) struct ProjectilesPlugin;
 
@@ -31,7 +24,7 @@ impl Plugin for ProjectilesPlugin {
 
         // TODO: use replicated projectiles for projectiles that can have a non-deterministic trajectory (bouncing on walls, homing missiles)
         // app.add_systems(FixedUpdate, shoot_replicated_projectiles);
-        app.add_systems(FixedUpdate, shoot_projectiles.in_set(ProjectileSet::Spawn));
+        app.add_systems(FixedUpdate, shoot_projectiles);
 
         // DEBUG
         // app.add_systems(FixedLast, debug_after_physics);
@@ -131,7 +124,8 @@ pub(crate) fn shoot_replicated_projectiles(
 /// Bullet that shoots in a straight line
 #[derive(Event, Clone, Debug)]
 pub struct LinearProjectile {
-    pub shooter: Entity,
+    pub shooter: ClientId,
+    pub shooter_entity: Entity,
     pub source: Vector,
     pub direction: Dir3,
     pub speed: f32,
@@ -141,7 +135,8 @@ pub struct LinearProjectile {
 impl Default for LinearProjectile {
     fn default() -> Self {
         Self {
-            shooter: Entity::PLACEHOLDER,
+            shooter: ClientId::Local(0),
+            shooter_entity: Entity::PLACEHOLDER,
             source: Vector::ZERO,
             direction: Dir3::Z,
             // the default is to shoot raycast bullets
@@ -150,6 +145,10 @@ impl Default for LinearProjectile {
         }
     }
 }
+
+/// The player entity that shot the projectile
+#[derive(Component)]
+pub struct Shooter(pub ClientId);
 
 /// Shoot projectiles from the current weapon when the shoot action is pressed
 /// The projectiles are moved by physics. This is probably unnecessary and very CPU-intensive?
@@ -167,25 +166,18 @@ pub(crate) fn shoot_projectiles(
         Or<(With<Predicted>, With<Replicating>)>,
     >,
     tick_manager: Res<TickManager>,
-    connection_manager: Option<Res<ServerConnectionManager>>,
-    client_query: Query<&InterpolationDelay>,
 ) {
     let tick = tick_manager.tick();
     for (entity, player, transform, action) in query.iter() {
         if action.just_pressed(&PlayerInput::ShootPrimary) || action.just_pressed(&PlayerInput::ShootSecondary) {
             let mut linear_bullet_event = LinearProjectile {
-                shooter: entity,
+                shooter: player.id,
+                shooter_entity: entity,
                 source: transform.translation,
                 direction: transform.forward(),
                 ..default()
             };
-            // TODO: should the interpolation values be populated here or read on the client entity?
-            // on the server, populate the interpolation delay values
-            if let Some(Ok(delay)) = connection_manager.as_ref().map(|m| client_query.get(m.client_entity(player.id).unwrap())) {
-                // TODO: we should use the delay at the time the bullet was fired, not the latest InterpolationDelay that
-                //  we have received
-                linear_bullet_event.interpolation_delay_ms = delay.delay_ms;
-            }
+
             // TODO: can we unify raycast and non-raycast bullets?
             if action.just_pressed(&PlayerInput::ShootPrimary) {
                 // ray cast bullet (infinite speed)
@@ -209,7 +201,8 @@ pub(crate) fn shoot_projectiles(
                     // at the time the bullet was fired
                     linear_bullet_event,
                     LinearVelocity(transform.forward() * bullet_speed),
-                    Projectile
+                    Projectile,
+                    Shooter(player.id),
                 ));
             }
             // TODO: maybe offset the bullet a little bit from the player to avoid colliding with the player?

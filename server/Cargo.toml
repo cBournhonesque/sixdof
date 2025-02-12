@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 shared = { path = "../shared", default-features = false }
 lightyear.workspace = true
+lightyear_avian.workspace = true
 bevy.workspace = true
 avian3d.workspace = true

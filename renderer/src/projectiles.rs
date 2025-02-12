@@ -47,7 +47,7 @@ fn spawn_raycast_gizmos(
         let target = event.source + event.direction.as_vec3() * 1000.0;
         // if the shot comes from the client, we need to angle the visuals otherwise the ray will be invisible
         // since the camera is looking straight into it
-        let source = camera.get(event.shooter)
+        let source = camera.get(event.shooter_entity)
             .map_or(event.source, |(camera, transform)| {
                 camera.ndc_to_world(transform, Vec3::new(0.0, -0.5, 0.5)).unwrap_or_default()
         });

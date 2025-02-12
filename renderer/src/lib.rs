@@ -4,8 +4,6 @@ mod bot;
 #[cfg(feature = "client")]
 mod hud;
 
-#[cfg(feature = "server")]
-mod lag_compensation;
 mod physics;
 
 use bevy::ecs::query::QueryFilter;
@@ -41,9 +39,6 @@ impl Plugin for RendererPlugin {
             brightness: 0.0,
             ..default()
         });
-        #[cfg(feature = "server")]
-        app.add_plugins(lag_compensation::LagCompensationPlugin);
-
         // RESOURCES
 
         #[cfg(feature = "client")]
