@@ -5,6 +5,7 @@ use avian3d::prelude::*;
 use lightyear::prelude::client::{ComponentSyncMode, LeafwingInputConfig, LerpFn};
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
+use crate::weapons::WeaponInventory;
 use lightyear::utils::bevy::TransformLinearInterpolation;
 use crate::bot::Bot;
 
@@ -100,6 +101,11 @@ impl Plugin for ProtocolPlugin {
             .add_interpolation_fn(rotation::lerp);
             // .add_correction_fn(rotation::lerp);
 
+            
+        app.register_component::<WeaponInventory>(ChannelDirection::ServerToClient)
+            // sync once to the Predicted entity
+            .add_prediction(ComponentSyncMode::Once);
+        
         // do not replicate Transform but make sure to register an interpolation function
         // for it so that we can do visual interpolation
         // (another option would be to replicate transform and not use Position/Rotation at all)

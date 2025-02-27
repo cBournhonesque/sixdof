@@ -14,7 +14,7 @@ impl Plugin for PlayerPlugin {
         // cannot use an observer right now because we are not on lightyear-main where all components are synced at the same time
         // app.add_observer(spawn_visuals);
 
-        app.add_systems(PreUpdate, spawn_visuals.after(PredictionSet::SpawnHistory));
+        app.add_systems(PreUpdate, spawn_visuals.after(PredictionSet::Sync));
     }
 }
 

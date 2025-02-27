@@ -7,6 +7,8 @@ mod states;
 pub mod physics;
 pub mod player;
 pub mod projectiles;
+pub mod weapons;
+pub mod identity;
 pub mod bot;
 pub mod utils;
 
@@ -14,9 +16,11 @@ pub mod prelude {
     pub use crate::network::{protocol::*, settings::*};
     pub use crate::physics::*;
     pub use crate::projectiles::*;
+    pub use crate::weapons::*;
     pub use crate::map::*;
     pub use crate::states::*;
     pub use crate::player::Player;
+    pub use crate::identity::*;
     pub use crate::utils::DespawnAfter;
 }
 
@@ -32,7 +36,8 @@ impl Plugin for SharedPlugin {
         app.add_plugins(map::MapPlugin { headless: self.headless});
         app.add_plugins(physics::PhysicsPlugin);
         app.add_plugins(player::PlayerPlugin);
-        app.add_plugins(projectiles::ProjectilesPlugin);
+        // app.add_plugins(projectiles::ProjectilesPlugin);
+        app.add_plugins(weapons::WeaponsPlugin);
         app.add_plugins(utils::UtilsPlugin);
     }
 }

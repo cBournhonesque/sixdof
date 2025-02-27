@@ -4,7 +4,7 @@ mod bot;
 
 use bevy::app::{App, Startup};
 use bevy::prelude::{Commands, Plugin};
-use lightyear::prelude::client::ClientCommands;
+use lightyear::prelude::client::ClientCommandsExt;
 
 pub struct ClientPlugin;
 
