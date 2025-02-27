@@ -16,6 +16,7 @@ pub mod prelude {
     pub use crate::network::{protocol::*, settings::*};
     pub use crate::physics::*;
     pub use crate::projectiles::*;
+    pub use crate::weapons::*;
     pub use crate::map::*;
     pub use crate::states::*;
     pub use crate::player::Player;

@@ -36,7 +36,7 @@ bevy = { version = "0.15.2", default-features = false, features = [
 ] }
 qevy = { git = "https://github.com/BrianWiz/qevy.git", branch = "master", features = ["avian"] }
 bevy_config_stack = { git = "https://github.com/BrianWiz/bevy_config_stack.git", branch = "main", package = "bevy_config_stack" }
-avian3d = { version = "0.2.1", default-features = false, features = [
+avian3d = { version = "0.2.0", default-features = false, features = [
     "3d",
     "f32",
     "parry-f32",

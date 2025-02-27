@@ -1,7 +1,6 @@
 use avian3d::prelude::{Collider, LinearVelocity, PhysicsSet, Position, Rotation, SpatialQuery, SpatialQueryFilter};
 use bevy::color::palettes::basic::{BLUE, YELLOW};
 use bevy::prelude::*;
-use lightyear::prelude::client::VisualInterpolateStatus;
 use bevy::utils::Duration;
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::client::prediction::Predicted;

@@ -102,9 +102,8 @@ impl Plugin for ProtocolPlugin {
             // .add_correction_fn(rotation::lerp);
 
             
-        app.register_component::<WeaponInventory>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Simple);
-
+        app.register_component::<WeaponInventory>(ChannelDirection::ServerToClient);
+        
         // do not replicate Transform but make sure to register an interpolation function
         // for it so that we can do visual interpolation
         // (another option would be to replicate transform and not use Position/Rotation at all)

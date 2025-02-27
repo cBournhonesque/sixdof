@@ -211,34 +211,20 @@ fn shoot_system(
                 match weapon_data.barrel_mode {
                     BarrelMode::Simultaneous => {
                         let direction = transform.forward().as_vec3();
-        
-                        let mut new_transform = *transform;
-                        new_transform.translation += 0.5 * direction;
-                        commands.spawn((
-                            new_transform,
-                            Projectile,
-                            InheritedVisibility::default(),
-                            // TODO: change projectile speed
-                            LinearVelocity(direction * 5.0),
-                            // TODO: change projectile shape
-                            Collider::sphere(0.1),
-                            RigidBody::Dynamic,
-                        ));
-                        
-                        // for barrel_position in weapon_data.barrel_positions.iter() {
-                        //     let rotated_barrel_pos = transform.rotation * *barrel_position;
-                        //     let mut new_transform = *transform;
-                        //     new_transform.translation += rotated_barrel_pos + (direction * 1.0);
+                        for barrel_position in weapon_data.barrel_positions.iter() {
+                            let rotated_barrel_pos = transform.rotation * *barrel_position;
+                            let mut new_transform = *transform;
+                            new_transform.translation += rotated_barrel_pos;
 
-                        //     commands.spawn((
-                        //         new_transform,
-                        //         Projectile,
-                        //         InheritedVisibility::default(),
-                        //         LinearVelocity(direction * weapon_data.projectile.speed),
-                        //         Collider::sphere(0.1),
-                        //         RigidBody::Dynamic,
-                        //     ));
-                        // }
+                            commands.spawn((
+                                new_transform,
+                                Projectile,
+                                InheritedVisibility::default(),
+                                LinearVelocity(direction * weapon_data.projectile.speed),
+                                Collider::sphere(0.1),
+                                RigidBody::Dynamic,
+                            ));
+                        }
                     }
                     BarrelMode::Sequential => {
                         // @todo-brian: implement sequential mode
