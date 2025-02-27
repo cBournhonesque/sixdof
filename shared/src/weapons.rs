@@ -26,7 +26,7 @@ impl Plugin for WeaponsPlugin {
     }
 }
 
-#[derive(Component, Serialize, Deserialize, PartialEq)]
+#[derive(Component, Serialize, Deserialize, PartialEq, Clone)]
 pub struct WeaponInventory {
     pub weapons: HashMap<WeaponId, Weapon>,
     pub current_weapon_idx: WeaponId,
@@ -60,7 +60,7 @@ impl WeaponInventory {
 /// @todo-brian: maybe this can eventually be a component too, 
 /// so that if we die and drop the weapon, it can be picked up 
 /// by someone else with the exact state it was left off with.
-#[derive(Component, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Component, Default, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Weapon {
     pub fire_timer_auto: Timer,
     pub fire_timer_burst: Timer,
