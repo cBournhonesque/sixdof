@@ -2,16 +2,14 @@ use crate::settings;
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
 use bevy::DefaultPlugins;
-use lightyear::prelude::{client::ClientPlugins, client::NetConfig, server::ServerPlugins, Mode};
+use lightyear::prelude::{client::ClientPlugins, client::NetConfig, server::ServerPlugins};
 
 pub struct HostServer(App);
 impl HostServer {
     pub fn new(client_id: u64) -> Self {
         let mut client_config = settings::client_config(client_id);
         client_config.net = NetConfig::Local { id: client_id };
-        client_config.shared.mode = Mode::HostServer;
         let mut server_config = settings::server_config();
-        server_config.shared.mode = Mode::HostServer;
 
         // gui app
         let mut app = App::new();

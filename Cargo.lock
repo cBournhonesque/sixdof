@@ -3883,6 +3883,11 @@ dependencies = [
  "tracing",
  "tracing-log",
  "tracing-subscriber",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "wtransport",
+ "xwt-core",
+ "xwt-web",
 ]
 
 [[package]]

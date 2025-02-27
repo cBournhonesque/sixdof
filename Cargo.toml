@@ -22,6 +22,7 @@ lightyear_avian = { git = "https://github.com/cBournhonesque/lightyear.git", bra
 lightyear = { git = "https://github.com/cBournhonesque/lightyear.git", branch = "main", default-features = false, features = [
     "leafwing",
     "avian3d",
+    "webtransport",
 ] }
 bevy = { version = "0.15.2", default-features = false, features = [
     "multi_threaded",
