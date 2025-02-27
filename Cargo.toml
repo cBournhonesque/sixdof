@@ -15,9 +15,9 @@ license = "MIT OR Apache-2.0 OR CC0-1.0"
 lightyear_examples_common = { git = "https://github.com/cBournhonesque/lightyear", branch = "cb/sixdof", default-features = false }
 lightyear = { git = "https://github.com/cBournhonesque/lightyear", branch = "cb/sixdof", default-features = false, features = [
     "leafwing",
-    "avian3d"
+    "avian3d",
 ] }
-bevy = { version = "0.15", default-features = false, features = [
+bevy = { version = "0.15.2", default-features = false, features = [
     "multi_threaded",
     "bevy_state",
     "serialize",
@@ -28,7 +28,9 @@ bevy = { version = "0.15", default-features = false, features = [
     "sysinfo_plugin",
     "file_watcher",
 ] }
-avian3d = { version = "0.2", default-features = false, features = [
+qevy = { git = "https://github.com/BrianWiz/qevy.git", branch = "master", features = ["avian"] }
+bevy_config_stack = { git = "https://github.com/BrianWiz/bevy_config_stack.git", branch = "main", package = "bevy_config_stack" }
+avian3d = { version = "0.2.1", default-features = false, features = [
     "3d",
     "f32",
     "parry-f32",

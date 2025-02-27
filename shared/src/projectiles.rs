@@ -8,6 +8,7 @@ use lightyear::prelude::client::Rollback;
 use lightyear::prelude::server::{Replicate, SyncTarget};
 use crate::player::Player;
 use crate::prelude::{PlayerInput, PREDICTION_REPLICATION_GROUP_ID};
+use crate::weapons::Projectile;
 
 pub(crate) struct ProjectilesPlugin;
 
@@ -16,16 +17,12 @@ impl Plugin for ProjectilesPlugin {
         // SYSTEMS
         // TODO: use replicated projectiles for projectiles that can have a non-deterministic trajectory (bouncing on walls, homing missiles)
         // app.add_systems(FixedUpdate, shoot_replicated_projectiles);
-        app.add_systems(FixedUpdate, shoot_projectiles);
+        //app.add_systems(FixedUpdate, shoot_projectiles);
 
         // DEBUG
         // app.add_systems(FixedLast, debug_after_physics);
     }
 }
-
-// TODO: maybe make this an enum with the type of projectile?
-#[derive(Component, Debug, Clone)]
-pub struct Projectile;
 
 /// Print the transform after physics have been applied
 pub fn debug_after_physics(

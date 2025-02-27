@@ -1,7 +1,7 @@
 use bevy::color::palettes::basic::BLUE;
 use bevy::prelude::*;
 use lightyear::prelude::client::VisualInterpolateStatus;
-use shared::projectiles::Projectile;
+use shared::weapons::Projectile;
 
 pub(crate) struct ProjectilesPlugin;
 
@@ -34,3 +34,4 @@ fn spawn_visuals(
         )
     );
 }
+

@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-qevy = { git = "https://github.com/BrianWiz/qevy.git", branch = "master", features = ["avian"] }
+qevy.workspace = true
+bevy_config_stack.workspace = true
 lightyear_examples_common.workspace = true
 lightyear.workspace = true
 leafwing-input-manager.workspace = true

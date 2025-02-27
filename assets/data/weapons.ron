@@ -1,0 +1,35 @@
+(
+    weapons: {
+        0: (
+            name: "Dual Lasers",
+            description: "A pair of lasers that fire in unison.",
+            barrel_positions: [
+                // Right
+                (0.25, 0.0, 0.0),
+                // Left
+                (-0.25, 0.0, 0.0),
+            ],
+            barrel_mode: Simultaneous,
+            fire_mode: Auto(
+                delay_ms: 100,
+            ),
+            crosshair: (
+                color: LinearRgba((
+                    red: 1.0,
+                    green: 1.0,
+                    blue: 1.0,
+                    alpha: 1.0,
+                )),
+                image: "kenney_crosshair_pack/crosshair018.png",
+            ),
+            projectile: (
+                speed: 50.0,
+                lifetime_secs: 1.0,
+                direct_damage: 10.0,
+                splash_damage_radius: 0.0,
+                splash_damage_max: 0.0,
+                splash_damage_min: 0.0,
+            ),
+        ),
+    },
+)
