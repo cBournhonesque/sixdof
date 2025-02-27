@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use avian3d::prelude::{Collider, LinearVelocity, RigidBody};
+use avian3d::prelude::{Collider, LinearVelocity, Position, RigidBody};
 use bevy::{prelude::*, scene::ron::ser::{to_string_pretty, PrettyConfig}, utils::HashMap};
 use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use leafwing_input_manager::prelude::ActionState;
@@ -8,6 +8,7 @@ use lightyear::prelude::{client::Predicted, *};
 use serde::{Deserialize, Serialize};
 
 use crate::{player::Player, prelude::{Identity, PlayerInput}};
+use crate::prelude::LinearProjectile;
 
 pub type WeaponId = u32;
 
@@ -177,6 +178,7 @@ fn shoot_system(
     mut commands: Commands,
     weapons_data: Res<WeaponsData>,
     mut query: Query<(
+        Entity,
         &Player,
         &Transform,
         &mut WeaponInventory,
@@ -184,7 +186,7 @@ fn shoot_system(
     ),
     Or<(With<Predicted>, With<Replicating>)>>,
 ) {
-    for (_player, transform, mut inventory, action) in query.iter_mut() {
+    for (entity, player, transform, mut inventory, action) in query.iter_mut() {
         let current_weapon_idx = inventory.current_weapon_idx;
         if let (Some(weapon_data), Some(weapon_state)) = (
             weapons_data.weapons.get(&current_weapon_idx), 
@@ -193,11 +195,14 @@ fn shoot_system(
             let mut should_fire = false;
             match weapon_data.fire_mode {
                 FireMode::Auto { delay_ms: delay } => {
+                    // TODO: the fire timer auto needs to be reset during rollbacks
+                    //  maybe lightyear should provide a rollbackable timer? or we can rollback the entire
+                    //  WeaponInventory component, but that might not be an efficient way to do it
                     weapon_state.fire_timer_auto.set_duration(Duration::from_millis(delay));
                     weapon_state.fire_timer_auto.tick(fixed_time.delta());
                     
                     if weapon_state.fire_timer_auto.finished() 
-                        && action.pressed(&PlayerInput::ShootPrimary) {
+                        && action.just_pressed(&PlayerInput::ShootPrimary) {
                         should_fire = true;
                         weapon_state.fire_timer_auto.reset();
                     }
@@ -210,16 +215,36 @@ fn shoot_system(
             if should_fire {
                 match weapon_data.barrel_mode {
                     BarrelMode::Simultaneous => {
-                        let direction = transform.forward().as_vec3();
+                        let direction = transform.forward();
                         for barrel_position in weapon_data.barrel_positions.iter() {
                             let rotated_barrel_pos = transform.rotation * *barrel_position;
                             let mut new_transform = *transform;
                             new_transform.translation += rotated_barrel_pos;
 
+                            // we include information about the shooter to be able to
+                            // use the correct lag compensation values
+                            let mut linear_bullet_event = LinearProjectile {
+                                shooter: player.id,
+                                shooter_entity: entity,
+                                source: new_transform.translation,
+                                direction,
+                                speed: weapon_data.projectile.speed,
+                                ..default()
+                            };
+
+                            // we shoot a non-networked linear bullet
+                            // it's trajectory should be deterministic on the client and server
+                            // TODO: actually we will need to network the initial replication
+                            //  because we want to see enemy bullets fired in the interpolated timeline?
+                            // TODO: maybe enemy bullets can be sped up to be in the predicted timeline so that
+                            //  they can hit us, similar to what Piefayth does
                             commands.spawn((
                                 new_transform,
                                 Projectile,
                                 InheritedVisibility::default(),
+                                linear_bullet_event,
+                                // TODO: for some reason it's required to include both Position and Transform
+                                Position(new_transform.translation),
                                 LinearVelocity(direction * weapon_data.projectile.speed),
                                 Collider::sphere(0.1),
                                 RigidBody::Dynamic,
