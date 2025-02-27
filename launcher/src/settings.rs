@@ -1,18 +1,18 @@
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use bevy::log::{Level, LogPlugin};
-use bevy::utils::Duration;
 use bevy::prelude::*;
-use bevy::window::PresentMode;
+use bevy::utils::Duration;
+use bevy::window::{CursorOptions, PresentMode};
 #[cfg(feature = "client")]
 use lightyear::prelude::client::*;
+#[cfg(feature = "server")]
+use lightyear::prelude::server::{self, ServerConfig, ServerTransport};
 use lightyear::prelude::*;
 #[cfg(feature = "server")]
-use lightyear::prelude::server::{self, ServerTransport, ServerConfig};
-#[cfg(feature = "server")]
 use lightyear_examples_common::settings::WebTransportCertificateSettings;
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 pub const TICK_RATE: f64 = 64.0;
-pub const REPLICATION_INTERVAL:  Duration = Duration::from_millis(100);
+pub const REPLICATION_INTERVAL: Duration = Duration::from_millis(20);
 pub const ASSETS_HOTRELOAD: bool = true;
 
 pub const SERVER_ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5001));
@@ -29,7 +29,8 @@ pub(crate) fn get_assets_path() -> String {
 
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
     let asset_path = current_dir.join(ASSETS_PATH);
-    asset_path.canonicalize()
+    asset_path
+        .canonicalize()
         .expect("Failed to canonicalize asset path")
         .to_str()
         .expect("Failed to convert path to string")
@@ -50,13 +51,16 @@ pub(crate) fn shared_config() -> SharedConfig {
 pub(crate) fn client_config(client_id: u64) -> ClientConfig {
     ClientConfig {
         shared: shared_config(),
-        net: build_client_netcode_config(client_id, ClientTransport::WebTransportClient {
-            // port of 0 means that the OS will find a random port
-            client_addr: SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), 0),
-            server_addr: SERVER_ADDR,
-            #[cfg(target_family = "wasm")]
-            certificate_digest: include_str!("../../certificates/digest.txt").to_string(),
-        }),
+        net: build_client_netcode_config(
+            client_id,
+            ClientTransport::WebTransportClient {
+                // port of 0 means that the OS will find a random port
+                client_addr: SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), 0),
+                server_addr: SERVER_ADDR,
+                #[cfg(target_family = "wasm")]
+                certificate_digest: include_str!("../../certificates/digest.txt").to_string(),
+            },
+        ),
         replication: ReplicationConfig {
             send_interval: REPLICATION_INTERVAL,
             ..default()
@@ -69,15 +73,16 @@ pub(crate) fn client_config(client_id: u64) -> ClientConfig {
 pub(crate) fn server_config() -> ServerConfig {
     ServerConfig {
         shared: shared_config(),
-        net: vec![
-            build_server_netcode_config(ServerTransport::WebTransportServer {
+        net: vec![build_server_netcode_config(
+            ServerTransport::WebTransportServer {
                 server_addr: SERVER_ADDR,
                 certificate: (&WebTransportCertificateSettings::FromFile {
                     cert: "certificates/cert.pem".to_string(),
                     key: "certificates/key.pem".to_string(),
-                }).into(),
-            })
-        ],
+                })
+                    .into(),
+            },
+        )],
         replication: ReplicationConfig {
             send_interval: REPLICATION_INTERVAL,
             ..default()
@@ -90,6 +95,10 @@ pub(crate) fn server_config() -> ServerConfig {
 pub(crate) fn window_plugin() -> WindowPlugin {
     WindowPlugin {
         primary_window: Some(Window {
+            cursor_options: CursorOptions {
+                visible: true,
+                ..default()
+            },
             title: format!("Lightyear Example: {}", env!("CARGO_PKG_NAME")),
             resolution: (1024., 768.).into(),
             present_mode: PresentMode::AutoVsync,
@@ -104,11 +113,10 @@ pub(crate) fn window_plugin() -> WindowPlugin {
 pub(crate) fn log_plugin() -> LogPlugin {
     LogPlugin {
         level: Level::INFO,
-        filter: "wgpu=error,bevy_render=info,bevy_ecs=warn,bevy_time=warn,lightyear::client::prediction::rollback=debug".to_string(),
+        filter: "wgpu=error,bevy_render=info,bevy_ecs=warn,bevy_time=warn".to_string(),
         ..default()
     }
 }
-
 
 #[cfg(feature = "server")]
 /// Build a netcode config for the server

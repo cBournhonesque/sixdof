@@ -6,8 +6,8 @@ license.workspace = true
 
 [features]
 default = ["client", "server"]
-client = ["gui", "dep:client", "renderer/client"]
-server = ["dep:server", "dep:lightyear_examples_common", "renderer/server"]
+client = ["gui", "dep:client", "renderer/client", "lightyear_examples_common/client"]
+server = ["dep:server", "dep:lightyear_examples_common", "renderer/server", "lightyear_examples_common/server"]
 gui = ["dep:renderer"]
 
 
@@ -18,7 +18,7 @@ client = { path = "../client", default-features = false, optional = true }
 server = { path = "../server", default-features = false, optional = true }
 bevy.workspace = true
 lightyear.workspace = true
-lightyear_examples_common = { workspace = true, features = ["server"], optional = true}
+lightyear_examples_common = { workspace = true, default-features = false, optional = true}
 clap = "4.5"
 crossbeam-channel = "0.5.14"
 

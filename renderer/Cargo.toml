@@ -9,9 +9,11 @@ client = []
 server = []
 
 [dependencies]
+server = { path = "../server", default-features = false }
 shared = { path = "../shared", default-features = false }
 lightyear.workspace = true
 bevy-inspector-egui.workspace = true
+leafwing-input-manager.workspace = true
 avian3d.workspace = true
 bevy = { workspace = true, features = [
     "bevy_asset",
