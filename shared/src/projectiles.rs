@@ -16,7 +16,7 @@ pub(crate) struct ProjectilesPlugin;
 impl Plugin for ProjectilesPlugin {
     fn build(&self, app: &mut App) {
         // EVENTS
-        // app.add_event::<LinearProjectile>();
+        app.add_event::<LinearProjectile>();
 
         // SYSTEMS
         // TODO: shouldn't the projectile be shot from PostUpdate? after physics have run?
@@ -25,7 +25,7 @@ impl Plugin for ProjectilesPlugin {
 
         // TODO: use replicated projectiles for projectiles that can have a non-deterministic trajectory (bouncing on walls, homing missiles)
         // app.add_systems(FixedUpdate, shoot_replicated_projectiles);
-        //app.add_systems(FixedUpdate, shoot_projectiles);
+        app.add_systems(FixedUpdate, shoot_projectiles);
 
         // DEBUG
         // app.add_systems(FixedLast, debug_after_physics);
