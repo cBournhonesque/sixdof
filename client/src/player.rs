@@ -2,9 +2,10 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::{InputMap, MouseMove};
 use lightyear::shared::replication::components::Controlled;
-use lightyear::prelude::client::*;
+use lightyear::prelude::{client::*, ClientId};
 use shared::player::Player;
-use shared::prelude::{GameLayer, Moveable, PlayerInput, ShapecastMoveableShape};
+use shared::prelude::{GameLayer, Moveable, PlayerInput, ShapecastMoveableShape, UniqueIdentity};
+use shared::weapons::{WeaponInventory, WeaponsData};
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -25,12 +26,13 @@ impl Plugin for PlayerPlugin {
         // make sure that client cannot apply inputs before the connection is synced
         // we add the system in Last so that on the first time the InputMap is spawned, we don't immediately
         // send an InputMessage to the server
-        app.add_systems(Last, handle_predicted_spawn.run_if(is_synced));
+        app.add_systems(Last, handle_predicted_spawn.run_if(is_synced).run_if(resource_exists::<WeaponsData>));
     }
 }
 
 /// Handle a newly spawned Predicted player:
 fn handle_predicted_spawn(
+    weapons_data: Res<WeaponsData>,
     mut commands: Commands,
     predicted_player: Query<Entity, (With<Controlled>, With<Player>, With<Predicted>, Without<InputMap<PlayerInput>>)>
 ) {
@@ -57,12 +59,14 @@ fn handle_predicted_spawn(
             .with_dual_axis(PlayerInput::Look, MouseMove::default());
 
         // Adds an InputMap to Predicted so that the user can control the predicted entity
-        // We add a Moveable component so that we can predict velocity and angular velocity
-        commands.entity(entity).insert((input_map, Moveable {
-            velocity: Vec3::ZERO,
-            angular_velocity: Vec3::ZERO,
-            collision_shape: ShapecastMoveableShape::Sphere(0.5),
-            collision_mask: [GameLayer::Wall].into(),
-        }));
+        commands.entity(entity).insert((input_map, 
+            // We add a Moveable component so that we can predict velocity and angular velocity
+            Moveable {
+                velocity: Vec3::ZERO,
+                angular_velocity: Vec3::ZERO,
+                collision_shape: ShapecastMoveableShape::Sphere(0.5),
+                collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
+            },
+        ));
     }
 }

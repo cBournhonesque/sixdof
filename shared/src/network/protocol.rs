@@ -5,7 +5,7 @@ use avian3d::prelude::*;
 use lightyear::prelude::client::{ComponentSyncMode, LeafwingInputConfig, LerpFn};
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
-use crate::prelude::Moveable;
+use crate::prelude::{Damageable, Moveable, UniqueIdentity};
 use crate::moveable;
 use crate::weapons::WeaponInventory;
 use lightyear::utils::bevy::TransformLinearInterpolation;
@@ -126,5 +126,10 @@ impl Plugin for ProtocolPlugin {
             .add_prediction(ComponentSyncMode::Full)
             .add_interpolation(ComponentSyncMode::Full)
             .add_interpolation_fn(TransformLinearInterpolation::lerp);
+
+        app.register_component::<UniqueIdentity>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Once);
+        
+        app.register_component::<Damageable>(ChannelDirection::ServerToClient);
     }
 }

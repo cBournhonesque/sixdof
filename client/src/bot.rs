@@ -1,5 +1,5 @@
 use avian3d::collision::CollisionLayers;
-use avian3d::prelude::{Collider, Position};
+use avian3d::prelude::{Collider, Position, RigidBody};
 use bevy::prelude::*;
 use lightyear::client::interpolation::Interpolated;
 use lightyear::prelude::client::InterpolateStatus;
@@ -39,8 +39,9 @@ fn add_bot_collider(
 ) {
     if query.get(trigger.entity()).is_ok() {
         commands.entity(trigger.entity()).insert((
+            RigidBody::Kinematic,
             Collider::sphere(0.5),
-            CollisionLayers::new([GameLayer::Player], [GameLayer::Wall]),
+            CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
         ));
     }
 }

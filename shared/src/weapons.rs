@@ -1,14 +1,13 @@
 use std::time::Duration;
 
-use avian3d::prelude::{Collider, CollisionLayers, LinearVelocity, Position, RigidBody};
+use avian3d::{math::Vector, prelude::{Collider, CollisionLayers, LinearVelocity, Position, RigidBody, SpatialQuery}};
 use bevy::{prelude::*, scene::ron::ser::{to_string_pretty, PrettyConfig}, utils::HashMap};
-use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
+use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::prelude::{client::Predicted, *};
 use serde::{Deserialize, Serialize};
 
-use crate::{physics::GameLayer, player::Player, prelude::{Identity, PlayerInput}};
-use crate::prelude::LinearProjectile;
+use crate::{physics::GameLayer, player::Player, prelude::{UniqueIdentity, Moveable, MoveableHit, MoveableHitData, MoveableExtras, PlayerInput, ShapecastMoveableShape}, utils::DespawnAfter};
 
 pub type WeaponId = u32;
 
@@ -21,9 +20,49 @@ impl Plugin for WeaponsPlugin {
         // let default_weapons_list_ron = to_string_pretty(&default_weapons_list, PrettyConfig::default()).unwrap();
         // println!("{}", default_weapons_list_ron);
 
+        app.add_event::<ProjectileHitEvent>();
         app.add_plugins(ConfigAssetLoaderPlugin::<WeaponsData>::new("data/weapons.ron"));
-        app.add_systems(FixedUpdate, shoot_system.run_if(resource_exists::<WeaponsData>));
+        app.add_systems(FixedUpdate, (
+            update_weapon_timers_system,
+            shoot_system,
+        ).chain().run_if(resource_exists::<WeaponsData>));
     }
+}
+
+// // TODO: maybe have a separate event for ray-cast vs slow bullets?
+// /// Bullet that shoots in a straight line
+#[derive(Event, Clone, Debug)]
+pub struct LinearProjectile {
+    pub shooter: UniqueIdentity,
+    pub shooter_entity: Entity,
+    pub source: Vector,
+    pub direction: Dir3,
+    pub speed: f32,
+    pub interpolation_delay_millis: u16,
+}
+
+impl Default for LinearProjectile {
+    fn default() -> Self {
+        Self {
+            shooter: UniqueIdentity::Player(ClientId::Local(0)),
+            shooter_entity: Entity::PLACEHOLDER,
+            source: Vector::ZERO,
+            direction: Dir3::Z,
+            // the default is to shoot raycast bullets
+            speed: 1000.0,
+            interpolation_delay_millis: 0,
+        }
+    }
+}
+
+/// Event that is sent when a projectile hits an entity.
+/// Can be used to spawn vfx and play sfx, apply damage, etc.
+#[derive(Event)]
+pub struct ProjectileHitEvent {
+    pub shooter_id: UniqueIdentity,
+    pub weapon_index: u32,
+    pub projectile_entity: Entity,
+    pub entity_hit: Option<Entity>,
 }
 
 #[derive(Component, Serialize, Deserialize, PartialEq, Clone)]
@@ -32,18 +71,22 @@ pub struct WeaponInventory {
     pub current_weapon_idx: WeaponId,
 }
 
-impl Default for WeaponInventory {
-    fn default() -> Self {
-        let mut weapons = HashMap::new();
-        weapons.insert(0, Weapon::default());
-        Self { 
-            weapons,
-            current_weapon_idx: 0,
-        }
-    }
-}
-
 impl WeaponInventory {
+
+    pub fn from_data(
+        weapons_data: &WeaponsData, 
+        // Indices of the weapons that we grant access to.
+        granted_weapon_indices: Vec<WeaponId>
+    ) -> Self {
+        let mut weapons = HashMap::new();
+        for weapon_idx in granted_weapon_indices {
+            if let Some(weapon_data) = weapons_data.weapons.get(&weapon_idx) {
+                weapons.insert(weapon_idx, Weapon::from_data(weapon_data));
+            }
+        }
+        Self { weapons, current_weapon_idx: 0 }
+    }
+
     /// Cycle to the next weapon in the inventory. Wraps around.
     pub fn next_weapon(&mut self) {
         self.current_weapon_idx = (self.current_weapon_idx + 1) % self.weapons.len() as u32;
@@ -69,14 +112,44 @@ pub struct Weapon {
     pub ammo_left: u32,
 }
 
+impl Weapon {
+    pub fn from_data(weapon_data: &WeaponBehavior) -> Self {
+        // sane defaults
+        let mut fire_timer_auto = Timer::new(Duration::from_millis(750), TimerMode::Once);
+        let mut fire_timer_burst = Timer::new(Duration::from_millis(100), TimerMode::Once);
+        let mut fire_timer_post_burst = Timer::new(Duration::from_millis(750), TimerMode::Once);
+        let mut burst_shots_left = 3;
+        let ammo_left = weapon_data.starting_ammo;
+
+        match weapon_data.fire_mode {
+            FireMode::Auto { delay_millis } => {
+                fire_timer_auto.set_duration(Duration::from_millis(delay_millis));
+            }
+            FireMode::Burst { shots, delay_millis, delay_after_burst_millis } => {
+                fire_timer_burst.set_duration(Duration::from_millis(delay_millis));
+                fire_timer_post_burst.set_duration(Duration::from_millis(delay_after_burst_millis));
+                burst_shots_left = shots;
+            }
+        }
+
+        Self {
+            fire_timer_auto,
+            fire_timer_burst,
+            fire_timer_post_burst,
+            burst_shots_left,
+            ammo_left,
+        }
+    }
+}
+
 // TODO: maybe make this an enum with the type of projectile?
 #[derive(Component, Debug, Clone)]
 pub struct Projectile;
 
 /// The resource that contains all the weapon configurations.
 #[derive(Resource, Asset, TypePath, Debug, Deserialize, Serialize)]
-struct WeaponsData {
-    weapons: HashMap<WeaponId, WeaponBehavior>,
+pub struct WeaponsData {
+    pub weapons: HashMap<WeaponId, WeaponBehavior>,
 }
 
 impl Default for WeaponsData {
@@ -92,37 +165,39 @@ impl Default for WeaponsData {
 /// A weapon behavior is basically what it sounds like, 
 /// it defines all the behaviors of a weapon.
 #[derive(Debug, Deserialize, Serialize, Default)]
-struct WeaponBehavior {
+pub struct WeaponBehavior {
     /// The human readable name of the weapon.
-    name: String,
+    pub name: String,
     /// The description of the weapon.
-    description: String,
+    pub description: String,
     /// The positions of the barrels of the weapon.
-    barrel_positions: Vec<Vec3>,
+    pub barrel_positions: Vec<Vec3>,
     /// The mode of the weapon.
-    barrel_mode: BarrelMode,
+    pub barrel_mode: BarrelMode,
     /// The mode of the weapon.
-    fire_mode: FireMode,
+    pub fire_mode: FireMode,
     /// The crosshair of the weapon.
-    crosshair: CrosshairConfiguration,
+    pub crosshair: CrosshairConfiguration,
     /// The projectile behavior of the weapon.
-    projectile: ProjectileBehavior,
+    pub projectile: ProjectileBehavior,
+    /// The starting ammo of the weapon.
+    pub starting_ammo: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default)]
-struct ProjectileBehavior {
-    speed: f32,
-    /// The lifetime of the projectile in seconds before it is removed from the world. 
+pub struct ProjectileBehavior {
+    pub speed: f32,
+    /// The lifetime of the projectile in milliseconds before it is removed from the world. 
     /// Will attempt to apply splash damage upon removal.
-    lifetime_secs: f32,
-    direct_damage: f32,
-    splash_damage_radius: f32,
-    splash_damage_max: f32,
-    splash_damage_min: f32,
+    pub lifetime_millis: u64,
+    pub direct_damage: u16,
+    pub splash_damage_radius: f32,
+    pub splash_damage_max: u16,
+    pub splash_damage_min: u16,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-enum BarrelMode {
+pub enum BarrelMode {
     /// All barrels fire at the same time.
     Simultaneous,
     /// Barrels fire one after the other.
@@ -136,35 +211,35 @@ impl Default for BarrelMode {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-enum FireMode {
+pub enum FireMode {
     /// An automatic weapon just fires continuously with a delay between each shot.
     Auto {
-        delay_ms: u64,
+        delay_millis: u64,
     },
     /// A burst fires a number of shots in a burst, with a delay between each shot.
     Burst {
         /// The number of shots in a burst.
         shots: u32,
         /// The delay between each shot in a burst.
-        delay_ms: u64,
+        delay_millis: u64,
         /// The delay after the burst is finished before starting another burst.
-        delay_after_burst_ms: u64,
+        delay_after_burst_millis: u64,
     },
 }
 
 impl Default for FireMode {
     fn default() -> Self {
-        Self::Auto { delay_ms: 100 }
+        Self::Auto { delay_millis: 100 }
     }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct CrosshairConfiguration {
-    color: Color,
+pub struct CrosshairConfiguration {
+    pub color: Color,
 
     /// The image to use for the crosshair. 
     /// Relative to assets/crosshairs/
-    image: String,
+    pub image: String,
 }
 
 impl Default for CrosshairConfiguration {
@@ -173,41 +248,68 @@ impl Default for CrosshairConfiguration {
     }
 }
 
+/// Updates the weapon timer durations when the weapon data is loaded/reloaded.
+fn update_weapon_timers_system(
+    weapons_data: Res<WeaponsData>,
+    mut events: EventReader<ConfigAssetLoadedEvent<WeaponsData>>,
+    mut weapon_inventories: Query<&mut WeaponInventory>,
+) {
+    // Our data has loaded/reloaded so update the weapon timer durations on every weapon in the world
+    for _ in events.read() {
+        for mut inventory in weapon_inventories.iter_mut() {
+            for (weapon_idx, weapon_state) in inventory.weapons.iter_mut() {
+                match &weapons_data.weapons[weapon_idx].fire_mode {
+                    FireMode::Auto { delay_millis } => {
+                        weapon_state.fire_timer_auto.set_duration(Duration::from_millis(*delay_millis));
+                    }
+                    FireMode::Burst { shots: _, delay_millis, delay_after_burst_millis } => {
+                        weapon_state.fire_timer_burst.set_duration(Duration::from_millis(*delay_millis));
+                        weapon_state.fire_timer_post_burst.set_duration(Duration::from_millis(*delay_after_burst_millis));
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 fn shoot_system(
     fixed_time: Res<Time<Fixed>>,
     mut commands: Commands,
     weapons_data: Res<WeaponsData>,
+    // @todo-brian: we most certainly want to make this more generic so that bots can also use this system.
     mut query: Query<(
         Entity,
-        &Player,
+        &UniqueIdentity,
         &Transform,
         &mut WeaponInventory,
         &ActionState<PlayerInput>,
     ),
     Or<(With<Predicted>, With<Replicating>)>>,
 ) {
-    for (entity, player, transform, mut inventory, action) in query.iter_mut() {
+    for (shooting_entity, identity, transform, mut inventory, action) in query.iter_mut() {
         let current_weapon_idx = inventory.current_weapon_idx;
+
+        // grab the necessary data and state for the current weapon
         if let (Some(weapon_data), Some(weapon_state)) = (
             weapons_data.weapons.get(&current_weapon_idx), 
             inventory.weapons.get_mut(&current_weapon_idx)
         ) {
             let mut should_fire = false;
             match weapon_data.fire_mode {
-                FireMode::Auto { delay_ms: delay } => {
+                FireMode::Auto { delay_millis: _ } => {
                     // TODO: the fire timer auto needs to be reset during rollbacks
                     //  maybe lightyear should provide a rollbackable timer? or we can rollback the entire
                     //  WeaponInventory component, but that might not be an efficient way to do it
-                    weapon_state.fire_timer_auto.set_duration(Duration::from_millis(delay));
                     weapon_state.fire_timer_auto.tick(fixed_time.delta());
                     
-                    if weapon_state.fire_timer_auto.finished() 
-                        && action.just_pressed(&PlayerInput::ShootPrimary) {
+                    // If the timer is finished (no cooldown) and button is pressed, fire
+                    if weapon_state.fire_timer_auto.finished() && action.pressed(&PlayerInput::ShootPrimary) {
                         should_fire = true;
                         weapon_state.fire_timer_auto.reset();
                     }
                 }
-                FireMode::Burst { shots, delay_ms: delay, delay_after_burst_ms: delay_after_burst } => {
+                FireMode::Burst { shots, delay_millis, delay_after_burst_millis } => {
                     // @todo-brian: implement burst mode
                 }
             }
@@ -223,13 +325,13 @@ fn shoot_system(
 
                             // we include information about the shooter to be able to
                             // use the correct lag compensation values
-                            let mut linear_bullet_event = LinearProjectile {
-                                shooter: player.id,
-                                shooter_entity: entity,
+                            let linear_bullet_event = LinearProjectile {
+                                shooter: identity.clone(),
+                                shooter_entity: shooting_entity,
                                 source: new_transform.translation,
                                 direction,
                                 speed: weapon_data.projectile.speed,
-                                ..default()
+                                interpolation_delay_millis: 0,
                             };
 
                             // we shoot a non-networked linear bullet
@@ -238,20 +340,24 @@ fn shoot_system(
                             //  because we want to see enemy bullets fired in the interpolated timeline?
                             // TODO: maybe enemy bullets can be sped up to be in the predicted timeline so that
                             //  they can hit us, similar to what Piefayth does
+                            //info!("speed: {}", weapon_data.projectile.speed);
                             commands.spawn((
                                 new_transform,
-                                Projectile,
-                                InheritedVisibility::default(),
                                 linear_bullet_event,
-                                // TODO: for some reason it's required to include both Position and Transform
-                                Position(new_transform.translation),
-                                LinearVelocity(direction * weapon_data.projectile.speed),
-                                Collider::sphere(0.1),
-                                CollisionLayers::new(
-                                    [GameLayer::Projectile], 
-                                    [GameLayer::Player, GameLayer::Wall]
-                                ),
-                                RigidBody::Dynamic,
+                                Projectile,
+                                Moveable {
+                                    velocity: direction * weapon_data.projectile.speed,
+                                    angular_velocity: Vec3::ZERO,
+                                    collision_shape: ShapecastMoveableShape::Point,
+                                    collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
+                                },
+                                MoveableExtras {
+                                    ignore_entities: Some(vec![shooting_entity]),
+                                    moveable_owner_id: identity.clone(),
+                                    moveable_type_id: current_weapon_idx,
+                                    on_hit: Some(Box::new(on_projectile_hit)),
+                                },
+                                DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once)),
                             ));
                         }
                     }
@@ -264,3 +370,26 @@ fn shoot_system(
     }
 }
 
+// @todo-brian: figure out a way to send an event so that we can spawn vfx/sfx
+fn on_projectile_hit(
+    hit: MoveableHit,
+    commands: &mut Commands,
+    _spatial_query: &mut SpatialQuery,
+) -> bool {
+    let entity_hit = match hit.hit_data {
+        MoveableHitData::ShapeCast(hit) => {
+            Some(hit.entity)
+        }
+        MoveableHitData::RayCast(hit) => {
+            Some(hit.entity)
+        }
+    };
+    commands.send_event(ProjectileHitEvent {
+        shooter_id: hit.moveable_owner_id,
+        weapon_index: hit.moveable_type_id,
+        projectile_entity: hit.moveable_entity,
+        entity_hit
+    });
+    commands.entity(hit.moveable_entity).despawn_recursive();
+    true
+}

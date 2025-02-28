@@ -6,17 +6,16 @@ mod map;
 mod states;
 pub mod physics;
 pub mod player;
-pub mod projectiles;
 pub mod weapons;
 pub mod identity;
 pub mod bot;
 pub mod utils;
 pub mod moveable;
+pub mod damageable;
 
 pub mod prelude {
     pub use crate::network::{protocol::*, settings::*};
     pub use crate::physics::*;
-    pub use crate::projectiles::*;
     pub use crate::weapons::*;
     pub use crate::map::*;
     pub use crate::states::*;
@@ -24,6 +23,7 @@ pub mod prelude {
     pub use crate::identity::*;
     pub use crate::utils::DespawnAfter;
     pub use crate::moveable::*;
+    pub use crate::damageable::*;
 }
 
 #[derive(Clone, Default)]
