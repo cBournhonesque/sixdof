@@ -4,7 +4,7 @@ mod projectiles;
 
 use bevy::app::{App, Startup};
 use bevy::prelude::{Commands, Plugin};
-use lightyear::prelude::server::ServerCommands;
+use lightyear::prelude::server::ServerCommandsExt;
 
 pub struct ServerPlugin;
 

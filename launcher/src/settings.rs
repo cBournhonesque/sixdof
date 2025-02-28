@@ -39,11 +39,11 @@ pub(crate) fn get_assets_path() -> String {
 
 pub(crate) fn shared_config() -> SharedConfig {
     SharedConfig {
+        client_replication_send_interval: REPLICATION_INTERVAL,
         server_replication_send_interval: REPLICATION_INTERVAL,
         tick: TickConfig {
             tick_duration: Duration::from_secs_f64(1.0 / TICK_RATE),
         },
-        mode: Mode::Separate,
     }
 }
 
@@ -61,10 +61,6 @@ pub(crate) fn client_config(client_id: u64) -> ClientConfig {
                 certificate_digest: include_str!("../../certificates/digest.txt").to_string(),
             },
         ),
-        replication: ReplicationConfig {
-            send_interval: REPLICATION_INTERVAL,
-            ..default()
-        },
         ..default()
     }
 }
@@ -83,10 +79,6 @@ pub(crate) fn server_config() -> ServerConfig {
                     .into(),
             },
         )],
-        replication: ReplicationConfig {
-            send_interval: REPLICATION_INTERVAL,
-            ..default()
-        },
         ..default()
     }
 }

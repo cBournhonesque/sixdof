@@ -8,6 +8,7 @@ use lightyear::prelude::client::{Rollback};
 use lightyear::prelude::server::{Replicate, SyncTarget};
 use crate::player::Player;
 use crate::prelude::{PlayerInput, PREDICTION_REPLICATION_GROUP_ID};
+use crate::weapons::Projectile;
 
 
 pub(crate) struct ProjectilesPlugin;
@@ -30,10 +31,6 @@ impl Plugin for ProjectilesPlugin {
         // app.add_systems(FixedLast, debug_after_physics);
     }
 }
-
-// TODO: maybe make this an enum with the type of projectile?
-#[derive(Component, Debug, Clone)]
-pub struct Projectile;
 
 /// Print the transform after physics have been applied
 pub fn debug_after_physics(

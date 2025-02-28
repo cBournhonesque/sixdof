@@ -2001,7 +2001,7 @@ dependencies = [
  "bevy-inspector-egui 0.28.1",
  "bevy_egui",
  "leafwing-input-manager",
- "lightyear",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
  "shared",
 ]
 
@@ -3707,7 +3707,7 @@ dependencies = [
  "clap",
  "client",
  "crossbeam-channel",
- "lightyear",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
  "lightyear_examples_common",
  "renderer",
  "server",
@@ -3811,6 +3811,48 @@ checksum = "c0bfdb7c96641f58349e18db0ba71429475089be815b096cf9e0b55435fc5895"
 dependencies = [
  "async-channel",
  "async-compat",
+ "bevy",
+ "bevy_web_keepalive",
+ "bincode",
+ "byteorder",
+ "bytes",
+ "cfg-if",
+ "chacha20poly1305",
+ "chrono",
+ "console_error_panic_hook",
+ "crossbeam-channel",
+ "enum_dispatch",
+ "futures",
+ "getrandom 0.3.1",
+ "governor",
+ "lightyear_macros 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nonzero_ext",
+ "parking_lot",
+ "paste",
+ "rand",
+ "ringbuffer",
+ "seahash",
+ "self_cell",
+ "serde",
+ "thiserror 2.0.11",
+ "tokio",
+ "tracing",
+ "tracing-log",
+ "tracing-subscriber",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "wtransport",
+ "xwt-core",
+ "xwt-web",
+]
+
+[[package]]
+name = "lightyear"
+version = "0.19.0"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#b8e3cb9cbff7d420a3495e4f614fa15b51e17554"
+dependencies = [
+ "async-channel",
+ "async-compat",
  "avian3d",
  "bevy",
  "bevy_web_keepalive",
@@ -3827,7 +3869,7 @@ dependencies = [
  "getrandom 0.3.1",
  "governor",
  "leafwing-input-manager",
- "lightyear_macros",
+ "lightyear_macros 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
  "nonzero_ext",
  "parking_lot",
  "paste",
@@ -3851,12 +3893,11 @@ dependencies = [
 [[package]]
 name = "lightyear_avian"
 version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df02dcc30fbd1a8ec56b084216a8ef178a920f9ff63d3288b2aa3cd1fd5b43fa"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#b8e3cb9cbff7d420a3495e4f614fa15b51e17554"
 dependencies = [
  "avian3d",
  "bevy",
- "lightyear",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
 ]
 
 [[package]]
@@ -3872,7 +3913,7 @@ dependencies = [
  "cfg-if",
  "clap",
  "crossbeam-channel",
- "lightyear",
+ "lightyear 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand",
  "serde",
  "web-sys",
@@ -3883,6 +3924,17 @@ name = "lightyear_macros"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c9de6a284dac8ccd5816d5c70d0a9097830a2d9fc1531b8f98627c7f62606a96"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
+ "syn",
+]
+
+[[package]]
+name = "lightyear_macros"
+version = "0.19.0"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#b8e3cb9cbff7d420a3495e4f614fa15b51e17554"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5342,7 +5394,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui 0.28.1",
  "leafwing-input-manager",
- "lightyear",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
  "server",
  "shared",
 ]
@@ -5687,7 +5739,7 @@ version = "0.1.0"
 dependencies = [
  "avian3d",
  "bevy",
- "lightyear",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
  "lightyear_avian",
  "shared",
 ]
@@ -5743,7 +5795,7 @@ dependencies = [
  "bevy_common_assets",
  "bevy_config_stack",
  "leafwing-input-manager",
- "lightyear",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
  "lightyear_examples_common",
  "qevy",
  "serde",

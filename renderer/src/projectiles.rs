@@ -10,7 +10,7 @@ use shared::bot::Bot;
 use shared::physics::GameLayer;
 use shared::player::Player;
 use shared::prelude::{DespawnAfter, PlayerInput, LinearProjectile};
-use shared::projectiles::Projectile;
+use shared::weapons::Projectile;
 
 pub(crate) struct ProjectilesPlugin;
 
@@ -18,7 +18,7 @@ impl Plugin for ProjectilesPlugin {
     fn build(&self, app: &mut App) {
         // SYSTEMS
         app.add_observer(spawn_projectile_visuals);
-        app.add_systems(Last, (spawn_raycast_gizmos, show_raycast_gizmos).chain());
+        // app.add_systems(Last, (spawn_raycast_gizmos, show_raycast_gizmos).chain());
 
         #[cfg(feature = "client")]
         app.add_systems(FixedPostUpdate, despawn_projectiles.after(PhysicsSet::StepSimulation));

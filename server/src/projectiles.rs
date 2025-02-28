@@ -32,37 +32,34 @@ struct BulletHitEvent {
 fn handle_linear_bullet_hit(
     mut commands: Commands,
     tick_manager: Res<TickManager>,
-    mut raycast_bullets: EventReader<LinearProjectile>,
-    nonraycast_bullets: Query<(Entity, &Shooter, &Position, &LinearProjectile), With<Projectile>>,
+    // mut raycast_bullets: EventReader<LinearProjectile>,
+    nonraycast_bullets: Query<(Entity, &Position, &LinearProjectile), With<Projectile>>,
     mut hit_events: EventWriter<BulletHitEvent>,
     query: LagCompensationSpatialQuery,
     manager: Res<ServerConnectionManager>,
     client_query: Query<&InterpolationDelay>,
 ) {
     let tick = tick_manager.tick();
-    raycast_bullets.read()
-        .map(|projectile| (None, projectile.shooter, projectile.source, projectile))
-        .chain(nonraycast_bullets.iter().map(|(entity, shooter, pos, projectile)| (Some(entity), shooter.0, pos.0, projectile)))
-        .for_each(|(bullet_entity, shooter, current_pos, projectile)| {
-
+        nonraycast_bullets.iter()
+        .for_each(|(bullet_entity, current_pos, projectile)| {
             let Ok(delay) = manager
-                .client_entity(shooter)
+                .client_entity(projectile.shooter)
                 .map(|client_entity| client_query.get(client_entity).unwrap())
             else {
-                error!("Could not retrieve InterpolationDelay for client {shooter:?}");
+                error!("Could not retrieve InterpolationDelay for client {:?}", projectile.shooter);
                 return;
             };
             //dbg!(&delay);
             if let Some(hit) = query.cast_ray(
                 *delay,
-                current_pos,
+                current_pos.0,
                 projectile.direction,
                 projectile.speed,
                 false,
                 &mut SpatialQueryFilter::from_mask(GameLayer::Player),
             ) {
                 let hit_event = BulletHitEvent {
-                    shooter,
+                    shooter: projectile.shooter,
                     target: hit.entity,
                     damage: 0.0,
                 };
@@ -71,10 +68,8 @@ fn handle_linear_bullet_hit(
                 hit_events.send(hit_event);
 
                 // if the bullet was a projectile, despawn it
-                if let Some(bullet_entity) = bullet_entity {
-                    // TODO: how to make sure that the bullet is visuall despawned on the client?
-                    commands.entity(bullet_entity).despawn_recursive();
-                }
+                // TODO: how to make sure that the bullet is visually despawned on the client?
+                commands.entity(bullet_entity).despawn_recursive();
             }
         });
 }

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use lightyear::prelude::server::*;
-use shared::{player::Player, prelude::{GameLayer, Moveable, ShapecastMoveableShape}};
+use shared::{player::Player, prelude::{GameLayer, Moveable, ShapecastMoveableShape}, weapons::WeaponInventory};
 use avian3d::prelude::*;
 use lightyear::prelude::{NetworkTarget, ReplicateHierarchy};
 
@@ -47,6 +47,7 @@ fn spawn_player_on_connect(mut commands: Commands, mut events: EventReader<Conne
                     respawn_timer: Timer::from_seconds(3.0, TimerMode::Once),
                 },
                 Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
+                WeaponInventory::default(),
                 Moveable {
                     velocity: Vec3::ZERO,
                     angular_velocity: Vec3::ZERO,

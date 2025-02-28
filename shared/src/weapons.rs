@@ -1,114 +1,262 @@
-use bevy::prelude::*;
-use bevy_common_assets::ron::RonAssetPlugin;
+use std::time::Duration;
+
+use avian3d::prelude::{Collider, LinearVelocity, Position, RigidBody};
+use bevy::{prelude::*, scene::ron::ser::{to_string_pretty, PrettyConfig}, utils::HashMap};
+use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
+use leafwing_input_manager::prelude::ActionState;
+use lightyear::prelude::{client::Predicted, *};
+use serde::{Deserialize, Serialize};
+
+use crate::{player::Player, prelude::{Identity, PlayerInput}};
+use crate::prelude::LinearProjectile;
+
+pub type WeaponId = u32;
 
 pub(crate) struct WeaponsPlugin;
 
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
-        // PLUGINS
-        app.add_plugins(RonAssetPlugin::<WeaponConfiguration>::new(&["weapon.ron"]));
-        // SYSTEMS
-        app.add_systems(Startup, setup_configuration);
-        app.add_systems(Update, configuration_change_watcher);
+        
+        // let default_weapons_list = WeaponsListConfig::default();
+        // let default_weapons_list_ron = to_string_pretty(&default_weapons_list, PrettyConfig::default()).unwrap();
+        // println!("{}", default_weapons_list_ron);
+
+        app.add_plugins(ConfigAssetLoaderPlugin::<WeaponsData>::new("data/weapons.ron"));
+        app.add_systems(FixedUpdate, shoot_system.run_if(resource_exists::<WeaponsData>));
     }
 }
 
-/// Loads the weapon configurations and stores them in a resource.
-fn setup_configuration(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
-    // @todo-brian: We might want it so that the server loads these 
-    // and then the client just receives the configurations from the server.
-    // That way, the server can configure on the fly and it all syncs up.
-    // This would be ideal during heavy development phase, and it lends itself to modding.
-    commands.insert_resource(WeaponConfigurations {
-        dual_lasers: asset_server.load("data/weapons/dual_lasers.weapon.ron"),
-        rocket_launcher: asset_server.load("data/weapons/rocket_launcher.weapon.ron"),
-    });
+#[derive(Component, Serialize, Deserialize, PartialEq, Clone)]
+pub struct WeaponInventory {
+    pub weapons: HashMap<WeaponId, Weapon>,
+    pub current_weapon_idx: WeaponId,
 }
 
-/// Watch for changes to weapon configurations and log them.
-fn configuration_change_watcher(
-    mut events: EventReader<AssetEvent<WeaponConfiguration>>,
-) {
-    for event in events.read() {
-        match event {
-            AssetEvent::LoadedWithDependencies { id: _ } => {
-                //info!("Weapon config loaded: {:?}", id);
-            }
-            AssetEvent::Modified { id: _ } => {
-                //info!("Weapon config modified: {:?}", id);
-            }
-            AssetEvent::Removed { id: _ } => {
-                //info!("Weapon config removed: {:?}", id);
-            }
-            _ => {}
+impl Default for WeaponInventory {
+    fn default() -> Self {
+        let mut weapons = HashMap::new();
+        weapons.insert(0, Weapon::default());
+        Self { 
+            weapons,
+            current_weapon_idx: 0,
         }
     }
 }
 
+impl WeaponInventory {
+    /// Cycle to the next weapon in the inventory. Wraps around.
+    pub fn next_weapon(&mut self) {
+        self.current_weapon_idx = (self.current_weapon_idx + 1) % self.weapons.len() as u32;
+    }
+
+    /// Cycle to the previous weapon in the inventory. Wraps around.
+    pub fn previous_weapon(&mut self) {
+        self.current_weapon_idx = (self.current_weapon_idx - 1 + self.weapons.len() as u32) % self.weapons.len() as u32;
+    }
+}
+
+/// A weapon component defines the state of a weapon.
+/// 
+/// @todo-brian: maybe this can eventually be a component too, 
+/// so that if we die and drop the weapon, it can be picked up 
+/// by someone else with the exact state it was left off with.
+#[derive(Component, Default, Serialize, Deserialize, PartialEq, Clone)]
+pub struct Weapon {
+    pub fire_timer_auto: Timer,
+    pub fire_timer_burst: Timer,
+    pub fire_timer_post_burst: Timer,
+    pub burst_shots_left: u32,
+    pub ammo_left: u32,
+}
+
+// TODO: maybe make this an enum with the type of projectile?
+#[derive(Component, Debug, Clone)]
+pub struct Projectile;
+
 /// The resource that contains all the weapon configurations.
-#[derive(Resource)]
-pub struct WeaponConfigurations {
-    dual_lasers: Handle<WeaponConfiguration>,
-    rocket_launcher: Handle<WeaponConfiguration>,
+#[derive(Resource, Asset, TypePath, Debug, Deserialize, Serialize)]
+struct WeaponsData {
+    weapons: HashMap<WeaponId, WeaponBehavior>,
 }
 
-/// A weapon configuration is basically what it sounds like, 
+impl Default for WeaponsData {
+    fn default() -> Self {
+        let mut weapons = HashMap::new();
+        weapons.insert(0, WeaponBehavior::default());
+        WeaponsData {
+            weapons,
+        }
+    }
+}
+
+/// A weapon behavior is basically what it sounds like, 
 /// it defines all the behaviors of a weapon.
-#[derive(Asset, TypePath, serde::Deserialize, serde::Serialize)]
-pub struct WeaponConfiguration {
-    pub name: String,
-    pub description: String,
-    pub barrel_positions: Vec<Vec3>,
-    pub barrel_mode: BarrelMode,
-    pub fire_mode: FireMode,
-    pub crosshair: CrosshairConfiguration,
+#[derive(Debug, Deserialize, Serialize, Default)]
+struct WeaponBehavior {
+    /// The human readable name of the weapon.
+    name: String,
+    /// The description of the weapon.
+    description: String,
+    /// The positions of the barrels of the weapon.
+    barrel_positions: Vec<Vec3>,
+    /// The mode of the weapon.
+    barrel_mode: BarrelMode,
+    /// The mode of the weapon.
+    fire_mode: FireMode,
+    /// The crosshair of the weapon.
+    crosshair: CrosshairConfiguration,
+    /// The projectile behavior of the weapon.
+    projectile: ProjectileBehavior,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct ProjectileConfiguration {
+#[derive(Debug, Deserialize, Serialize, Default)]
+struct ProjectileBehavior {
     speed: f32,
     /// The lifetime of the projectile in seconds before it is removed from the world. 
     /// Will attempt to apply splash damage upon removal.
-    lifetime: f32,
+    lifetime_secs: f32,
     direct_damage: f32,
     splash_damage_radius: f32,
     splash_damage_max: f32,
     splash_damage_min: f32,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
-pub enum BarrelMode {
+#[derive(Debug, Deserialize, Serialize)]
+enum BarrelMode {
     /// All barrels fire at the same time.
     Simultaneous,
     /// Barrels fire one after the other.
     Sequential,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
-pub enum FireMode {
+impl Default for BarrelMode {
+    fn default() -> Self {
+        Self::Simultaneous
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+enum FireMode {
     /// An automatic weapon just fires continuously with a delay between each shot.
     Auto {
-        delay: f32,
+        delay_ms: u64,
     },
     /// A burst fires a number of shots in a burst, with a delay between each shot.
     Burst {
         /// The number of shots in a burst.
         shots: u32,
         /// The delay between each shot in a burst.
-        delay: f32,
+        delay_ms: u64,
         /// The delay after the burst is finished before starting another burst.
-        delay_after_burst: f32,
+        delay_after_burst_ms: u64,
     },
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct CrosshairConfiguration {
-    pub color: Color,
+impl Default for FireMode {
+    fn default() -> Self {
+        Self::Auto { delay_ms: 100 }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct CrosshairConfiguration {
+    color: Color,
 
     /// The image to use for the crosshair. 
     /// Relative to assets/crosshairs/
-    pub image: String,
+    image: String,
 }
+
+impl Default for CrosshairConfiguration {
+    fn default() -> Self {
+        Self { color: Color::WHITE, image: "kenney_crosshair_pack/crosshair018.png".to_string() }
+    }
+}
+
+fn shoot_system(
+    fixed_time: Res<Time<Fixed>>,
+    mut commands: Commands,
+    weapons_data: Res<WeaponsData>,
+    mut query: Query<(
+        Entity,
+        &Player,
+        &Transform,
+        &mut WeaponInventory,
+        &ActionState<PlayerInput>,
+    ),
+    Or<(With<Predicted>, With<Replicating>)>>,
+) {
+    for (entity, player, transform, mut inventory, action) in query.iter_mut() {
+        let current_weapon_idx = inventory.current_weapon_idx;
+        if let (Some(weapon_data), Some(weapon_state)) = (
+            weapons_data.weapons.get(&current_weapon_idx), 
+            inventory.weapons.get_mut(&current_weapon_idx)
+        ) {
+            let mut should_fire = false;
+            match weapon_data.fire_mode {
+                FireMode::Auto { delay_ms: delay } => {
+                    // TODO: the fire timer auto needs to be reset during rollbacks
+                    //  maybe lightyear should provide a rollbackable timer? or we can rollback the entire
+                    //  WeaponInventory component, but that might not be an efficient way to do it
+                    weapon_state.fire_timer_auto.set_duration(Duration::from_millis(delay));
+                    weapon_state.fire_timer_auto.tick(fixed_time.delta());
+                    
+                    if weapon_state.fire_timer_auto.finished() 
+                        && action.just_pressed(&PlayerInput::ShootPrimary) {
+                        should_fire = true;
+                        weapon_state.fire_timer_auto.reset();
+                    }
+                }
+                FireMode::Burst { shots, delay_ms: delay, delay_after_burst_ms: delay_after_burst } => {
+                    // @todo-brian: implement burst mode
+                }
+            }
+
+            if should_fire {
+                match weapon_data.barrel_mode {
+                    BarrelMode::Simultaneous => {
+                        let direction = transform.forward();
+                        for barrel_position in weapon_data.barrel_positions.iter() {
+                            let rotated_barrel_pos = transform.rotation * *barrel_position;
+                            let mut new_transform = *transform;
+                            new_transform.translation += rotated_barrel_pos;
+
+                            // we include information about the shooter to be able to
+                            // use the correct lag compensation values
+                            let mut linear_bullet_event = LinearProjectile {
+                                shooter: player.id,
+                                shooter_entity: entity,
+                                source: new_transform.translation,
+                                direction,
+                                speed: weapon_data.projectile.speed,
+                                ..default()
+                            };
+
+                            // we shoot a non-networked linear bullet
+                            // it's trajectory should be deterministic on the client and server
+                            // TODO: actually we will need to network the initial replication
+                            //  because we want to see enemy bullets fired in the interpolated timeline?
+                            // TODO: maybe enemy bullets can be sped up to be in the predicted timeline so that
+                            //  they can hit us, similar to what Piefayth does
+                            commands.spawn((
+                                new_transform,
+                                Projectile,
+                                InheritedVisibility::default(),
+                                linear_bullet_event,
+                                // TODO: for some reason it's required to include both Position and Transform
+                                Position(new_transform.translation),
+                                LinearVelocity(direction * weapon_data.projectile.speed),
+                                Collider::sphere(0.1),
+                                RigidBody::Dynamic,
+                            ));
+                        }
+                    }
+                    BarrelMode::Sequential => {
+                        // @todo-brian: implement sequential mode
+                    }
+                }
+            }
+        }
+    }
+}
+
