@@ -23,7 +23,7 @@ lightyear = { version = "0.19", default-features = false, features = [
     "leafwing",
     "avian3d"
 ] }
-bevy = { version = "0.15", default-features = false, features = [
+bevy = { version = "0.15.2", default-features = false, features = [
     "multi_threaded",
     "bevy_state",
     "serialize",
@@ -34,6 +34,7 @@ bevy = { version = "0.15", default-features = false, features = [
     "sysinfo_plugin",
     "file_watcher",
 ] }
+bevy_config_stack = { git = "https://github.com/BrianWiz/bevy_config_stack.git", branch = "main", package = "bevy_config_stack" }
 avian3d = { version = "0.2", default-features = false, features = [
     "3d",
     "f32",

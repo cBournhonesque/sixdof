@@ -1,27 +1,28 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
+use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use leafwing_input_manager::prelude::*;
 use lightyear::prelude::{*, client::*};
 use serde::{Deserialize, Serialize};
-use crate::prelude::PlayerInput;
+use crate::prelude::{PlayerInput, Moveable};
 
-const MOVE_SPEED : f32 = 0.125;
-const LOOK_ROTATION_SPEED : f32 = 0.003;
-const ROLL_SPEED : f32 = 0.02;
+#[derive(Asset, Resource, Default,TypePath, Debug, Deserialize)]
+pub struct PlayerShipData {
+    pub accel_speed: f32,
+    pub max_speed: f32,
+    pub drag: f32,
+    pub look_rotation_force: f32,
+    pub max_rotation_speed: f32,
+    pub roll_rotation_force: f32,
+    pub rotation_damping: f32,
+}
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-
-        // SYSTEMS
-
-        // DEBUG
-        // app.add_systems(FixedUpdate, debug_input.before(move_player));
-        // app.add_systems(FixedLast, debug_after_sync);
-        // app.add_systems(RunFixedMainLoop, debug_after_sync.after(RunFixedMainLoopSystem::AfterFixedMainLoop));
-
-        app.add_systems(FixedUpdate, move_player);
+        app.add_plugins(ConfigAssetLoaderPlugin::<PlayerShipData>::new("data/player_ship.ron"));
+        app.add_systems(FixedUpdate, move_player.run_if(resource_exists::<PlayerShipData>));
     }
 }
 
@@ -99,82 +100,77 @@ pub fn debug_after_sync(
 //  - Visually interpolate Transform
 //  - Sync Transform to children, and to GlobalTransform
 pub fn move_player(
-    // tick_manager: Res<TickManager>,
-    // rollback: Option<Res<Rollback>>,
     mut query: Query<(
         &Player,
-        &mut Position,
-        &mut Rotation,
+        &mut Moveable,
+        &mut Transform,
         &ActionState<PlayerInput>,
     ),
-    Or<(With<Predicted>, With<Replicating>)>>
+    Or<(With<Predicted>, With<Replicating>)>>,
+    data: Res<PlayerShipData>,
 ) {
-    // let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
-    //     tick_manager.tick_or_rollback_tick(r.as_ref())
-    // });
-    // let is_rollback = rollback.map_or(false, |r| r.is_rollback());
-    for (_player, mut position, mut rotation, action_state) in query.iter_mut() {
+    for (_player, mut moveable, transform, action_state) in query.iter_mut() {
         let mut wish_dir = Vec3::ZERO;
 
+        // @todo-brian: Also send the mouse sensitivity to the server, probably just do it thru PlayerInput
         let mouse_data = action_state.axis_pair(&PlayerInput::Look);
         if mouse_data != Vec2::ZERO {
-            let yaw = -mouse_data.x * LOOK_ROTATION_SPEED;
-            let pitch = -mouse_data.y * LOOK_ROTATION_SPEED;
+            let yaw = -mouse_data.x * data.look_rotation_force;
+            let pitch = -mouse_data.y * data.look_rotation_force;
 
-            let right = rotation.0 * Vec3::X;
-            let up = rotation.0 * Vec3::Y;
+            let right = transform.rotation * Vec3::X;
+            let up = transform.rotation * Vec3::Y;
 
-            let pitch_rot = Quat::from_axis_angle(right, pitch);
-            let yaw_rot = Quat::from_axis_angle(up, yaw);
-
-            rotation.0 = pitch_rot * yaw_rot * rotation.0;
+            moveable.angular_velocity += up * yaw + right * pitch;
         }
 
+        let mut roll_force = 0.0;
         if action_state.pressed(&PlayerInput::MoveRollLeft) {
-            let forward = rotation.0 * Vec3::NEG_Z;
-            let roll_rot = Quat::from_axis_angle(forward, -ROLL_SPEED);
-            rotation.0 = roll_rot * rotation.0;
+            roll_force -= data.roll_rotation_force;
         }
         if action_state.pressed(&PlayerInput::MoveRollRight) {
-            let forward = rotation.0 * Vec3::NEG_Z;
-            let roll_rot = Quat::from_axis_angle(forward, ROLL_SPEED);
-            rotation.0 = roll_rot * rotation.0;
+            roll_force += data.roll_rotation_force;
+        }
+        
+        if roll_force != 0.0 {
+            let forward = transform.rotation * Vec3::NEG_Z;
+            moveable.angular_velocity += forward * roll_force;
+        }
+
+        moveable.angular_velocity *= 1.0 - data.rotation_damping;
+        
+        if moveable.angular_velocity.length_squared() > data.max_rotation_speed * data.max_rotation_speed {
+            moveable.angular_velocity = moveable.angular_velocity.normalize() * data.max_rotation_speed;
         }
 
         if action_state.pressed(&PlayerInput::MoveForward) {
-            wish_dir += Vec3::NEG_Z;
+            wish_dir += transform.rotation * Vec3::NEG_Z;
         }
         if action_state.pressed(&PlayerInput::MoveBackward) {
-            wish_dir += Vec3::Z;
+            wish_dir += transform.rotation * Vec3::Z;
         }
         if action_state.pressed(&PlayerInput::MoveLeft) {
-            wish_dir += Vec3::NEG_X;
+            wish_dir += transform.rotation * Vec3::NEG_X;
         }
         if action_state.pressed(&PlayerInput::MoveRight) {
-            wish_dir += Vec3::X;
+            wish_dir += transform.rotation * Vec3::X;
         }
         if action_state.pressed(&PlayerInput::MoveUp) {
-            wish_dir += Vec3::Y;
+            wish_dir += transform.rotation * Vec3::Y;
         }
         if action_state.pressed(&PlayerInput::MoveDown) {
-            wish_dir += Vec3::NEG_Y;
+            wish_dir += transform.rotation * Vec3::NEG_Y;
         }
 
-        if wish_dir != Vec3::ZERO {
-            let wish_dir = wish_dir.normalize();
-            let world_wish_dir = rotation.0 * wish_dir;
-            let movement = world_wish_dir * MOVE_SPEED;
-            position.0 += movement;
-        }
+        let wish_dir = wish_dir.normalize_or_zero();
+        let accel = wish_dir * data.accel_speed;
+        moveable.velocity += accel;
+        moveable.velocity *= 1.0 - data.drag;
 
-        // TODO: do not run this if rotation.0 did not change to not trigger change detection
-        rotation.0 = rotation.0.normalize();
-        // info!(
-        //     ?is_rollback,
-        //     ?tick,
-        //     ?transform,
-        //     "AfterInputsApplied"
-        // );
+        // max speed
+        if moveable.velocity.length_squared() > data.max_speed * data.max_speed {
+            moveable.velocity = moveable.velocity.normalize() * data.max_speed;
+        }
     }
 }
 

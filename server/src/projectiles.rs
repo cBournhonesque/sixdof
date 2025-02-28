@@ -52,7 +52,7 @@ fn handle_linear_bullet_hit(
                 error!("Could not retrieve InterpolationDelay for client {shooter:?}");
                 return;
             };
-            dbg!(&delay);
+            //dbg!(&delay);
             if let Some(hit) = query.cast_ray(
                 *delay,
                 current_pos,

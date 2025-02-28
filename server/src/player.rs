@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use lightyear::prelude::server::*;
-use shared::player::Player;
+use shared::{player::Player, prelude::{GameLayer, Moveable, ShapecastMoveableShape}};
 use avian3d::prelude::*;
 use lightyear::prelude::{NetworkTarget, ReplicateHierarchy};
 
@@ -46,35 +46,12 @@ fn spawn_player_on_connect(mut commands: Commands, mut events: EventReader<Conne
                     name: "Player".to_string(),
                     respawn_timer: Timer::from_seconds(3.0, TimerMode::Once),
                 },
-                Transform::default(),
-                // Health::new(even/**/t.health, 200),
-                // HealthRegen {
-                //     delay_before_heal: Timer::from_seconds(5.0, TimerMode::Once),
-                //     heal_tick_timer: Timer::from_seconds(1.0, TimerMode::Repeating),
-                //     amount: 1.0,
-                // },
-                // MovementState {
-                //     max_speed: 20.0,
-                //     acceleration: 1.5,
-                //     rotation_speed: 12.0,
-                //     drag: 1.5,
-                //     ..default()
-                // },
-                // event.team.clone(),
-                // TriggerInstigator::default(),
-                // WeaponContainer::new(WeaponContainerConfig {
-                //     owner_id: event.id,
-                //     weapons: vec![
-                //         Weapon::new(1, None),
-                //         Weapon::new(2, None),
-                //         Weapon::new(3, None),
-                //         Weapon::new(4, None),
-                //         Weapon::new(5, None),
-                //     ],
-                // }),
-                RigidBody::Kinematic,
-                // TODO: contacts are not fully deterministic in avian!
-                // Collider::sphere(0.5),
+                Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
+                Moveable {
+                    velocity: Vec3::ZERO,
+                    angular_velocity: Vec3::ZERO,
+                    collision_shape: ShapecastMoveableShape::Sphere(0.5),
+                },
             )
         );
     }

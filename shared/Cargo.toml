@@ -12,3 +12,4 @@ bevy.workspace = true
 avian3d.workspace = true
 bevy_common_assets.workspace = true
 serde.workspace = true
+bevy_config_stack.workspace = true
