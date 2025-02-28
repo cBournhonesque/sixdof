@@ -26,8 +26,8 @@ fn projectile_hit_system(
             // @todo-brian: apply splash damage
             if let Some(entity_hit) = event.entity_hit {
                 if let Ok(mut damageable) = damageables.get_mut(entity_hit) {
-                    damageable.health -= weapon_data.projectile.direct_damage;
-                    if damageable.health <= 0 {
+                    damageable.health = damageable.health.saturating_sub(weapon_data.projectile.direct_damage);
+                    if damageable.health == 0 {
                         commands.entity(entity_hit).despawn_recursive();
                     }
                 }
