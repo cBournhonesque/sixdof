@@ -1,0 +1,9 @@
+(
+    accel_speed: 0.3,
+    max_speed: 120.0,
+    look_rotation_force: 0.025,
+    max_rotation_speed: 5.0,
+    roll_rotation_force: 0.25,
+    rotation_damping: 0.1,
+    drag: 0.01,
+)

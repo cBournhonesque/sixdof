@@ -5,6 +5,8 @@ use avian3d::prelude::*;
 use lightyear::prelude::client::{ComponentSyncMode, LeafwingInputConfig, LerpFn};
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
+use crate::prelude::Moveable;
+use crate::moveable;
 use crate::weapons::WeaponInventory;
 use lightyear::utils::bevy::TransformLinearInterpolation;
 use crate::bot::Bot;
@@ -33,7 +35,8 @@ pub enum PlayerInput {
     Weapon2,
     Weapon3,
     Weapon4,
-    Weapon5
+    Weapon5,
+    ToggleMousePointer,
 }
 
 impl Plugin for ProtocolPlugin {
@@ -79,27 +82,27 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<ExternalImpulse>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full);
 
-        // app.register_component::<Transform>(ChannelDirection::ServerToClient)
-        //     .add_prediction(ComponentSyncMode::Full)
-        //     .add_interpolation_fn(<TransformLinearInterpolation as LerpFn<Transform>>::lerp);
-        //     // .add_correction_fn(<TransformLinearInterpolation as LerpFn<Transform>>::lerp);
-
         // Position and Rotation have a `correction_fn` set, which is used to smear rollback errors
         // over a few frames, just for the rendering part in postudpate.
         //
         // They also set `interpolation_fn` which is used by the VisualInterpolationPlugin to smooth
         // out rendering between fixedupdate ticks.
-        app.register_component::<Position>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full)
-            .add_interpolation(ComponentSyncMode::Full)
-            .add_interpolation_fn(position::lerp);
-            // .add_correction_fn(position::lerp);
+        // app.register_component::<Position>(ChannelDirection::ServerToClient)
+        //     .add_prediction(ComponentSyncMode::Full)
+        //     .add_interpolation(ComponentSyncMode::Full)
+        //     .add_interpolation_fn(position::lerp);
+        //     // .add_correction_fn(position::lerp);
 
-        app.register_component::<Rotation>(ChannelDirection::ServerToClient)
+        // app.register_component::<Rotation>(ChannelDirection::ServerToClient)
+        //     .add_prediction(ComponentSyncMode::Full)
+        //     .add_interpolation(ComponentSyncMode::Full)
+        //     .add_interpolation_fn(rotation::lerp);
+        //     // .add_correction_fn(rotation::lerp);
+
+        app.register_component::<Moveable>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full)
             .add_interpolation(ComponentSyncMode::Full)
-            .add_interpolation_fn(rotation::lerp);
-            // .add_correction_fn(rotation::lerp);
+            .add_interpolation_fn(moveable::lerp);
 
             
         app.register_component::<WeaponInventory>(ChannelDirection::ServerToClient)
@@ -111,18 +114,17 @@ impl Plugin for ProtocolPlugin {
         // (another option would be to replicate transform and not use Position/Rotation at all)
         // (we want to do visual interpolation on Transform because it's easier than doing it on Position/Rotation
         //  and remembering to apply a sync in PostUpdate)
-        app.add_interpolation::<Transform>(ComponentSyncMode::None);
-        app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
+        // app.add_interpolation::<Transform>(ComponentSyncMode::None);
+        // app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
 
         // NOTE: we do not replicate Transform because the avian transform->position sync plugin causes inaccuracies
         // TODO: maybe applying a TransformPropagate system in PreUpdate after the VisualInterpolation reset
         //  would fix the problem
 
         // // Try replicating only Transform
-        // app.register_component::<Transform>(ChannelDirection::ServerToClient)
-        //     .add_prediction(ComponentSyncMode::Full)
-        //     .add_interpolation(ComponentSyncMode::Full)
-        //     .add_interpolation_fn(TransformLinearInterpolation::lerp);
-
+        app.register_component::<Transform>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Full)
+            .add_interpolation(ComponentSyncMode::Full)
+            .add_interpolation_fn(TransformLinearInterpolation::lerp);
     }
 }
