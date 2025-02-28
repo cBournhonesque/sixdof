@@ -289,6 +289,11 @@ fn shoot_system(
     ),
     Or<(With<Predicted>, With<Replicating>)>>,
 ) {
+    let rolling_back = rollback.map_or(false, |r| r.is_rollback());
+    if rolling_back {
+        return;
+    }
+
     for (shooting_entity, identity, transform, mut inventory, action) in query.iter_mut() {
         let current_weapon_idx = inventory.current_weapon_idx;
 
