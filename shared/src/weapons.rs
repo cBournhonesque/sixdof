@@ -4,7 +4,7 @@ use avian3d::{math::Vector, prelude::{Collider, CollisionLayers, LinearVelocity,
 use bevy::{prelude::*, scene::ron::ser::{to_string_pretty, PrettyConfig}, utils::HashMap};
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::prelude::{client::Predicted, *};
+use lightyear::{client::prediction::rollback::DisableRollback, prelude::{client::{Predicted, Rollback}, *}};
 use serde::{Deserialize, Serialize};
 
 use crate::{physics::GameLayer, player::Player, prelude::{UniqueIdentity, Moveable, MoveableHit, MoveableHitData, MoveableExtras, PlayerInput, MoveableShape}, utils::DespawnAfter};
@@ -278,6 +278,7 @@ fn shoot_system(
     fixed_time: Res<Time<Fixed>>,
     mut commands: Commands,
     weapons_data: Res<WeaponsData>,
+    rollback: Option<Res<Rollback>>,
     // @todo-brian: we most certainly want to make this more generic so that bots can also use this system.
     mut query: Query<(
         Entity,
@@ -358,7 +359,7 @@ fn shoot_system(
                                     moveable_type_id: current_weapon_idx,
                                     on_hit: Some(Box::new(on_projectile_hit)),
                                 },
-                                DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once)),
+                                DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once))
                             ));
                         }
                     }

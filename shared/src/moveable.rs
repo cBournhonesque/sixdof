@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use avian3d::prelude::*;
+use lightyear::prelude::client::{Predicted, Rollback, RollbackState};
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::UniqueIdentity;
@@ -73,13 +74,24 @@ pub struct MoveableHit {
 }
 
 fn move_system(
-    mut commands: Commands,
     fixed_time: Res<Time<Fixed>>,
+    rollback: Option<Res<Rollback>>,
+    predicted: Query<&mut Predicted>,
+    mut commands: Commands,
     mut spatial_query: SpatialQuery,
     mut moveable_extras: Query<&mut MoveableExtras>,
     mut simulations: Query<(Entity, &mut Moveable, &mut Transform)>,
 ) {
+    let rolling_back = rollback.map_or(false, |r| r.is_rollback());
+
     for (entity, mut simulation, mut transform) in simulations.iter_mut() {
+        // If we're in a rollback AND the moveable is not predicted, skip it
+        // otherwise it will move multiple times in a frame and we dont want 
+        // that for non-predicted moveables
+        if rolling_back && !predicted.contains(entity) {
+            continue;
+        }
+
         const EPSILON: f32 = 0.001;
         
         let collider = match &simulation.collision_shape {
