@@ -107,7 +107,7 @@ fn move_system(
         // We loop 4 times because you may hit one wall, then slide into another wall, 
         // we need to make sure we keep deprojecting until we're not hitting anything
         // this technique is taken from Quake 1
-        for _ in 0..4 {
+        'outer: for _ in 0..4 {
     
             // Moveable with a shape collider (anything but the Point based collider)
             if let Some(collider) = &collider {
@@ -129,8 +129,8 @@ fn move_system(
                     transform.translation += hit.normal1 * EPSILON;
 
                     // Deflect velocity along the surface
-                    velocity -= hit.normal1 * velocity.dot(hit.normal1) * fixed_time.delta_secs();
-                    remaining_motion -= hit.normal1 * remaining_motion.dot(hit.normal1) * fixed_time.delta_secs();
+                    velocity -= hit.normal1 * velocity.dot(hit.normal1);
+                    remaining_motion -= hit.normal1 * remaining_motion.dot(hit.normal1);
 
                     // Fire the on_hit hook
                     if let Ok(extras) = &mut extras {
@@ -145,14 +145,14 @@ fn move_system(
                                 fixed_time: *fixed_time,
                                 transform: *transform,
                             }, &mut commands, &mut spatial_query) {
-                                break;
+                                break 'outer;
                             }
                         }
                     }
                 } else {
                     // No collision, move the full distance
                     transform.translation += remaining_motion;
-                    break;
+                    break 'outer;
                 }
             }
             // Point shaped moveable
@@ -174,8 +174,8 @@ fn move_system(
                     transform.translation += hit.normal * EPSILON;
         
                     // Deflect velocity along the surface
-                    velocity -= hit.normal * velocity.dot(hit.normal) * fixed_time.delta_secs();
-                    remaining_motion -= hit.normal * remaining_motion.dot(hit.normal) * fixed_time.delta_secs();
+                    velocity -= hit.normal * velocity.dot(hit.normal);
+                    remaining_motion -= hit.normal * remaining_motion.dot(hit.normal);
 
                     // Fire the on_hit hook
                     if let Ok(extras) = &mut extras {
@@ -190,14 +190,14 @@ fn move_system(
                                 fixed_time: *fixed_time,
                                 transform: *transform,
                             }, &mut commands, &mut spatial_query) {
-                                break;
+                                break 'outer;
                             }
                         }
                     }
                 } else {
                     // No collision, move the full distance
                     transform.translation += remaining_motion;
-                    break;
+                    break 'outer;
                 }
             }
         }

@@ -23,7 +23,7 @@
                 image: "kenney_crosshair_pack/crosshair018.png",
             ),
             projectile: (
-                speed: 5.0,
+                speed: 15.0,
                 lifetime_millis: 5000,
                 direct_damage: 10,
                 splash_damage_radius: 0.0,

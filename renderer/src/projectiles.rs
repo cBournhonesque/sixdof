@@ -65,7 +65,7 @@ fn spawn_projectile_visuals(
                 base_color: BLUE.into(),
                 ..Default::default()
             })),
-            VisualInterpolateStatus::<Transform>::default(),
+            //VisualInterpolateStatus::<Transform>::default(),
             NotShadowCaster,
         )
     );

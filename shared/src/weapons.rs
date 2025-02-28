@@ -346,7 +346,7 @@ fn shoot_system(
                                 linear_bullet_event,
                                 Projectile,
                                 Moveable {
-                                    velocity: direction * weapon_data.projectile.speed,
+                                    velocity: (direction * weapon_data.projectile.speed).clamp_length(0.0, weapon_data.projectile.speed),
                                     angular_velocity: Vec3::ZERO,
                                     collision_shape: ShapecastMoveableShape::Point,
                                     collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
