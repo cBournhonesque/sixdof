@@ -166,7 +166,7 @@ pub(crate) fn shoot_projectiles(
 ) {
     let tick = tick_manager.tick();
     for (entity, player, transform, action) in query.iter() {
-        if action.just_pressed(&PlayerInput::ShootPrimary) || action.just_pressed(&PlayerInput::ShootSecondary) {
+        if action.just_pressed(&PlayerInput::ShootPrimary) || action.just_pressed(&PlayerInput::AfterBurners) {
             let mut linear_bullet_event = LinearProjectile {
                 shooter: player.id,
                 shooter_entity: entity,

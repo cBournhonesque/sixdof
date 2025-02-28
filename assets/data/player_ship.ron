@@ -1,5 +1,6 @@
 (
     accel_speed: 0.3,
+    afterburner_accel_speed: 0.6,
     max_speed: 120.0,
     look_rotation_force: 0.025,
     max_rotation_speed: 5.0,

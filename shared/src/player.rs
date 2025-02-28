@@ -9,6 +9,7 @@ use crate::prelude::{PlayerInput, Moveable};
 #[derive(Asset, Resource, Default,TypePath, Debug, Deserialize)]
 pub struct PlayerShipData {
     pub accel_speed: f32,
+    pub afterburner_accel_speed: f32,
     pub max_speed: f32,
     pub drag: f32,
     pub look_rotation_force: f32,
@@ -125,10 +126,10 @@ pub fn move_player(
         }
 
         let mut roll_force = 0.0;
-        if action_state.pressed(&PlayerInput::MoveRollLeft) {
+        if action_state.pressed(&PlayerInput::RollLeft) {
             roll_force -= data.roll_rotation_force;
         }
-        if action_state.pressed(&PlayerInput::MoveRollRight) {
+        if action_state.pressed(&PlayerInput::RollRight) {
             roll_force += data.roll_rotation_force;
         }
         
@@ -142,7 +143,8 @@ pub fn move_player(
         if moveable.angular_velocity.length_squared() > data.max_rotation_speed * data.max_rotation_speed {
             moveable.angular_velocity = moveable.angular_velocity.normalize() * data.max_rotation_speed;
         }
-
+        
+        // Accelerate in the direction of the input
         if action_state.pressed(&PlayerInput::MoveForward) {
             wish_dir += transform.rotation * Vec3::NEG_Z;
         }
@@ -165,6 +167,14 @@ pub fn move_player(
         let wish_dir = wish_dir.normalize_or_zero();
         let accel = wish_dir * data.accel_speed;
         moveable.velocity += accel;
+
+        // Afterburners push you forward
+        if action_state.pressed(&PlayerInput::AfterBurners) {
+            let accel = transform.rotation * Vec3::NEG_Z * data.afterburner_accel_speed;
+            moveable.velocity += accel;
+        } 
+        
+        // drag
         moveable.velocity *= 1.0 - data.drag;
 
         // max speed

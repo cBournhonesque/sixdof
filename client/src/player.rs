@@ -43,8 +43,8 @@ fn handle_predicted_spawn(
                 (PlayerInput::MoveRight, KeyCode::KeyD),
                 (PlayerInput::MoveUp, KeyCode::Space),
                 (PlayerInput::MoveDown, KeyCode::ShiftLeft),
-                (PlayerInput::MoveRollLeft, KeyCode::KeyQ),
-                (PlayerInput::MoveRollRight, KeyCode::KeyE),
+                (PlayerInput::RollLeft, KeyCode::KeyQ),
+                (PlayerInput::RollRight, KeyCode::KeyE),
                 (PlayerInput::Weapon1, KeyCode::Digit1),
                 (PlayerInput::Weapon2, KeyCode::Digit2),
                 (PlayerInput::Weapon3, KeyCode::Digit3),
@@ -53,7 +53,7 @@ fn handle_predicted_spawn(
                 (PlayerInput::ToggleMousePointer, KeyCode::Tab),
             ])
             .with(PlayerInput::ShootPrimary, MouseButton::Left)
-            .with(PlayerInput::ShootSecondary, MouseButton::Right)
+            .with(PlayerInput::AfterBurners, MouseButton::Right)
             .with_dual_axis(PlayerInput::Look, MouseMove::default());
 
         // Adds an InputMap to Predicted so that the user can control the predicted entity
