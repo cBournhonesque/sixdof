@@ -2,6 +2,8 @@ use bevy::prelude::*;
 use avian3d::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::physics::GameLayer;
+
 pub struct ShapecastMoveablePlugin;
 
 impl Plugin for ShapecastMoveablePlugin {
@@ -22,6 +24,7 @@ pub struct Moveable {
     pub velocity: Vec3,
     pub angular_velocity: Vec3,
     pub collision_shape: ShapecastMoveableShape,
+    pub collision_mask: LayerMask,
 }
 
 fn move_system(
@@ -49,7 +52,10 @@ fn move_system(
                 Quat::default(),
                 Dir3::new(remaining_motion.normalize_or_zero()).unwrap_or(Dir3::X),
                 &ShapeCastConfig::from_max_distance(remaining_motion.length()),
-                &SpatialQueryFilter::default().with_excluded_entities([entity]),
+                &SpatialQueryFilter {
+                    mask: simulation.collision_mask,
+                    ..default()
+                }.with_excluded_entities([entity]),
             ) {
                 // Move to just before the collision point
                 transform.translation += remaining_motion.normalize_or_zero() * hit.distance;
@@ -91,6 +97,7 @@ pub fn lerp(start: &Moveable, other: &Moveable, t: f32) -> Moveable {
         velocity: start.velocity.lerp(other.velocity, t),
         angular_velocity: start.angular_velocity.lerp(other.angular_velocity, t),
         collision_shape: start.collision_shape.clone(),
+        collision_mask: start.collision_mask.clone(),
     }
 }
 

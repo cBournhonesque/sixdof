@@ -4,7 +4,7 @@ use leafwing_input_manager::prelude::{InputMap, MouseMove};
 use lightyear::shared::replication::components::Controlled;
 use lightyear::prelude::client::*;
 use shared::player::Player;
-use shared::prelude::{Moveable, PlayerInput, ShapecastMoveableShape};
+use shared::prelude::{GameLayer, Moveable, PlayerInput, ShapecastMoveableShape};
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -62,6 +62,7 @@ fn handle_predicted_spawn(
             velocity: Vec3::ZERO,
             angular_velocity: Vec3::ZERO,
             collision_shape: ShapecastMoveableShape::Sphere(0.5),
+            collision_mask: [GameLayer::Wall].into(),
         }));
     }
 }

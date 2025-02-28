@@ -1,13 +1,13 @@
 use std::time::Duration;
 
-use avian3d::prelude::{Collider, LinearVelocity, Position, RigidBody};
+use avian3d::prelude::{Collider, CollisionLayers, LinearVelocity, Position, RigidBody};
 use bevy::{prelude::*, scene::ron::ser::{to_string_pretty, PrettyConfig}, utils::HashMap};
 use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::prelude::{client::Predicted, *};
 use serde::{Deserialize, Serialize};
 
-use crate::{player::Player, prelude::{Identity, PlayerInput}};
+use crate::{physics::GameLayer, player::Player, prelude::{Identity, PlayerInput}};
 use crate::prelude::LinearProjectile;
 
 pub type WeaponId = u32;
@@ -247,6 +247,10 @@ fn shoot_system(
                                 Position(new_transform.translation),
                                 LinearVelocity(direction * weapon_data.projectile.speed),
                                 Collider::sphere(0.1),
+                                CollisionLayers::new(
+                                    [GameLayer::Projectile], 
+                                    [GameLayer::Player, GameLayer::Wall]
+                                ),
                                 RigidBody::Dynamic,
                             ));
                         }

@@ -52,6 +52,7 @@ fn spawn_player_on_connect(mut commands: Commands, mut events: EventReader<Conne
                     velocity: Vec3::ZERO,
                     angular_velocity: Vec3::ZERO,
                     collision_shape: ShapecastMoveableShape::Sphere(0.5),
+                    collision_mask: [GameLayer::Wall].into(),
                 },
             )
         );

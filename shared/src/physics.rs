@@ -10,7 +10,6 @@ pub(crate) struct PhysicsPlugin;
 #[derive(PhysicsLayer, Default)]
 pub enum GameLayer {
     #[default]
-    Default,
     Wall,
     Projectile,
     Player,
