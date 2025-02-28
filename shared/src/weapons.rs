@@ -370,7 +370,6 @@ fn shoot_system(
     }
 }
 
-// @todo-brian: figure out a way to send an event so that we can spawn vfx/sfx
 fn on_projectile_hit(
     hit: MoveableHit,
     commands: &mut Commands,
@@ -384,6 +383,9 @@ fn on_projectile_hit(
             Some(hit.entity)
         }
     };
+
+    // send an event so that we can spawn vfx/sfx
+    // and so that the server can subscribe to it for applying damage
     commands.send_event(ProjectileHitEvent {
         shooter_id: hit.moveable_owner_id,
         weapon_index: hit.moveable_type_id,
