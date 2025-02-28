@@ -1,9 +1,5 @@
-use avian3d::prelude::*;
 use bevy::prelude::*;
-use lightyear::prelude::*;
-use lightyear::prelude::client::InterpolationDelay;
-use lightyear_avian::prelude::LagCompensationSpatialQuery;
-use shared::{prelude::{Damageable, GameLayer, Projectile}, weapons::{ProjectileHitEvent, WeaponsData}};
+use shared::{prelude::Damageable, weapons::{ProjectileHitEvent, WeaponsData}};
 
 /// Handles projectiles colliding with walls and enemies
 pub(crate) struct WeaponsPlugin;

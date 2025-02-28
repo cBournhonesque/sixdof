@@ -15,7 +15,7 @@ impl Plugin for ShapecastMoveablePlugin {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub enum ShapecastMoveableShape {
+pub enum MoveableShape {
     Point,
     Sphere(f32),
 }
@@ -27,7 +27,7 @@ pub enum ShapecastMoveableShape {
 pub struct Moveable {
     pub velocity: Vec3,
     pub angular_velocity: Vec3,
-    pub collision_shape: ShapecastMoveableShape,
+    pub collision_shape: MoveableShape,
     pub collision_mask: LayerMask,
 }
 
@@ -83,10 +83,10 @@ fn move_system(
         const EPSILON: f32 = 0.001;
         
         let collider = match &simulation.collision_shape {
-            ShapecastMoveableShape::Sphere(radius) => {
+            MoveableShape::Sphere(radius) => {
                 Some(Collider::sphere(*radius))
             }
-            ShapecastMoveableShape::Point => {
+            MoveableShape::Point => {
                 None
             }
         };

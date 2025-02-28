@@ -7,7 +7,7 @@ use leafwing_input_manager::prelude::ActionState;
 use lightyear::prelude::{client::Predicted, *};
 use serde::{Deserialize, Serialize};
 
-use crate::{physics::GameLayer, player::Player, prelude::{UniqueIdentity, Moveable, MoveableHit, MoveableHitData, MoveableExtras, PlayerInput, ShapecastMoveableShape}, utils::DespawnAfter};
+use crate::{physics::GameLayer, player::Player, prelude::{UniqueIdentity, Moveable, MoveableHit, MoveableHitData, MoveableExtras, PlayerInput, MoveableShape}, utils::DespawnAfter};
 
 pub type WeaponId = u32;
 
@@ -25,7 +25,8 @@ impl Plugin for WeaponsPlugin {
         app.add_systems(FixedUpdate, (
             update_weapon_timers_system,
             shoot_system,
-        ).chain().run_if(resource_exists::<WeaponsData>));
+        )
+        .run_if(resource_exists::<WeaponsData>));
     }
 }
 
@@ -346,9 +347,9 @@ fn shoot_system(
                                 linear_bullet_event,
                                 Projectile,
                                 Moveable {
-                                    velocity: (direction * weapon_data.projectile.speed).clamp_length(0.0, weapon_data.projectile.speed),
+                                    velocity: direction.normalize_or_zero() * weapon_data.projectile.speed,
                                     angular_velocity: Vec3::ZERO,
-                                    collision_shape: ShapecastMoveableShape::Point,
+                                    collision_shape: MoveableShape::Point,
                                     collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
                                 },
                                 MoveableExtras {
