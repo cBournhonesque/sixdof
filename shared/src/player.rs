@@ -10,7 +10,7 @@ use crate::prelude::{PlayerInput, Moveable};
 pub struct PlayerShipData {
     pub accel_speed: f32,
     pub afterburner_accel_speed: f32,
-    pub max_speed: f32,
+    pub base_speed: f32,
     pub drag: f32,
     pub look_rotation_force: f32,
     pub max_rotation_speed: f32,
@@ -76,31 +76,10 @@ pub fn debug_after_sync(
     }
 }
 
-// TODO: this doesn't work if we modify Position/Rotation, but it works if we modify Transform. Why?
-//  ANSWER: because visual interpolation is updated in FixedLast, but we only sync after RunFixedMainLoop,
-//  so the VisualInterpolation Transform values are always Zero
-//  So either:
-//  - run SyncPlugin in FixedPostUpdate, and then we can update Position/Rotation (or Transform)
-//  - run SyncPlugin in RunFixedMain, and then we update Transform from inputs. (but we need to make sure that
-//    there are no velocities, etc.). But then Position/Rotation always stay at 0.0 so we never detect rollbacks!
-// PreUpdate:
-//  - receive confirmed Position/Rotation from server
-//  - restore non-interpolated Transform
-// FixedPreUpdate:
-//  - update inputs
-// FixedUpdate:
-//  - option 1: (WORKS) use inputs to modify Transform
-//  - option 2: (DOESN'T WORK) use inputs to modify Position/Rotation
-// FixedPostUpdate:
-//  - run Physics
-// FixedLast:
-//  - update VisualInterpolation values
-// RunFixedMainLoop:
-//  - sync Position/Rotation to Transform
-// PostUpdate:
-//  - Visually interpolate Transform
-//  - Sync Transform to children, and to GlobalTransform
+/// Sets the player's velocity based on their inputs.
+/// Actual transform manipulation is handled by the MoveablePlugin.
 pub fn move_player(
+    fixed_time: Res<Time<Fixed>>,
     mut query: Query<(
         &Player,
         &mut Moveable,
@@ -165,23 +144,87 @@ pub fn move_player(
         }
 
         let wish_dir = wish_dir.normalize_or_zero();
-        let accel = wish_dir * data.accel_speed;
-        moveable.velocity += accel;
-
-        // Afterburners push you forward
-        if action_state.pressed(&PlayerInput::AfterBurners) {
-            let accel = transform.rotation * Vec3::NEG_Z * data.afterburner_accel_speed;
-            moveable.velocity += accel;
-        } 
         
-        // drag
-        moveable.velocity *= 1.0 - data.drag;
+        // apply drag
+        moveable.velocity = apply_drag(
+            moveable.velocity, 
+            moveable.velocity.length(), 
+            data.drag, 
+            fixed_time.delta_secs()
+        );
 
-        // max speed
-        if moveable.velocity.length_squared() > data.max_speed * data.max_speed {
-            moveable.velocity = moveable.velocity.normalize() * data.max_speed;
+        // apply acceleration
+        let velocity = moveable.velocity;
+        moveable.velocity += accelerate(
+            wish_dir, 
+            data.base_speed, 
+            velocity.dot(wish_dir), 
+            data.accel_speed, 
+            fixed_time.delta_secs()
+        );
+
+        // apply afterburners accelerate you forward
+        if action_state.pressed(&PlayerInput::AfterBurners) {
+            let velocity = moveable.velocity;
+            let wish_dir = transform.rotation * Vec3::NEG_Z;
+            moveable.velocity += accelerate(
+                wish_dir, 
+                data.base_speed, 
+                velocity.dot(transform.rotation * Vec3::NEG_Z),
+                data.afterburner_accel_speed,
+                fixed_time.delta_secs()
+            );
         }
+
+        // // max speed
+        // if moveable.velocity.length_squared() > data.base_speed * data.base_speed {
+        //     moveable.velocity = moveable.velocity.normalize() * data.base_speed;
+        // }
     }
+}
+
+fn apply_drag(
+    velocity: Vec3, 
+    current_speed: f32, 
+    drag: f32, 
+    delta_seconds: f32
+) -> Vec3 {
+    let mut new_speed;
+    let mut drop = 0.0;
+
+    drop += current_speed * drag * delta_seconds;
+
+    new_speed = current_speed - drop;
+    if new_speed < 0.0 {
+        new_speed = 0.0;
+    }
+
+    if new_speed != 0.0 {
+        new_speed /= current_speed;
+    }
+
+    velocity * new_speed
+}
+
+fn accelerate(
+    wish_direction: Vec3,
+    wish_speed: f32,
+    current_speed: f32,
+    accel: f32,
+    delta_seconds: f32,
+) -> Vec3 {
+    let add_speed = wish_speed - current_speed;
+
+    if add_speed <= 0.0 {
+        return Vec3::ZERO;
+    }
+
+    let mut accel_speed = accel * delta_seconds * wish_speed;
+    if accel_speed > add_speed {
+        accel_speed = add_speed;
+    }
+
+    wish_direction * accel_speed
 }
 
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]

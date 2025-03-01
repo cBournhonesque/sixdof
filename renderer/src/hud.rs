@@ -18,6 +18,9 @@ struct Hud {
     pub yellow_key: bool,
 }
 
+#[derive(Component)]
+struct PredictionMetricsText;
+
 #[derive(Component, Debug)]
 struct Crosshair {
     /// List of available crosshairs
@@ -26,10 +29,16 @@ struct Crosshair {
 
 fn prediction_metrics_system(
     prediction_metrics: Option<Res<PredictionMetrics>>,
+    mut text_query: Query<&mut Text, With<PredictionMetricsText>>,
 ) {
-    // if let Some(prediction_metrics) = prediction_metrics {
-    //     println!("Prediction metrics: {:?}", prediction_metrics);
-    // }
+    if let Some(prediction_metrics) = prediction_metrics {
+        if let Ok(mut text) = text_query.get_single_mut() {
+            text.0 = format!("Rollbacks: {}\nRollback Ticks: {}",
+                prediction_metrics.rollbacks,
+                prediction_metrics.rollback_ticks
+            );
+        }
+    }
 }
 
 fn spawn_hud(
@@ -47,40 +56,52 @@ fn spawn_hud(
                 yellow_key: false,
             },
             Node {
-                // take up entire screen
                 position_type: PositionType::Relative,
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
                 ..default()
             }
         )).with_children(|parent| {
-        parent.spawn((
-            Crosshair {
-                textures: vec![
+            // Prediction metrics text
+            parent.spawn((
+                PredictionMetricsText,
+                Node {
+                    position_type: PositionType::Absolute,
+                    top: Val::Px(10.0),
+                    left: Val::Px(10.0),
+                    ..default()
+                },
+                Text::new("Prediction metrics..."),
+            ));
+
+            // Crosshair
+            parent.spawn((
+                Crosshair {
+                    textures: vec![
                         default_crosshair.clone(),
                         asset_server.load("crosshairs/kenney_crosshair_pack/crosshair188.png"),
                         asset_server.load("crosshairs/kenney_crosshair_pack/crosshair030.png"),
                         asset_server.load("crosshairs/kenney_crosshair_pack/crosshair043.png"),
                         asset_server.load("crosshairs/kenney_crosshair_pack/crosshair018.png"),
                     ],
-            },
-            ImageNode {
-                image: default_crosshair,
-                ..default()
-            },
-            Node {
-                position_type: PositionType::Absolute,
-                width: Val::Px(64.0),
-                height: Val::Px(64.0),
-                left: Val::Percent(50.0),
-                bottom: Val::Percent(50.0),
-                margin: UiRect {
-                    left: Val::Px(-32.0),
-                    bottom: Val::Px(-32.0),
+                },
+                ImageNode {
+                    image: default_crosshair,
                     ..default()
                 },
-                ..default()
-            }
-         ));
+                Node {
+                    position_type: PositionType::Absolute,
+                    width: Val::Px(64.0),
+                    height: Val::Px(64.0),
+                    left: Val::Percent(50.0),
+                    bottom: Val::Percent(50.0),
+                    margin: UiRect {
+                        left: Val::Px(-32.0),
+                        bottom: Val::Px(-32.0),
+                        ..default()
+                    },
+                    ..default()
+                }
+            ));
         });
 }
