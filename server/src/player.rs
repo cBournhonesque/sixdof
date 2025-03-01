@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use lightyear::prelude::server::*;
-use shared::{player::Player, prelude::{Damageable, GameLayer, Moveable, MoveableShape, UniqueIdentity}, weapons::{WeaponInventory, WeaponsData}};
+use shared::{player::Player, prelude::{Damageable, GameLayer, Moveable, MoveableShape, UniqueIdentity}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
 use avian3d::prelude::*;
 use lightyear::prelude::{NetworkTarget, ReplicateHierarchy};
 
@@ -49,6 +49,7 @@ fn spawn_player_on_connect(
                     health: 200,
                 },
                 Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
+                CurrentWeaponIndex(0),
                 WeaponInventory::from_data(&weapons_data, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
                 Moveable {
                     velocity: Vec3::ZERO,

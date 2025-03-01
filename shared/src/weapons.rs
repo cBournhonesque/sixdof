@@ -4,7 +4,7 @@ use avian3d::{math::Vector, prelude::{Collider, CollisionLayers, LinearVelocity,
 use bevy::{prelude::*, scene::ron::ser::{to_string_pretty, PrettyConfig}, utils::HashMap};
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::{client::prediction::rollback::DisableRollback, prelude::{client::{Predicted, Rollback}, *}};
+use lightyear::{client::prediction::rollback::DisableRollback, prelude::{client::{Predicted, Rollback}, *}, shared::replication::components::Controlled};
 use serde::{Deserialize, Serialize};
 
 use crate::{physics::GameLayer, player::Player, prelude::{UniqueIdentity, Moveable, MoveableHit, MoveableHitData, MoveableExtras, PlayerInput, MoveableShape}, utils::DespawnAfter};
@@ -22,11 +22,7 @@ impl Plugin for WeaponsPlugin {
 
         app.add_event::<ProjectileHitEvent>();
         app.add_plugins(ConfigAssetLoaderPlugin::<WeaponsData>::new("data/weapons.ron"));
-        app.add_systems(FixedUpdate, (
-            update_weapon_timers_system,
-            shoot_system,
-        )
-        .run_if(resource_exists::<WeaponsData>));
+        app.add_systems(FixedUpdate, update_weapon_timers_system.run_if(resource_exists::<WeaponsData>));
     }
 }
 
@@ -67,13 +63,42 @@ pub struct ProjectileHitEvent {
 }
 
 #[derive(Component, Serialize, Deserialize, PartialEq, Clone)]
+pub struct CurrentWeaponIndex(pub WeaponId);
+
+impl CurrentWeaponIndex {
+    /// Cycle to the next weapon in the provided weapon list. Wraps around.
+    pub fn next_weapon(&mut self, weapons: &HashMap<WeaponId, Weapon>) {
+        let max_id = weapons.keys().max().unwrap_or(&0);
+        let mut new_idx = self.0;
+        for i in 0..=*max_id {
+            new_idx = (self.0 + i + 1) % (max_id + 1);
+            if weapons.contains_key(&new_idx) {
+                self.0 = new_idx;
+                break;
+            }
+        }
+    }
+
+    /// Cycle to the previous weapon in the provided weapon list. Wraps around.
+    pub fn previous_weapon(&mut self, weapons: &HashMap<WeaponId, Weapon>) {
+        let max_id = weapons.keys().max().unwrap_or(&0);
+        let mut new_idx = self.0;
+        for i in 0..=*max_id {
+            new_idx = self.0.checked_sub(i + 1).unwrap_or(*max_id);
+            if weapons.contains_key(&new_idx) {
+                self.0 = new_idx;
+                break;
+            }
+        }
+    }
+}
+
+#[derive(Component, Serialize, Deserialize, PartialEq, Clone)]
 pub struct WeaponInventory {
     pub weapons: HashMap<WeaponId, Weapon>,
-    pub current_weapon_idx: WeaponId,
 }
 
 impl WeaponInventory {
-
     pub fn from_data(
         weapons_data: &WeaponsData, 
         // Indices of the weapons that we grant access to.
@@ -85,17 +110,7 @@ impl WeaponInventory {
                 weapons.insert(weapon_idx, Weapon::from_data(weapon_data));
             }
         }
-        Self { weapons, current_weapon_idx: 0 }
-    }
-
-    /// Cycle to the next weapon in the inventory. Wraps around.
-    pub fn next_weapon(&mut self) {
-        self.current_weapon_idx = (self.current_weapon_idx + 1) % self.weapons.len() as u32;
-    }
-
-    /// Cycle to the previous weapon in the inventory. Wraps around.
-    pub fn previous_weapon(&mut self) {
-        self.current_weapon_idx = (self.current_weapon_idx - 1 + self.weapons.len() as u32) % self.weapons.len() as u32;
+        Self { weapons }
     }
 }
 
@@ -273,104 +288,93 @@ fn update_weapon_timers_system(
     }
 }
 
-
-fn shoot_system(
-    fixed_time: Res<Time<Fixed>>,
-    mut commands: Commands,
-    weapons_data: Res<WeaponsData>,
-    rollback: Option<Res<Rollback>>,
-    // @todo-brian: we most certainly want to make this more generic so that bots can also use this system.
-    mut query: Query<(
-        Entity,
-        &UniqueIdentity,
-        &Transform,
-        &mut WeaponInventory,
-        &ActionState<PlayerInput>,
-    ),
-    Or<(With<Predicted>, With<Replicating>)>>,
+/// Generic function for shooting a weapon.
+/// 
+/// Should be called for both predicted and replicated entities.
+pub fn handle_shooting(
+    shooting_entity: Entity,
+    identity: &UniqueIdentity,
+    transform: &Transform,
+    current_weapon_idx: WeaponId,
+    inventory: &mut WeaponInventory,
+    action: &ActionState<PlayerInput>,
+    fixed_time: &Time<Fixed>,
+    weapons_data: &WeaponsData,
+    commands: &mut Commands,
 ) {
-    let rolling_back = rollback.map_or(false, |r| r.is_rollback());
-    if rolling_back {
-        return;
-    }
-
-    for (shooting_entity, identity, transform, mut inventory, action) in query.iter_mut() {
-        let current_weapon_idx = inventory.current_weapon_idx;
-
-        // grab the necessary data and state for the current weapon
-        if let (Some(weapon_data), Some(weapon_state)) = (
-            weapons_data.weapons.get(&current_weapon_idx), 
-            inventory.weapons.get_mut(&current_weapon_idx)
-        ) {
-            let mut should_fire = false;
-            match weapon_data.fire_mode {
-                FireMode::Auto { delay_millis: _ } => {
-                    // TODO: the fire timer auto needs to be reset during rollbacks
-                    //  maybe lightyear should provide a rollbackable timer? or we can rollback the entire
-                    //  WeaponInventory component, but that might not be an efficient way to do it
-                    weapon_state.fire_timer_auto.tick(fixed_time.delta());
-                    
-                    // If the timer is finished (no cooldown) and button is pressed, fire
-                    if weapon_state.fire_timer_auto.finished() && action.pressed(&PlayerInput::ShootPrimary) {
-                        should_fire = true;
-                        weapon_state.fire_timer_auto.reset();
-                    }
-                }
-                FireMode::Burst { shots, delay_millis, delay_after_burst_millis } => {
-                    // @todo-brian: implement burst mode
+    // grab the necessary data and state for the current weapon
+    if let (Some(weapon_data), Some(weapon_state)) = (
+        weapons_data.weapons.get(&current_weapon_idx), 
+        inventory.weapons.get_mut(&current_weapon_idx)
+    ) {
+        let mut should_fire = false;
+        match weapon_data.fire_mode {
+            FireMode::Auto { delay_millis: _ } => {
+                // TODO: the fire timer auto needs to be reset during rollbacks
+                //  maybe lightyear should provide a rollbackable timer? or we can rollback the entire
+                //  WeaponInventory component, but that might not be an efficient way to do it
+                weapon_state.fire_timer_auto.tick(fixed_time.delta());
+                
+                // If the timer is finished (no cooldown) and button is pressed, fire
+                if weapon_state.fire_timer_auto.finished() && action.pressed(&PlayerInput::ShootPrimary) {
+                    should_fire = true;
+                    weapon_state.fire_timer_auto.reset();
                 }
             }
+            FireMode::Burst { shots, delay_millis, delay_after_burst_millis } => {
+                // @todo-brian: implement burst mode
+            }
+        }
 
-            if should_fire {
-                match weapon_data.barrel_mode {
-                    BarrelMode::Simultaneous => {
-                        let direction = transform.forward();
-                        for barrel_position in weapon_data.barrel_positions.iter() {
-                            let rotated_barrel_pos = transform.rotation * *barrel_position;
-                            let mut new_transform = *transform;
-                            new_transform.translation += rotated_barrel_pos;
+        if should_fire {
+            match weapon_data.barrel_mode {
+                BarrelMode::Simultaneous => {
+                    let direction = transform.forward();
+                    for barrel_position in weapon_data.barrel_positions.iter() {
+                        let rotated_barrel_pos = transform.rotation * *barrel_position;
+                        let mut new_transform = *transform;
+                        new_transform.translation += rotated_barrel_pos;
 
-                            // we include information about the shooter to be able to
-                            // use the correct lag compensation values
-                            let linear_bullet_event = LinearProjectile {
-                                shooter: identity.clone(),
-                                shooter_entity: shooting_entity,
-                                source: new_transform.translation,
-                                direction,
-                                speed: weapon_data.projectile.speed,
-                                interpolation_delay_millis: 0,
-                            };
+                        // we include information about the shooter to be able to
+                        // use the correct lag compensation values
+                        let linear_bullet_event = LinearProjectile {
+                            shooter: identity.clone(),
+                            shooter_entity: shooting_entity,
+                            source: new_transform.translation,
+                            direction,
+                            speed: weapon_data.projectile.speed,
+                            interpolation_delay_millis: 0,
+                        };
 
-                            // we shoot a non-networked linear bullet
-                            // it's trajectory should be deterministic on the client and server
-                            // TODO: actually we will need to network the initial replication
-                            //  because we want to see enemy bullets fired in the interpolated timeline?
-                            // TODO: maybe enemy bullets can be sped up to be in the predicted timeline so that
-                            //  they can hit us, similar to what Piefayth does
-                            //info!("speed: {}", weapon_data.projectile.speed);
-                            commands.spawn((
-                                new_transform,
-                                linear_bullet_event,
-                                Projectile,
-                                Moveable {
-                                    velocity: direction.normalize_or_zero() * weapon_data.projectile.speed,
-                                    angular_velocity: Vec3::ZERO,
-                                    collision_shape: MoveableShape::Point,
-                                    collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
-                                },
-                                MoveableExtras {
-                                    ignore_entities: Some(vec![shooting_entity]),
-                                    moveable_owner_id: identity.clone(),
-                                    moveable_type_id: current_weapon_idx,
-                                    on_hit: Some(Box::new(on_projectile_hit)),
-                                },
-                                DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once))
-                            ));
-                        }
+                        // we shoot a non-networked linear bullet
+                        // it's trajectory should be deterministic on the client and server
+                        // TODO: actually we will need to network the initial replication
+                        //  because we want to see enemy bullets fired in the interpolated timeline?
+                        // TODO: maybe enemy bullets can be sped up to be in the predicted timeline so that
+                        //  they can hit us, similar to what Piefayth does
+                        //info!("speed: {}", weapon_data.projectile.speed);
+                        commands.spawn((
+                            new_transform,
+                            linear_bullet_event,
+                            Projectile,
+                            Moveable {
+                                velocity: direction.normalize_or_zero() * weapon_data.projectile.speed,
+                                angular_velocity: Vec3::ZERO,
+                                collision_shape: MoveableShape::Point,
+                                collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
+                            },
+                            MoveableExtras {
+                                ignore_entities: Some(vec![shooting_entity]),
+                                moveable_owner_id: identity.clone(),
+                                moveable_type_id: current_weapon_idx,
+                                on_hit: Some(Box::new(on_projectile_hit)),
+                            },
+                            DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once))
+                        ));
                     }
-                    BarrelMode::Sequential => {
-                        // @todo-brian: implement sequential mode
-                    }
+                }
+                BarrelMode::Sequential => {
+                    // @todo-brian: implement sequential mode
                 }
             }
         }

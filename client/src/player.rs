@@ -1,11 +1,12 @@
 use avian3d::prelude::*;
+use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
-use leafwing_input_manager::prelude::{InputMap, MouseMove};
+use leafwing_input_manager::prelude::*;
 use lightyear::shared::replication::components::Controlled;
 use lightyear::prelude::{client::*, ClientId};
 use shared::player::Player;
 use shared::prelude::{GameLayer, Moveable, PlayerInput, MoveableShape, UniqueIdentity};
-use shared::weapons::{WeaponInventory, WeaponsData};
+use shared::weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData};
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -26,13 +27,12 @@ impl Plugin for PlayerPlugin {
         // make sure that client cannot apply inputs before the connection is synced
         // we add the system in Last so that on the first time the InputMap is spawned, we don't immediately
         // send an InputMessage to the server
-        app.add_systems(Last, handle_predicted_spawn.run_if(is_synced).run_if(resource_exists::<WeaponsData>));
+        app.add_systems(Last, handle_predicted_spawn.run_if(is_synced));
     }
 }
 
 /// Handle a newly spawned Predicted player:
 fn handle_predicted_spawn(
-    weapons_data: Res<WeaponsData>,
     mut commands: Commands,
     predicted_player: Query<Entity, (With<Controlled>, With<Player>, With<Predicted>, Without<InputMap<PlayerInput>>)>
 ) {
@@ -54,6 +54,8 @@ fn handle_predicted_spawn(
                 (PlayerInput::Weapon5, KeyCode::Digit5),
                 (PlayerInput::ToggleMousePointer, KeyCode::Tab),
             ])
+            .with(PlayerInput::NextWeapon, MouseScrollDirection::UP)
+            .with(PlayerInput::PreviousWeapon, MouseScrollDirection::DOWN)
             .with(PlayerInput::ShootPrimary, MouseButton::Left)
             .with(PlayerInput::AfterBurners, MouseButton::Right)
             .with_dual_axis(PlayerInput::Look, MouseMove::default());

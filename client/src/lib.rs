@@ -1,6 +1,7 @@
 mod menu;
 mod player;
 mod bot;
+mod weapon;
 
 use bevy::app::{App, Startup};
 use bevy::prelude::{Commands, Plugin};
@@ -14,6 +15,7 @@ impl Plugin for ClientPlugin {
         // PLUGINS
         app.add_plugins(bot::BotPlugin);
         app.add_plugins(player::PlayerPlugin);
+        app.add_plugins(weapon::WeaponPlugin);
 
         // SYSTEMS
         app.add_systems(Startup, connect_client);

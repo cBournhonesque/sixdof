@@ -1,13 +1,14 @@
 use bevy::prelude::*;
+use lightyear::client::prediction::diagnostics::PredictionMetrics;
 
 pub struct HudPlugin;
 
 impl Plugin for HudPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(spawn_hud);
+        app.add_systems(Update, prediction_metrics_system);
     }
 }
-
 
 #[derive(Default, Component)]
 struct Hud {
@@ -23,6 +24,13 @@ struct Crosshair {
     textures: Vec<Handle<Image>>,
 }
 
+fn prediction_metrics_system(
+    prediction_metrics: Option<Res<PredictionMetrics>>,
+) {
+    // if let Some(prediction_metrics) = prediction_metrics {
+    //     println!("Prediction metrics: {:?}", prediction_metrics);
+    // }
+}
 
 fn spawn_hud(
     trigger: Trigger<OnAdd, Camera3d>,

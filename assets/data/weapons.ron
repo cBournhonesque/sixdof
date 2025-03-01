@@ -23,12 +23,42 @@
                 image: "kenney_crosshair_pack/crosshair018.png",
             ),
             projectile: (
-                speed: 15.0,
+                speed: 35.0,
                 lifetime_millis: 5000,
                 direct_damage: 10,
                 splash_damage_radius: 0.0,
                 splash_damage_max: 0,
                 splash_damage_min: 0,
+            ),
+            starting_ammo: 100,
+        ),
+        1: (
+            name: "Rocket Launcher",
+            description: "Big boom.",
+            barrel_positions: [
+                // Center barrel
+                (0.0, -0.15, 0.0),
+            ],
+            barrel_mode: Simultaneous,
+            fire_mode: Auto(
+                delay_millis: 100,
+            ),
+            crosshair: (
+                color: LinearRgba((
+                    red: 1.0,
+                    green: 1.0,
+                    blue: 1.0,
+                    alpha: 1.0,
+                )),
+                image: "kenney_crosshair_pack/crosshair043.png",
+            ),
+            projectile: (
+                speed: 35.0,
+                lifetime_millis: 5000,
+                direct_damage: 100,
+                splash_damage_radius: 10.0,
+                splash_damage_max: 100,
+                splash_damage_min: 1,
             ),
             starting_ammo: 100,
         ),

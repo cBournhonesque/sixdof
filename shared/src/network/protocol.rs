@@ -7,7 +7,7 @@ use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
 use crate::prelude::{Damageable, Moveable, UniqueIdentity};
 use crate::moveable;
-use crate::weapons::WeaponInventory;
+use crate::weapons::{CurrentWeaponIndex, WeaponInventory};
 use lightyear::utils::bevy::TransformLinearInterpolation;
 use crate::bot::Bot;
 
@@ -31,6 +31,8 @@ pub enum PlayerInput {
     RollRight,
     ShootPrimary,
     AfterBurners,
+    NextWeapon,
+    PreviousWeapon,
     Weapon1,
     Weapon2,
     Weapon3,
@@ -56,10 +58,6 @@ impl Plugin for ProtocolPlugin {
             }
         });
 
-        // Messages
-        // TODO: MapLoad, RespawnCounter,
-
-        // Components
         app.register_component::<Name>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Once)
             .add_interpolation(ComponentSyncMode::Once);
@@ -82,54 +80,21 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<ExternalImpulse>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full);
 
-        // Position and Rotation have a `correction_fn` set, which is used to smear rollback errors
-        // over a few frames, just for the rendering part in postudpate.
-        //
-        // They also set `interpolation_fn` which is used by the VisualInterpolationPlugin to smooth
-        // out rendering between fixedupdate ticks.
-        // app.register_component::<Position>(ChannelDirection::ServerToClient)
-        //     .add_prediction(ComponentSyncMode::Full)
-        //     .add_interpolation(ComponentSyncMode::Full)
-        //     .add_interpolation_fn(position::lerp);
-        //     // .add_correction_fn(position::lerp);
-
-        // app.register_component::<Rotation>(ChannelDirection::ServerToClient)
-        //     .add_prediction(ComponentSyncMode::Full)
-        //     .add_interpolation(ComponentSyncMode::Full)
-        //     .add_interpolation_fn(rotation::lerp);
-        //     // .add_correction_fn(rotation::lerp);
-
         app.register_component::<Moveable>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full)
             .add_interpolation(ComponentSyncMode::Full)
             .add_interpolation_fn(moveable::lerp);
 
-            
         app.register_component::<WeaponInventory>(ChannelDirection::ServerToClient)
-            // sync once to the Predicted entity
             .add_prediction(ComponentSyncMode::Once);
         
-        // do not replicate Transform but make sure to register an interpolation function
-        // for it so that we can do visual interpolation
-        // (another option would be to replicate transform and not use Position/Rotation at all)
-        // (we want to do visual interpolation on Transform because it's easier than doing it on Position/Rotation
-        //  and remembering to apply a sync in PostUpdate)
-        // app.add_interpolation::<Transform>(ComponentSyncMode::None);
-        // app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
-
-        // NOTE: we do not replicate Transform because the avian transform->position sync plugin causes inaccuracies
-        // TODO: maybe applying a TransformPropagate system in PreUpdate after the VisualInterpolation reset
-        //  would fix the problem
-
-        // // Try replicating only Transform
         app.register_component::<Transform>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full)
             .add_interpolation(ComponentSyncMode::Full)
             .add_interpolation_fn(TransformLinearInterpolation::lerp);
 
-        app.register_component::<UniqueIdentity>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Once);
-        
+        app.register_component::<UniqueIdentity>(ChannelDirection::ServerToClient);        
         app.register_component::<Damageable>(ChannelDirection::ServerToClient);
+        app.register_component::<CurrentWeaponIndex>(ChannelDirection::ServerToClient);
     }
 }

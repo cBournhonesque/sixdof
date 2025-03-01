@@ -118,9 +118,9 @@ fn move_system(
 
         // We loop 4 times because you may hit one wall, then slide into another wall, 
         // we need to make sure we keep deprojecting until we're not hitting anything
-        // this technique is taken from Quake 1
+        // this technique is taken from Quake 1, Google "PM_Move Quake"
         'outer: for _ in 0..4 {
-    
+
             // Moveable with a shape collider (anything but the Point based collider)
             if let Some(collider) = &collider {
                 if let Some(hit) = spatial_query.cast_shape(
