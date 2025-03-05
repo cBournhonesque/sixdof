@@ -1,0 +1,16 @@
+[package]
+name = "audio"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kira.workspace = true
+bevy = { workspace = true, default-features = true }
+mint = "0.5.9"
+
+[dev-dependencies]
+bevy_flycam = "0.15.0"
+
+[lints]
+workspace = true
