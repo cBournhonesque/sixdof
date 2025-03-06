@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use leafwing_input_manager::Actionlike;
 use lightyear::prelude::*;
 use avian3d::prelude::*;
-use lightyear::prelude::client::{ComponentSyncMode, LeafwingInputConfig, LerpFn};
+use lightyear::prelude::client::{ComponentSyncMode, LerpFn};
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
 use crate::prelude::{Damageable, Moveable, UniqueIdentity};
@@ -51,7 +51,7 @@ impl Plugin for ProtocolPlugin {
 
         // Inputs
         app.add_plugins(LeafwingInputPlugin::<PlayerInput> {
-            config: LeafwingInputConfig::<PlayerInput> {
+            config: InputConfig::<PlayerInput> {
                 // enable lag compensation for player inputs
                 lag_compensation: true,
                 ..default()

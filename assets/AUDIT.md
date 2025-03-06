@@ -1,6 +1,11 @@
 # AUDIO:
-- Path: audio/weapons/440559__charliewd100__futuristic-smg-sound-effect.wav
+- Path: audio/weapons/plasma_fire.wav
 - Source: https://freesound.org/people/CharlieWD100/sounds/440559/
-- Author: CharlieWD100
-- Authors Description: This is futuristic sound effect of SMG one shot. It is perfect for your games or movies. Sound is created from scratch in FL Studio. It free to use and reupload on any website.
 - License: Creative Commons 0
+
+- Path: audio/weapons/rocket_launcher_fire.wav
+- Source 1: https://freesound.org/people/ST303/sounds/338783/
+- Source 2: https://freesound.org/people/Tycoh/sounds/450768/
+- License: Creative Commons 0
+- Notes: Combined the two in Audacity
+

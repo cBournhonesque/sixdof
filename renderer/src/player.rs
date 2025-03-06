@@ -1,3 +1,4 @@
+use audio::prelude::SfxListener;
 use bevy::color::palettes::basic::BLUE;
 use bevy::core_pipeline::prepass::DepthPrepass;
 use bevy::input::keyboard::KeyboardInput;
@@ -131,6 +132,7 @@ fn spawn_visuals(
                     fov: 90.0_f32.to_radians(),
                     ..default()
                 }),
+                SfxListener::new(),
             ));
         }
     })

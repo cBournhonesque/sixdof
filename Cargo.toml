@@ -53,6 +53,7 @@ leafwing-input-manager = { version = "0.16", default-features = false, features 
 bevy_common_assets = { version = "0.12.0", default-features = false, features = [
     "ron"
 ] }
+mint = "0.5.9"
 serde = "1.0"
 
 # audio
@@ -70,6 +71,7 @@ bevy-inspector-egui = { git = "https://github.com/blip-radar/bevy-inspector-egui
     "bevy_render",
     "egui_open_url",
 ] }
+rand = "0.9.0"
 
 
 # Idiomatic Bevy code often triggers these lints, and the CI workflow treats them as errors.

@@ -1,6 +1,8 @@
 mod player;
-mod projectiles;
+mod weapons;
 mod bot;
+mod audio;
+
 #[cfg(feature = "client")]
 mod hud;
 
@@ -34,7 +36,8 @@ impl Plugin for RendererPlugin {
         app.add_plugins(bot::BotPlugin);
         app.add_plugins(physics::PhysicsPlugin);
         app.add_plugins(player::PlayerPlugin);
-        app.add_plugins(projectiles::ProjectilesPlugin);
+        app.add_plugins(::audio::SfxAudioPlugin::default());
+        app.add_plugins(weapons::WeaponsPlugin);
         app.insert_resource(AmbientLight {
             brightness: 0.0,
             ..default()

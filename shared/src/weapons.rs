@@ -7,7 +7,7 @@ use leafwing_input_manager::prelude::ActionState;
 use lightyear::{client::prediction::rollback::DisableRollback, prelude::{client::{Predicted, Rollback}, *}, shared::replication::components::Controlled};
 use serde::{Deserialize, Serialize};
 
-use crate::{physics::GameLayer, player::Player, prelude::{UniqueIdentity, Moveable, MoveableHit, MoveableHitData, MoveableExtras, PlayerInput, MoveableShape}, utils::DespawnAfter};
+use crate::{data::weapons::*, physics::GameLayer, player::Player, prelude::{Moveable, MoveableExtras, MoveableHit, MoveableHitData, MoveableShape, PlayerInput, UniqueIdentity}, utils::DespawnAfter};
 
 pub type WeaponId = u32;
 
@@ -21,6 +21,7 @@ impl Plugin for WeaponsPlugin {
         // println!("{}", default_weapons_list_ron);
 
         app.add_event::<ProjectileHitEvent>();
+        app.add_event::<WeaponFiredEvent>();
         app.add_plugins(ConfigAssetLoaderPlugin::<WeaponsData>::new("data/weapons.ron"));
         app.add_systems(FixedUpdate, update_weapon_timers_system.run_if(resource_exists::<WeaponsData>));
     }
@@ -52,9 +53,25 @@ impl Default for LinearProjectile {
     }
 }
 
+/// Event that is sent when a weapon is fired.
+/// Can be used to play a firing sound, etc.
+#[derive(Event, Clone, Debug)]
+pub struct WeaponFiredEvent {
+    /// The identity of the shooter.
+    pub shooter_id: UniqueIdentity,
+    /// The index of the weapon that was fired.
+    pub weapon_index: u32,
+    /// The entity that fired the weapon. Used for things like firing sounds & VFX following the shooter.
+    pub shooter_entity: Entity,
+    /// The absolute origin of the fire. Used for knowing which location to spawn VFX & sounds.
+    pub fire_origin: Vec3,
+    /// The direction of the shooter at the time of firing. Used for knowing which direction to spawn VFX.
+    pub fire_direction: Dir3,
+}
+
 /// Event that is sent when a projectile hits an entity.
 /// Can be used to spawn vfx and play sfx, apply damage, etc.
-#[derive(Event)]
+#[derive(Event, Clone, Debug)]
 pub struct ProjectileHitEvent {
     pub shooter_id: UniqueIdentity,
     pub weapon_index: u32,
@@ -178,92 +195,6 @@ impl Default for WeaponsData {
     }
 }
 
-/// A weapon behavior is basically what it sounds like, 
-/// it defines all the behaviors of a weapon.
-#[derive(Debug, Deserialize, Serialize, Default)]
-pub struct WeaponBehavior {
-    /// The human readable name of the weapon.
-    pub name: String,
-    /// The description of the weapon.
-    pub description: String,
-    /// The positions of the barrels of the weapon.
-    pub barrel_positions: Vec<Vec3>,
-    /// The mode of the weapon.
-    pub barrel_mode: BarrelMode,
-    /// The mode of the weapon.
-    pub fire_mode: FireMode,
-    /// The crosshair of the weapon.
-    pub crosshair: CrosshairConfiguration,
-    /// The projectile behavior of the weapon.
-    pub projectile: ProjectileBehavior,
-    /// The starting ammo of the weapon.
-    pub starting_ammo: u32,
-}
-
-#[derive(Debug, Deserialize, Serialize, Default)]
-pub struct ProjectileBehavior {
-    pub speed: f32,
-    /// The lifetime of the projectile in milliseconds before it is removed from the world. 
-    /// Will attempt to apply splash damage upon removal.
-    pub lifetime_millis: u64,
-    pub direct_damage: u16,
-    pub splash_damage_radius: f32,
-    pub splash_damage_max: u16,
-    pub splash_damage_min: u16,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum BarrelMode {
-    /// All barrels fire at the same time.
-    Simultaneous,
-    /// Barrels fire one after the other.
-    Sequential,
-}
-
-impl Default for BarrelMode {
-    fn default() -> Self {
-        Self::Simultaneous
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum FireMode {
-    /// An automatic weapon just fires continuously with a delay between each shot.
-    Auto {
-        delay_millis: u64,
-    },
-    /// A burst fires a number of shots in a burst, with a delay between each shot.
-    Burst {
-        /// The number of shots in a burst.
-        shots: u32,
-        /// The delay between each shot in a burst.
-        delay_millis: u64,
-        /// The delay after the burst is finished before starting another burst.
-        delay_after_burst_millis: u64,
-    },
-}
-
-impl Default for FireMode {
-    fn default() -> Self {
-        Self::Auto { delay_millis: 100 }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct CrosshairConfiguration {
-    pub color: Color,
-
-    /// The image to use for the crosshair. 
-    /// Relative to assets/crosshairs/
-    pub image: String,
-}
-
-impl Default for CrosshairConfiguration {
-    fn default() -> Self {
-        Self { color: Color::WHITE, image: "kenney_crosshair_pack/crosshair018.png".to_string() }
-    }
-}
-
 /// Updates the weapon timer durations when the weapon data is loaded/reloaded.
 fn update_weapon_timers_system(
     weapons_data: Res<WeaponsData>,
@@ -294,7 +225,7 @@ fn update_weapon_timers_system(
 pub fn handle_shooting(
     shooting_entity: Entity,
     identity: &UniqueIdentity,
-    transform: &Transform,
+    shooter_transform: &Transform,
     current_weapon_idx: WeaponId,
     inventory: &mut WeaponInventory,
     action: &ActionState<PlayerInput>,
@@ -329,10 +260,10 @@ pub fn handle_shooting(
         if should_fire {
             match weapon_data.barrel_mode {
                 BarrelMode::Simultaneous => {
-                    let direction = transform.forward();
+                    let direction = shooter_transform.forward();
                     for barrel_position in weapon_data.barrel_positions.iter() {
-                        let rotated_barrel_pos = transform.rotation * *barrel_position;
-                        let mut new_transform = *transform;
+                        let rotated_barrel_pos = shooter_transform.rotation * *barrel_position;
+                        let mut new_transform = *shooter_transform;
                         new_transform.translation += rotated_barrel_pos;
 
                         // we include information about the shooter to be able to
@@ -372,6 +303,15 @@ pub fn handle_shooting(
                             DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once))
                         ));
                     }
+
+                    // send an event so that we can spawn vfx/sfx
+                    commands.send_event(WeaponFiredEvent {
+                        shooter_id: identity.clone(),
+                        weapon_index: current_weapon_idx,
+                        shooter_entity: shooting_entity,
+                        fire_origin: shooter_transform.translation,
+                        fire_direction: direction,
+                    });
                 }
                 BarrelMode::Sequential => {
                     // @todo-brian: implement sequential mode

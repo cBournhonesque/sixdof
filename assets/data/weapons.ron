@@ -1,6 +1,6 @@
 (
     weapons: {
-        0: (
+        0: WeaponBehavior (
             name: "Dual Lasers",
             description: "A pair of lasers that fire in unison.",
             barrel_positions: [
@@ -11,7 +11,7 @@
             ],
             barrel_mode: Simultaneous,
             fire_mode: Auto(
-                delay_millis: 100,
+                delay_millis: 150,
             ),
             crosshair: (
                 color: LinearRgba((
@@ -23,7 +23,7 @@
                 image: "kenney_crosshair_pack/crosshair018.png",
             ),
             projectile: (
-                speed: 35.0,
+                speed: 95.0,
                 lifetime_millis: 5000,
                 direct_damage: 10,
                 splash_damage_radius: 0.0,
@@ -31,17 +31,47 @@
                 splash_damage_min: 0,
             ),
             starting_ammo: 100,
+            firing_sound: SoundEmitterBehavior (
+                asset_path: "weapons/plasma_fire.wav",
+                volume_db: 1.0,
+                min_distance: 0.0,
+                max_distance: 100.0,
+                reverb: Some(ReverbBehavior (
+                    damping: 0.5,
+                    feedback: 0.95,
+                    mix: Wet,
+                )),
+                distance_muffle: Some(DistanceMuffleBehavior (
+                    min_distance: 0.0,
+                    max_distance: 100.0,
+                    cutoff_hz: 1000.0,
+                )),
+                speed_of_sound: 343.0,
+                despawn_delay: Some(4.0),
+                eq_variance: Some(EqVarianceBehavior (
+                    high_min_db: 0.0,
+                    high_max_db: 0.0,
+                    mid_min_db: 0.0,
+                    mid_max_db: 0.0,
+                    low_min_db: 0.0,
+                    low_max_db: 0.0,
+                )),
+            ),
         ),
-        1: (
-            name: "Rocket Launcher",
+        1: WeaponBehavior (
+            name: "Fusion Cannon",
             description: "Big boom.",
             barrel_positions: [
                 // Center barrel
                 (0.0, -0.15, 0.0),
+                // Left barrel
+                (-0.25, -0.25, 0.0),
+                // Right barrel
+                (0.25, -0.25, 0.0),
             ],
             barrel_mode: Simultaneous,
             fire_mode: Auto(
-                delay_millis: 100,
+                delay_millis: 450,
             ),
             crosshair: (
                 color: LinearRgba((
@@ -53,7 +83,7 @@
                 image: "kenney_crosshair_pack/crosshair043.png",
             ),
             projectile: (
-                speed: 35.0,
+                speed: 65.0,
                 lifetime_millis: 5000,
                 direct_damage: 100,
                 splash_damage_radius: 10.0,
@@ -61,6 +91,32 @@
                 splash_damage_min: 1,
             ),
             starting_ammo: 100,
+            firing_sound: SoundEmitterBehavior (
+                asset_path: "weapons/fusion_cannon_fire.ogg",
+                volume_db: 1.0,
+                min_distance: 0.0,
+                max_distance: 100.0,
+                reverb: Some(ReverbBehavior (
+                    damping: 0.5,
+                    feedback: 0.95,
+                    mix: Wet,
+                )),
+                distance_muffle: Some(DistanceMuffleBehavior (
+                    min_distance: 0.0,
+                    max_distance: 100.0,
+                    cutoff_hz: 1000.0,
+                )),
+                speed_of_sound: 343.0,
+                despawn_delay: Some(4.0),
+                eq_variance: Some(EqVarianceBehavior (
+                    high_min_db: 0.0,
+                    high_max_db: 2.0,
+                    mid_min_db: -1.0,
+                    mid_max_db: 1.0,
+                    low_min_db: 5.0,
+                    low_max_db: 10.0,
+                )),
+            ),
         ),
     },
 )

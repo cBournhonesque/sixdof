@@ -7,7 +7,8 @@ license.workspace = true
 [dependencies]
 kira.workspace = true
 bevy = { workspace = true, default-features = true }
-mint = "0.5.9"
+mint.workspace = true
+serde.workspace = true
 
 [dev-dependencies]
 bevy_flycam = "0.15.0"

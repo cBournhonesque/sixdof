@@ -1,9 +1,9 @@
 mod asset;
-mod settings;
+mod data;
 
 pub mod prelude {
     pub use crate::asset::*;
-    pub use crate::settings::*;
+    pub use crate::data::*;
     pub use crate::*;
     pub use kira;
 }
@@ -11,11 +11,13 @@ pub mod prelude {
 use asset::{SfxAsset, SfxAssetLoader};
 use bevy::{prelude::*, utils::{HashMap, HashSet}};
 use kira::{
-    effect::{delay::DelayBuilder, eq_filter::EqFilterBuilder, filter::{FilterBuilder, FilterHandle}, reverb::ReverbBuilder, EffectBuilder}, listener::ListenerHandle, sound::{static_sound::{StaticSoundData, StaticSoundHandle}, EndPosition, PlaybackPosition, PlaybackState, Region}, track::{self, SendTrackBuilder, SendTrackHandle, SpatialTrackBuilder, SpatialTrackHandle, TrackBuilder, TrackHandle, TrackPlaybackState}, AudioManager, AudioManagerSettings, Capacities, Decibels, DefaultBackend, Easing, Mapping, Mix, Tween, Value
+    effect::{delay::DelayBuilder, eq_filter::EqFilterBuilder, filter::{FilterBuilder, FilterHandle}, reverb::ReverbBuilder, EffectBuilder}, listener::ListenerHandle, sound::{static_sound::{StaticSoundData, StaticSoundHandle}, EndPosition, PlaybackPosition, PlaybackState, Region}, track::{self, SendTrackBuilder, SendTrackHandle, SpatialTrackBuilder, SpatialTrackDistances, SpatialTrackHandle, TrackBuilder, TrackHandle, TrackPlaybackState}, AudioManager, AudioManagerSettings, Capacities, Decibels, DefaultBackend, Easing, Mapping, Mix, Tween, Value
 };
 use prelude::{DelaySettings, EqSettings, LowPassSettings, ReverbSettings};
 use std::{hash::Hash, sync::Arc};
 use std::time::Duration;
+
+use crate::data::*;
 
 pub struct SfxAudioPlugin {
     sub_track_capacity: usize,
@@ -57,7 +59,7 @@ impl Plugin for SfxAudioPlugin {
                     play_sfx_event_system,
                 ).chain());
         
-                app.add_systems(PreUpdate, (
+                app.add_systems(PostUpdate, (
                     update_listener_system,
                     update_sfx_event_system,
                     cleanup_finished_sfx_system,
@@ -79,26 +81,15 @@ pub struct SfxManager {
 
 impl SfxManager {
     pub fn load_sfx(&mut self, unique_id: String, path: String, asset_server: &AssetServer) {
+        if self.loaded_sfx.contains_key(&unique_id) {
+            // already loaded, don't load again.
+            return;
+        }
+
         let handle = asset_server.load(&path);
         self.loaded_sfx.insert(unique_id, handle);
     }
 }
-
-#[derive(Component)]
-pub struct SfxListener {
-    listener_handle: Option<ListenerHandle>,
-}
-
-impl SfxListener {
-    pub fn new() -> Self {
-        Self {
-            listener_handle: None,
-        }
-    }
-}
-
-#[derive(Component)]
-struct SfxDespawnTimer(Timer);
 
 #[derive(Component)]
 struct SfxEmitterHandles {
@@ -108,59 +99,8 @@ struct SfxEmitterHandles {
     filter_handles: Vec<FilterHandle>,
 }
 
-/// A setting to follow an entity.
-pub struct Follow {
-    /// The entity to follow.
-    pub target: Entity,
-    /// The offset from the target entity. This will be rotated by the target entity's rotation.
-    pub local_offset: Vec3,
-}
-
 #[derive(Component)]
-#[require(Transform)]
-pub struct SfxSpatialEmitter {
-    /// The unique id of the asset to play. Must be loaded using the `load_sfx` method in the `SfxManager` first
-    pub asset_unique_id: String,
-    /// The reverb settings for the sfx.
-    pub reverb: Option<ReverbSettings>,
-    /// The low pass filter settings for the sfx.
-    pub low_pass: Option<LowPassSettings>,
-    /// The eq settings for the sfx.
-    pub eq: Option<EqSettings>,
-    /// The volume of the sfx.
-    pub volume: Value<Decibels>,
-    /// The delay settings for the sfx.
-    pub delay: Option<DelaySettings>,
-    /// The region of the sound to loop.
-    pub loop_region: Option<Region>,
-    /// You can easily follow an entity to move the sfx with it.
-    pub follow: Option<Follow>,
-    /// After the sound has stopped, we will despawn recursively the entity 
-    /// containing this component after this many seconds. If you're using
-    /// reverb, you may want to increase this value to allow the reverb to play out.
-    pub despawn_entity_after_secs: Option<f32>,
-}
-
-impl Default for SfxSpatialEmitter {
-    fn default() -> Self {
-        Self {
-            asset_unique_id: "default".to_string(),
-            reverb: None,
-            low_pass: None,
-            eq: None,
-            delay: None,
-            volume: Value::Fixed(Decibels(1.0)),
-            loop_region: None,
-            despawn_entity_after_secs: Some(4.0),
-            follow: None,
-        }
-    }
-}
-
-enum TrackHandleKind {
-    Spatial(SpatialTrackHandle),
-    Flat(TrackHandle),
-}
+struct SfxDespawnTimer(Timer);
 
 fn play_sfx_event_system(
     mut sfx_manager: ResMut<SfxManager>,
@@ -201,7 +141,10 @@ fn play_sfx_event_system(
                 continue;
             };
 
-            let mut track_builder = SpatialTrackBuilder::default().doppler_effect(true).speed_of_sound(100.0);
+            let mut track_builder = SpatialTrackBuilder::default()
+                .distances(emitter.distances)
+                .doppler_effect(emitter.doppler_enabled)
+                .speed_of_sound(emitter.speed_of_sound);
 
             let mut emitter_handles = SfxEmitterHandles {
                 track: None,
@@ -302,7 +245,7 @@ fn play_sfx_event_system(
                         if let Ok(handle) = spatial_track.play(sound_data) {
                             emitter_handles.sound_handle = Some(handle);
                             commands.entity(emitter_entity).insert(emitter_handles);
-                            info!("Successfully started playing sfx");
+                            info!("Successfully started playing sfx at {:?}", emitter_transform.translation);
                         } else {
                             error!("Error playing sfx");
                         }
