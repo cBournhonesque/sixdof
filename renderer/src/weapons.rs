@@ -1,7 +1,7 @@
 use audio::prelude::kira::effect::eq_filter::EqFilterKind;
 use audio::prelude::kira::track::SpatialTrackDistances;
 use audio::prelude::kira::{Decibels, Easing, Mapping, Mix, Value};
-use audio::prelude::{EqFrequency, EqSettings, LowPassSettings, ReverbSettings, SfxFollowTarget, SfxSpatialEmitter};
+use audio::prelude::{EqFrequency, EqSettings, LowPassSettings, ReverbSettings, SfxFollowTarget, SfxEmitter};
 use audio::SfxManager;
 use avian3d::prelude::{Collider, LinearVelocity, PhysicsSet, Position, Rotation, SpatialQuery, SpatialQueryFilter};
 use bevy::color::palettes::basic::{BLUE, YELLOW};
@@ -89,24 +89,26 @@ fn weapon_fired_system(
     for event in events.read() {
         if let Some(weapon) = weapons_data.weapons.get(&event.weapon_index) {
 
-            // If it's our own weapon we dont use doppler
-            let doppler_enabled = if controlled.get(event.shooter_entity).is_ok() {
-                false
-            } else {
+            // If it's our own weapon we want to make sure we use a 2D (but still stereo) sound.
+            let is_controlled = if controlled.get(event.shooter_entity).is_ok() {
                 true
+            } else {
+                false
             };
-
-            println!("doppler_enabled: {}", doppler_enabled);
 
             // Spawn the fire sound
             // @todo-brian: We probably want to tweak things based on if the shooter is the local player or not.
             commands.spawn((
-                SfxSpatialEmitter {
+                SfxEmitter {
                     // The unique id is the asset path of the fire sound
                     asset_unique_id: weapon.firing_sound.compute_asset_path(),
-                    distances: SpatialTrackDistances {
-                        min_distance: weapon.firing_sound.min_distance,
-                        max_distance: weapon.firing_sound.max_distance,
+                    spatial: if is_controlled {
+                        None
+                    } else {
+                        Some(SpatialTrackDistances {
+                            min_distance: weapon.firing_sound.min_distance,
+                            max_distance: weapon.firing_sound.max_distance,
+                        })
                     },
                     reverb: {
                         if let Some(reverb) = &weapon.firing_sound.reverb {
@@ -127,16 +129,21 @@ fn weapon_fired_system(
                         }
                     },
                     low_pass: {
-                        if let Some(distance_muffle) = &weapon.firing_sound.distance_muffle {
-                            Some(LowPassSettings {
-                                cutoff_hz: Value::FromListenerDistance(Mapping {
-                                    input_range: (distance_muffle.min_distance as f64, distance_muffle.max_distance as f64),
-                                    output_range: (20000.0, distance_muffle.cutoff_hz as f64),
-                                    easing: Easing::Linear,
-                                })
-                            })
-                        } else {
+                        // Do not distance muffle for controlled weapons
+                        if is_controlled {
                             None
+                        } else {
+                            if let Some(distance_muffle) = &weapon.firing_sound.distance_muffle {
+                                Some(LowPassSettings {
+                                    cutoff_hz: Value::FromListenerDistance(Mapping {
+                                        input_range: (distance_muffle.min_distance as f64, distance_muffle.max_distance as f64),
+                                        output_range: (20000.0, distance_muffle.cutoff_hz as f64),
+                                        easing: Easing::Linear,
+                                    })
+                                })
+                            } else {
+                                None
+                            }
                         }
                     },
                     eq: {
@@ -174,15 +181,21 @@ fn weapon_fired_system(
                         }
                     },
                     delay: None,
-                    doppler_enabled,
+                    // No doppler for controlled weapons
+                    doppler_enabled: is_controlled,
                     speed_of_sound: weapon.firing_sound.speed_of_sound as f64,
                     volume: Value::Fixed(Decibels(weapon.firing_sound.volume_db)),
                     loop_region: None,
                     despawn_entity_after_secs: weapon.firing_sound.despawn_delay,
-                    follow: Some(SfxFollowTarget {
-                        target: event.shooter_entity,
-                        local_offset: Vec3::ZERO,
-                    }),
+                    // No follow for controlled weapons
+                    follow: if is_controlled {
+                        None
+                    } else {
+                        Some(SfxFollowTarget {
+                            target: event.shooter_entity,
+                            local_offset: Vec3::ZERO,
+                        })
+                    },
                     ..default()
                 },
                 Transform::from_translation(event.fire_origin),

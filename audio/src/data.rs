@@ -40,11 +40,11 @@ impl Default for SfxFollowTarget {
 
 #[derive(Component)]
 #[require(Transform)]
-pub struct SfxSpatialEmitter {
+pub struct SfxEmitter {
     /// The unique id of the asset to play. Must be loaded using the `load_sfx` method in the `SfxManager` first
     pub asset_unique_id: String,
     /// Sets the distances from a listener at which the emitter is loudest and quietest.
-    pub distances: SpatialTrackDistances,
+    pub spatial: Option<SpatialTrackDistances>,
     /// The reverb settings for the sfx.
     pub reverb: Option<ReverbSettings>,
     /// The low pass filter settings for the sfx.
@@ -69,11 +69,11 @@ pub struct SfxSpatialEmitter {
     pub despawn_entity_after_secs: Option<f32>,
 }
 
-impl Default for SfxSpatialEmitter {
+impl Default for SfxEmitter {
     fn default() -> Self {
         Self {
             asset_unique_id: "default".to_string(),
-            distances: SpatialTrackDistances::default(),
+            spatial: None,
             reverb: None,
             low_pass: None,
             eq: None,

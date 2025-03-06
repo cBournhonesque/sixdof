@@ -110,12 +110,13 @@ fn spawn_sfx_system(
     timers.cannon_timer.tick(time.delta());
     if mouse_input.pressed(MouseButton::Left) {
         if timers.shoot_timer.finished() {
-            commands.spawn(SfxSpatialEmitter {
+            commands.spawn(SfxEmitter {
                 asset_unique_id: "smg".to_string(),
-                distances: SpatialTrackDistances {
+                spatial: Some(SpatialTrackDistances {
                     min_distance: 0.0,
                     max_distance: 150.0,
-                },
+                    ..default()
+                }),
                 reverb: Some(ReverbSettings::default()),
                 low_pass: Some(LowPassSettings::default()),
                 eq: None,
@@ -148,43 +149,46 @@ fn spawn_sfx_system(
 
     if timers.cannon_timer.finished() {
         commands.spawn((
-            SfxSpatialEmitter {
+            SfxEmitter {
                 asset_unique_id: "cannon".to_string(),
-                distances: SpatialTrackDistances {
+                spatial: Some(SpatialTrackDistances {
                     min_distance: 0.0,
                     max_distance: 200.0,
                     ..default()
-                },
+                }),
                 reverb: Some(ReverbSettings::default()),
                 low_pass: Some(LowPassSettings::default()),
                 eq: Some(EqSettings {
                     frequencies: vec![
+                        // Bass
                         EqFrequency { 
                             kind: EqFilterKind::Bell, 
-                            frequency: 100.0,  // Bass frequencies
+                            frequency: 100.0,
                             gain: Value::FromListenerDistance(Mapping {
                                 input_range: (0.0, 200.0),
-                                output_range: (Decibels(0.0), Decibels(20.0)),  // Boost bass at distance
+                                output_range: (Decibels(0.0), Decibels(20.0)),
                                 easing: Easing::Linear,
                             }),
                             q: 1.0 
                         },
+                        // Mids
                         EqFrequency { 
                             kind: EqFilterKind::Bell, 
-                            frequency: 1000.0,  // Mids
+                            frequency: 1000.0,
                             gain: Value::FromListenerDistance(Mapping {
                                 input_range: (0.0, 200.0),
-                                output_range: (Decibels(0.0), Decibels(-20.0)),  // Cut mids at distance
+                                output_range: (Decibels(0.0), Decibels(-20.0)),
                                 easing: Easing::Linear,
                             }),
                             q: 1.0 
                         },
+                        // Highs
                         EqFrequency { 
                             kind: EqFilterKind::Bell, 
-                            frequency: 10000.0,  // Highs
+                            frequency: 10000.0,
                             gain: Value::FromListenerDistance(Mapping {
                                 input_range: (0.0, 200.0),
-                                output_range: (Decibels(0.0), Decibels(-20.0)),  // Cut highs more at distance
+                                output_range: (Decibels(0.0), Decibels(-20.0)),
                                 easing: Easing::Linear,
                             }),
                             q: 1.0 

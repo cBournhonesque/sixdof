@@ -11,7 +11,7 @@
             ],
             barrel_mode: Simultaneous,
             fire_mode: Auto(
-                delay_millis: 150,
+                delay_millis: 100,
             ),
             crosshair: (
                 color: LinearRgba((

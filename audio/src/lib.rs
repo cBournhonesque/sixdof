@@ -93,7 +93,7 @@ impl SfxManager {
 
 #[derive(Component)]
 struct SfxEmitterHandles {
-    track: Option<SpatialTrackHandle>,
+    track: Option<TrackHandleKind>,
     sound_handle: Option<StaticSoundHandle>,
     send_handles: Vec<SendTrackHandle>,
     filter_handles: Vec<FilterHandle>,
@@ -102,13 +102,23 @@ struct SfxEmitterHandles {
 #[derive(Component)]
 struct SfxDespawnTimer(Timer);
 
+enum TrackKind {
+    Spatial(SpatialTrackBuilder),
+    Flat(TrackBuilder),
+}
+
+enum TrackHandleKind {
+    Spatial(SpatialTrackHandle),
+    Flat(TrackHandle),
+}
+
 fn play_sfx_event_system(
     mut sfx_manager: ResMut<SfxManager>,
     mut commands: Commands,
     mut listener_query: Query<(Entity, &SfxListener)>,
     transforms: Query<&Transform>,
     mut assets: Res<Assets<SfxAsset>>,
-    mut emitters: Query<(Entity, &mut SfxSpatialEmitter), Added<SfxSpatialEmitter>>,
+    mut emitters: Query<(Entity, &mut SfxEmitter), Added<SfxEmitter>>,
 ) {
     for (listener_entity, listener) in listener_query.iter() {   
         if listener.listener_handle.is_none() {
@@ -116,35 +126,30 @@ fn play_sfx_event_system(
             continue;
         }
 
-        let listener_transform = transforms.get(listener_entity);
-        if let Err(e) = listener_transform {
-            error!("Error getting listener transform for entity {}: {}", listener_entity, e);
-            continue;
-        }
-
-        let listener_transform = listener_transform.unwrap(); // SAFETY: We just checked if it's none
-        
-        for (emitter_entity, mut emitter) in emitters.iter_mut() {
-            let emitter_transform = transforms.get(emitter_entity);
-
-            if let Err(e) = emitter_transform {
-                error!("Error getting emitter transform for entity {}: {}", emitter_entity, e);
+        let listener_transform = match transforms.get(listener_entity) {
+            Ok(transform) => transform,
+            Err(e) => {
+                error!("Error getting listener transform: {}", e);
                 continue;
             }
-
-            let emitter_transform = emitter_transform.unwrap(); // SAFETY: We just checked if it's none
-
-            let sfx_asset_handle = if let Some(handle) = sfx_manager.loaded_sfx.get(&emitter.asset_unique_id) {
-                handle.clone()
-            } else {
-                error!("Could not find sfx asset handle for: {}", emitter.asset_unique_id);
-                continue;
+        };
+        
+        for (emitter_entity, emitter) in emitters.iter() {
+            let emitter_transform = match transforms.get(emitter_entity) {
+                Ok(transform) => transform,
+                Err(e) => {
+                    error!("Error getting emitter transform: {}", e);
+                    continue;
+                }
             };
 
-            let mut track_builder = SpatialTrackBuilder::default()
-                .distances(emitter.distances)
-                .doppler_effect(emitter.doppler_enabled)
-                .speed_of_sound(emitter.speed_of_sound);
+            let sfx_asset_handle = match sfx_manager.loaded_sfx.get(&emitter.asset_unique_id) {
+                Some(handle) => handle.clone(),
+                None => {
+                    error!("Could not find sfx asset handle");
+                    continue;
+                }
+            };
 
             let mut emitter_handles = SfxEmitterHandles {
                 track: None,
@@ -153,108 +158,164 @@ fn play_sfx_event_system(
                 filter_handles: Vec::new(),
             };
 
-            if let Some(reverb_settings) = &emitter.reverb {
-                if let Ok(reverb_send) = sfx_manager.audio_manager.add_send_track(
-                    SendTrackBuilder::new().with_effect(ReverbBuilder::new()
-                        .mix(reverb_settings.mix)
-                        .damping(reverb_settings.damping)
-                        .feedback(reverb_settings.feedback)
-                    ),
-                ) {
-                    let volume = reverb_settings.volume.clone();
-                    let reverb_id = reverb_send.id();
-                    track_builder = track_builder.with_send(
-                        reverb_id,
-                        volume,
-                    );
-                    emitter_handles.send_handles.push(reverb_send);
-                }
-            }
+            if let Some(spatial_distances) = &emitter.spatial {
+                // Handle spatial audio
+                let mut builder = SpatialTrackBuilder::default()
+                    .distances(*spatial_distances)
+                    .doppler_effect(emitter.doppler_enabled)
+                    .speed_of_sound(emitter.speed_of_sound);
 
-            if let Some(eq_settings) = &emitter.eq {
-                for frequency in eq_settings.frequencies.iter() {
-                    if let Ok(eq_send) = sfx_manager.audio_manager.add_send_track(
-                        SendTrackBuilder::new().with_effect(EqFilterBuilder::new(
-                            frequency.kind,
-                            frequency.frequency,
-                            frequency.gain,
-                            frequency.q,
+                // Add reverb if configured
+                if let Some(reverb_settings) = &emitter.reverb {
+                    if let Ok(reverb_send) = sfx_manager.audio_manager.add_send_track(
+                        SendTrackBuilder::new().with_effect(ReverbBuilder::new()
+                            .mix(reverb_settings.mix)
+                            .damping(reverb_settings.damping)
+                            .feedback(reverb_settings.feedback)
                         ),
-                    )) {
-                        let eq_id = eq_send.id();
-                        track_builder = track_builder.with_send(
-                            eq_id,
-                            Value::Fixed(Decibels(1.0)),
-                        );
-                        emitter_handles.send_handles.push(eq_send);
+                    ) {
+                        builder = builder.with_send(reverb_send.id(), reverb_settings.volume.clone());
+                        emitter_handles.send_handles.push(reverb_send);
                     }
                 }
-            }
 
-            if let Some(delay_settings) = &emitter.delay {
-                if let Ok(delay_send) = sfx_manager.audio_manager.add_send_track(
-                    SendTrackBuilder::new().with_effect(DelayBuilder::new()
-                        .delay_time(delay_settings.delay_time)
-                        .feedback(delay_settings.feedback)
-                    ),
-                ) {
-                    let delay_id = delay_send.id();
-                    track_builder = track_builder.with_send(
-                        delay_id,
-                        Value::Fixed(Decibels(1.0)),
-                    );
-                    emitter_handles.send_handles.push(delay_send);
+                // Add EQ if configured
+                if let Some(eq_settings) = &emitter.eq {
+                    for frequency in eq_settings.frequencies.iter() {
+                        if let Ok(eq_send) = sfx_manager.audio_manager.add_send_track(
+                            SendTrackBuilder::new().with_effect(EqFilterBuilder::new(
+                                frequency.kind,
+                                frequency.frequency,
+                                frequency.gain.clone(),
+                                frequency.q,
+                            )),
+                        ) {
+                            builder = builder.with_send(eq_send.id(), Value::Fixed(Decibels(1.0)));
+                            emitter_handles.send_handles.push(eq_send);
+                        }
+                    }
                 }
-            }
 
-            if let Some(low_pass_settings) = &emitter.low_pass {
-                let cutoff_hz = low_pass_settings.cutoff_hz.clone();
-                let mut filter_builder = FilterBuilder::new().cutoff(cutoff_hz);
-                emitter_handles.filter_handles.push(track_builder.add_effect(filter_builder));
-            }
+                // Add delay if configured
+                if let Some(delay_settings) = &emitter.delay {
+                    if let Ok(delay_send) = sfx_manager.audio_manager.add_send_track(
+                        SendTrackBuilder::new().with_effect(DelayBuilder::new()
+                            .delay_time(delay_settings.delay_time)
+                            .feedback(delay_settings.feedback)
+                        ),
+                    ) {
+                        builder = builder.with_send(delay_send.id(), Value::Fixed(Decibels(1.0)));
+                        emitter_handles.send_handles.push(delay_send);
+                    }
+                }
 
-            let initial_position = if let Some(follow) = &emitter.follow {
-                if let Ok(target_transform) = transforms.get(follow.target) {
-                    let rotated_offset = target_transform.rotation * follow.local_offset;
-                    target_transform.translation + rotated_offset
+                // Add low pass filter if configured
+                if let Some(low_pass_settings) = &emitter.low_pass {
+                    builder = builder.with_effect(FilterBuilder::new().cutoff(low_pass_settings.cutoff_hz.clone()));
+                }
+
+                // Calculate initial position
+                let initial_position = if let Some(follow) = &emitter.follow {
+                    if let Ok(target_transform) = transforms.get(follow.target) {
+                        let rotated_offset = target_transform.rotation * follow.local_offset;
+                        target_transform.translation + rotated_offset
+                    } else {
+                        emitter_transform.translation
+                    }
                 } else {
                     emitter_transform.translation
+                };
+
+                // Create spatial track
+                if let Ok(spatial_track) = sfx_manager.audio_manager.add_spatial_sub_track(
+                    listener.listener_handle.as_ref().unwrap().id(),
+                    mint::Vector3::from([initial_position.x, initial_position.y, initial_position.z]),
+                    builder,
+                ) {
+                    emitter_handles.track = Some(TrackHandleKind::Spatial(spatial_track));
                 }
+
             } else {
-                emitter_transform.translation
-            };
+                // Handle flat audio
+                let mut builder = TrackBuilder::default();
 
-            let track_handle = sfx_manager.audio_manager.add_spatial_sub_track(
-                listener.listener_handle.as_ref().unwrap().id(), // SAFETY: We we just checked if it's none at the beginning of the main loop.
-                mint::Vector3 { 
-                    x: initial_position.x,
-                    y: initial_position.y,
-                    z: initial_position.z
-                },
-                track_builder,
-            );
-
-            if let Ok(track_handle) = track_handle {
-                info!("Created spatial track");
-                emitter_handles.track = Some(track_handle);
-                let loop_region = emitter.loop_region.clone();
-                if let Some(spatial_track) = &mut emitter_handles.track {
-                    if let Some(sfx_asset) = assets.get(&sfx_asset_handle) {
-                        let mut sound_data = sfx_asset.sound_data.clone();
-                        sound_data = sound_data.loop_region(loop_region);
-                        if let Ok(handle) = spatial_track.play(sound_data) {
-                            emitter_handles.sound_handle = Some(handle);
-                            commands.entity(emitter_entity).insert(emitter_handles);
-                            info!("Successfully started playing sfx at {:?}", emitter_transform.translation);
-                        } else {
-                            error!("Error playing sfx");
-                        }
-                    } else {
-                        error!("Could not find sfx asset data");
+                // Add reverb if configured
+                if let Some(reverb_settings) = &emitter.reverb {
+                    if let Ok(reverb_send) = sfx_manager.audio_manager.add_send_track(
+                        SendTrackBuilder::new().with_effect(ReverbBuilder::new()
+                            .mix(reverb_settings.mix)
+                            .damping(reverb_settings.damping)
+                            .feedback(reverb_settings.feedback)
+                        ),
+                    ) {
+                        builder = builder.with_send(reverb_send.id(), reverb_settings.volume.clone());
+                        emitter_handles.send_handles.push(reverb_send);
                     }
                 }
-            } else {
-                error!("Failed to create spatial track");
+
+                // Add EQ if configured
+                if let Some(eq_settings) = &emitter.eq {
+                    for frequency in eq_settings.frequencies.iter() {
+                        if let Ok(eq_send) = sfx_manager.audio_manager.add_send_track(
+                            SendTrackBuilder::new().with_effect(EqFilterBuilder::new(
+                                frequency.kind,
+                                frequency.frequency,
+                                frequency.gain.clone(),
+                                frequency.q,
+                            )),
+                        ) {
+                            builder = builder.with_send(eq_send.id(), Value::Fixed(Decibels(1.0)));
+                            emitter_handles.send_handles.push(eq_send);
+                        }
+                    }
+                }
+
+                // Add delay if configured
+                if let Some(delay_settings) = &emitter.delay {
+                    if let Ok(delay_send) = sfx_manager.audio_manager.add_send_track(
+                        SendTrackBuilder::new().with_effect(DelayBuilder::new()
+                            .delay_time(delay_settings.delay_time)
+                            .feedback(delay_settings.feedback)
+                        ),
+                    ) {
+                        builder = builder.with_send(delay_send.id(), Value::Fixed(Decibels(1.0)));
+                        emitter_handles.send_handles.push(delay_send);
+                    }
+                }
+
+                // Add low pass filter if configured
+                if let Some(low_pass_settings) = &emitter.low_pass {
+                    builder = builder.with_effect(FilterBuilder::new().cutoff(low_pass_settings.cutoff_hz.clone()));
+                }
+
+                // Create flat track
+                if let Ok(flat_track) = sfx_manager.audio_manager.add_sub_track(builder) {
+                    emitter_handles.track = Some(TrackHandleKind::Flat(flat_track));
+                }
+            }
+
+            // Play sound on the created track
+            if let Some(track) = &mut emitter_handles.track {
+                if let Some(sfx_asset) = assets.get(&sfx_asset_handle) {
+                    let mut sound_data = sfx_asset.sound_data.clone();
+                    if let Some(loop_region) = emitter.loop_region.clone() {
+                        sound_data = sound_data.loop_region(loop_region);
+                    }
+
+                    let play_result = match track {
+                        TrackHandleKind::Spatial(spatial_track) => spatial_track.play(sound_data),
+                        TrackHandleKind::Flat(flat_track) => flat_track.play(sound_data),
+                    };
+
+                    match play_result {
+                        Ok(handle) => {
+                            emitter_handles.sound_handle = Some(handle);
+                            commands.entity(emitter_entity).insert(emitter_handles);
+                            info!("Successfully started playing sfx");
+                        }
+                        Err(e) => error!("Error playing sfx: {}", e),
+                    }
+                }
             }
         }
     }
@@ -263,41 +324,34 @@ fn play_sfx_event_system(
 /// Updates the position of the emitter if it is a spatial track.
 fn update_sfx_event_system(
     time: Res<Time>,
-    mut sfx_manager: ResMut<SfxManager>,
-    mut transforms: Query<&Transform>,
-    mut query: Query<(Entity, &mut SfxSpatialEmitter, &mut SfxEmitterHandles)>,
+    transforms: Query<&Transform>,
+    mut query: Query<(Entity, &SfxEmitter, &mut SfxEmitterHandles)>,
 ) {
-    for (emitter_entity, mut emitter, mut emitter_handles) in query.iter_mut() {
-        if let Some(spatial_track_handle) = &mut emitter_handles.track {
-            // Are we following a target?
-            if let Some(follow) = &emitter.follow {
-                if let Ok(target_transform) = transforms.get(follow.target) {
-                    let rotated_offset = target_transform.rotation * follow.local_offset;
-                    let position = target_transform.translation + rotated_offset;
-                    spatial_track_handle.set_position(
-                        mint::Vector3 { 
-                            x: position.x, 
-                            y: position.y, 
-                            z: position.z 
-                        },
+    for (emitter_entity, emitter, mut emitter_handles) in query.iter_mut() {
+        if let Some(track_handle) = &mut emitter_handles.track {
+            match track_handle {
+                TrackHandleKind::Spatial(spatial_track) => {
+                    let position = if let Some(follow) = &emitter.follow {
+                        if let Ok(target_transform) = transforms.get(follow.target) {
+                            let rotated_offset = target_transform.rotation * follow.local_offset;
+                            target_transform.translation + rotated_offset
+                        } else {
+                            continue;
+                        }
+                    } else if let Ok(emitter_transform) = transforms.get(emitter_entity) {
+                        emitter_transform.translation
+                    } else {
+                        continue;
+                    };
+
+                    spatial_track.set_position(
+                        mint::Vector3::from([position.x, position.y, position.z]),
                         Tween::default()
                     );
+                    spatial_track.set_game_loop_delta_time(time.delta_secs_f64());
                 }
+                TrackHandleKind::Flat(_) => {}
             }
-            // Otherwise, we are just using the emitter's transform.
-            else {
-                if let Ok(emitter_transform) = transforms.get(emitter_entity) {
-                    spatial_track_handle.set_position(
-                        mint::Vector3 { 
-                            x: emitter_transform.translation.x, 
-                            y: emitter_transform.translation.y, 
-                            z: emitter_transform.translation.z 
-                        },
-                        Tween::default()
-                    );
-                }
-            }
-            spatial_track_handle.set_game_loop_delta_time(time.delta_secs_f64());
         }
     }
 }
@@ -368,7 +422,7 @@ fn update_listener_system(
 fn cleanup_finished_sfx_system(
     mut commands: Commands,
     despawn_timer: Query<&mut SfxDespawnTimer>,
-    query: Query<(Entity, &SfxSpatialEmitter, &SfxEmitterHandles)>,
+    query: Query<(Entity, &SfxEmitter, &SfxEmitterHandles)>,
     time: Res<Time>,
 ) {
     for (entity, emitter, emitter_handles) in query.iter() {
@@ -391,7 +445,7 @@ fn cleanup_finished_sfx_system(
                         )));
                     }
                 } else {
-                    commands.entity(entity).remove::<SfxSpatialEmitter>();
+                    commands.entity(entity).remove::<SfxEmitter>();
                     info!("Removed emitter component from entity {}", entity);
                 }
             }
@@ -402,7 +456,7 @@ fn cleanup_finished_sfx_system(
 fn despawn_finished_sfx_system(
     mut commands: Commands,
     time: Res<Time>,
-    mut query: Query<(Entity, &mut SfxDespawnTimer, &mut SfxSpatialEmitter)>,
+    mut query: Query<(Entity, &mut SfxDespawnTimer, &mut SfxEmitter)>,
 ) {
     for (entity, mut timer, mut emitter) in query.iter_mut() {
         timer.0.tick(time.delta());
