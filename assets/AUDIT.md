@@ -1,4 +1,4 @@
-# AUDIO:
+# WEAPON AUDIO:
 - Path: audio/weapons/plasma_fire.wav
 - Source: https://freesound.org/people/CharlieWD100/sounds/440559/
 - License: Creative Commons 0
@@ -9,3 +9,8 @@
 - License: Creative Commons 0
 - Notes: Combined the two in Audacity
 
+# CROSSHAIRS:
+- Path: crosshairs/kenney_crosshair_pack
+- Source: https://kenney.nl/assets/crosshair-pack
+- License: Creative Commons 0
+- Notes: May have done some minor edits
