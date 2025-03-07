@@ -14,3 +14,9 @@
 - Source: https://kenney.nl/assets/crosshair-pack
 - License: Creative Commons 0
 - Notes: May have done some minor edits
+
+# KENNEY PARTICLE PACK
+- Path: textures/kenney_particle_pack
+- Source: https://www.kenney.nl/assets/particle-pack
+- License: Creative Commons 0
+- Notes: May have done some minor edits

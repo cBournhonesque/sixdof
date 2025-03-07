@@ -1,11 +1,11 @@
 [workspace]
 resolver = "2"
-members = [ "audio",
+members = [ "sfx",
     "client",
     "launcher",
     "renderer",
     "server",
-    "shared",
+    "shared", "vfx",
 ]
 
 [workspace.package]

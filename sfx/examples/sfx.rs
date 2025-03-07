@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 
 use bevy::prelude::*;
-use audio::prelude::*;
+use sfx::prelude::*;
 use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
 use kira::{effect::eq_filter::EqFilterKind, track::SpatialTrackDistances, Decibels, Easing, Mapping, Value};
 

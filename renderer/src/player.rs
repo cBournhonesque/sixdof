@@ -1,4 +1,4 @@
-use audio::prelude::SfxListener;
+use sfx::prelude::SfxListener;
 use bevy::color::palettes::basic::BLUE;
 use bevy::core_pipeline::prepass::DepthPrepass;
 use bevy::input::keyboard::KeyboardInput;

@@ -1,5 +1,5 @@
 [package]
-name = "audio"
+name = "sfx"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

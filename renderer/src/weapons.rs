@@ -1,8 +1,8 @@
-use audio::prelude::kira::effect::eq_filter::EqFilterKind;
-use audio::prelude::kira::track::SpatialTrackDistances;
-use audio::prelude::kira::{Decibels, Easing, Mapping, Mix, Value};
-use audio::prelude::{EqFrequency, EqSettings, LowPassSettings, ReverbSettings, SfxFollowTarget, SfxEmitter};
-use audio::SfxManager;
+use sfx::prelude::kira::effect::eq_filter::EqFilterKind;
+use sfx::prelude::kira::track::SpatialTrackDistances;
+use sfx::prelude::kira::{Decibels, Easing, Mapping, Mix, Value};
+use sfx::prelude::{EqFrequency, EqSettings, LowPassSettings, ReverbSettings, SfxFollowTarget, SfxEmitter};
+use sfx::SfxManager;
 use avian3d::prelude::{Collider, LinearVelocity, PhysicsSet, Position, Rotation, SpatialQuery, SpatialQueryFilter};
 use bevy::color::palettes::basic::{BLUE, YELLOW};
 use bevy::pbr::NotShadowCaster;
