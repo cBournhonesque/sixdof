@@ -1,11 +1,13 @@
 [workspace]
 resolver = "2"
-members = [ "sfx",
+members = [
     "client",
     "launcher",
     "renderer",
     "server",
-    "shared", "vfx",
+    "shared", 
+    "sfx",
+    "vfx", "moveable",
 ]
 
 [workspace.package]
@@ -14,6 +16,11 @@ edition = "2021"
 license = "MIT OR Apache-2.0 OR CC0-1.0"
 
 [workspace.dependencies]
+# local crates
+shared = { path = "shared" }
+vfx = { path = "vfx" }
+sfx = { path = "sfx" }
+
 lightyear_examples_common = { version = "0.19", default-features = false }
 lightyear_avian = { git = "https://github.com/cBournhonesque/lightyear.git", branch = "main", features = [
     "lag_compensation",

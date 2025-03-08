@@ -41,6 +41,7 @@ fn fragment(
     }
 
     var pbr_input = pbr_input_from_standard_material(inMut, is_front);
+    let colorCopy = pbr_input.material.base_color;
 
     #ifdef DEPTH_PREPASS
         let depth_scene = prepass_depth(inMut.position, 0u);
@@ -57,6 +58,7 @@ fn fragment(
     var out: FragmentOutput;
     out.color = apply_pbr_lighting(pbr_input);
     out.color = main_pass_post_lighting_processing(pbr_input, out.color);
+    out.color = vec4(colorCopy.rgb, out.color.a);
 #endif
 
     return out;

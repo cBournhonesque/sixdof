@@ -5,6 +5,9 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+serde.workspace = true
+rand.workspace = true
+avian3d.workspace = true
 bevy = { workspace = true, features = [
     "bevy_asset",
     "bevy_render",

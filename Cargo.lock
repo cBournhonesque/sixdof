@@ -4443,6 +4443,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "moveable"
+version = "0.1.0"
+
+[[package]]
 name = "naga"
 version = "23.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7274,8 +7278,11 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 name = "vfx"
 version = "0.1.0"
 dependencies = [
+ "avian3d",
  "bevy",
  "bevy_flycam",
+ "rand 0.9.0",
+ "serde",
 ]
 
 [[package]]
