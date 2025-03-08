@@ -58,8 +58,8 @@ fn fragment(
     var out: FragmentOutput;
     out.color = apply_pbr_lighting(pbr_input);
     out.color = main_pass_post_lighting_processing(pbr_input, out.color);
-    out.color = vec4(colorCopy.rgb, out.color.a);
 #endif
 
+    out.color = vec4(colorCopy.rgb, out.color.a);
     return out;
 }
