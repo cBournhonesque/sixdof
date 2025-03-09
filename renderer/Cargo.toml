@@ -39,7 +39,8 @@ bevy = { workspace = true, features = [
 bevy_config_stack.workspace = true
 serde.workspace = true
 rand.workspace = true
-sfx = { path = "../sfx" }
+sfx.workspace = true
+vfx.workspace = true
 
 [lints]
 workspace = true

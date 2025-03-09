@@ -5896,6 +5896,7 @@ dependencies = [
  "server",
  "sfx",
  "shared",
+ "vfx",
 ]
 
 [[package]]
@@ -6331,6 +6332,7 @@ dependencies = [
  "lightyear_examples_common",
  "qevy",
  "serde",
+ "vfx",
 ]
 
 [[package]]

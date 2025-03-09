@@ -5,9 +5,9 @@ use sfx::prelude::{EqFrequency, EqSettings, LowPassSettings, ReverbSettings, Sfx
 use sfx::SfxManager;
 use avian3d::prelude::{Collider, LinearVelocity, PhysicsSet, Position, Rotation, SpatialQuery, SpatialQueryFilter};
 use bevy::color::palettes::basic::{BLUE, YELLOW};
-use bevy::pbr::NotShadowCaster;
+use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
-use bevy::utils::Duration;
+use bevy::utils::{Duration, HashMap};
 use bevy_config_stack::prelude::ConfigAssetLoadedEvent;
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::client::prediction::Predicted;
@@ -18,47 +18,121 @@ use rand::Rng;
 use shared::bot::Bot;
 use shared::physics::GameLayer;
 use shared::player::{self, Player};
-use shared::prelude::{DespawnAfter, LinearProjectile, PlayerInput, ReverbMix, UniqueIdentity};
+use shared::prelude::{DespawnAfter, LinearProjectile, PlayerInput, ProjectileVisuals, ReverbMix, UniqueIdentity};
 use shared::weapons::*;
+use vfx::VfxBillboard;
 
 pub(crate) struct WeaponsPlugin;
 
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(spawn_projectile_visuals);
+        app.init_resource::<ProjectileVisualsCache>();
+        app.add_observer(spawn_projectile_visuals_observer);
+        app.add_systems(Startup, setup_projectile_visuals_cache_system);
         app.add_systems(Update, load_weapon_sounds_system.run_if(resource_exists::<WeaponsData>));
         app.add_systems(Update, weapon_fired_system.run_if(resource_exists::<WeaponsData>));
     }
 }
 
-/// When a projectile is spawn, add visuals to it
-fn spawn_projectile_visuals(
-    trigger: Trigger<OnAdd, Projectile>,
+#[derive(Resource, Default)]
+struct ProjectileVisualsCache {
+    quad: Option<Handle<Mesh>>,
+    textures: HashMap<String, Handle<Image>>,
+    meshes: HashMap<String, Handle<Mesh>>,
+}
+
+fn setup_projectile_visuals_cache_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut cache: ResMut<ProjectileVisualsCache>,
 ) {
-    commands.entity(trigger.entity()).insert(
-        (
-            Visibility::default(),
-            Mesh3d(meshes.add(Mesh::from(Sphere {
-                // TODO: must match the collider size
-                //      @todo-brian-reply: nah, its common for games to have a visual size that 
-                //      doesn't match the collider size, infact we should probably stick to 
-                //      simple Point based collision (ray cast) for projectiles, unless 
-                //      they are much larger than a typiical projectile, since there's going 
-                //      to be a lot flying at once.
-                radius: 0.05,
-                ..default()
-            }))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: BLUE.into(),
-                ..Default::default()
-            })),
-            //VisualInterpolateStatus::<Transform>::default(),
-            NotShadowCaster,
-        )
-    );
+    let quad = meshes.add(Mesh::from(Rectangle::default()));
+    cache.quad = Some(quad);
+}
+
+/// When a projectile is spawn, add visuals to it
+fn spawn_projectile_visuals_observer(
+    trigger: Trigger<OnAdd, Projectile>,
+    weapons_data: Option<Res<WeaponsData>>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut cache: ResMut<ProjectileVisualsCache>,
+    mut projectile: Query<(&mut Transform, &Projectile), Without<Camera>>,
+    mut asset_server: ResMut<AssetServer>,
+) {
+    let entity = trigger.entity();
+
+    let weapons_data = if let Some(weapons_data) = weapons_data { 
+        weapons_data 
+    } else {
+        error!("No weapons data found, skipping projectile visuals");
+        return; 
+    };
+
+    let (mut projectile_transform, projectile) = if let Ok(projectile) = projectile.get_mut(entity) {
+        projectile
+    } else {
+        error!("No projectile found for entity: {}", entity);
+        return;
+    };
+
+    let weapon_id = projectile.weapon_id;
+    let weapon = if let Some(data) = weapons_data.weapons.get(&weapon_id) {
+        data
+    } else {
+        error!("No data found for weapon id: {}", weapon_id);
+        return;
+    };
+
+    match &weapon.projectile_visuals {
+        ProjectileVisuals::Sprite { texture_asset_path, base_color, scale } => {
+
+            let quad = if let Some(quad) = cache.quad.clone() {
+                quad
+            } else {
+                error!("No quad found in cache, skipping projectile visuals");
+                return;
+            };
+
+            let mut needs_insert = false;
+            if !cache.textures.contains_key(texture_asset_path) {
+                needs_insert = true;
+            }
+
+            if needs_insert {
+                cache.textures.insert(texture_asset_path.clone(), asset_server.load(format!("textures/{}", texture_asset_path)));
+            }
+
+            if let Some(texture) = cache.textures.get(texture_asset_path) {
+                projectile_transform.scale = Vec3::splat(*scale);
+                commands.entity(entity).insert((
+                    InheritedVisibility::default(),
+                    Visibility::default(),
+                    VisualInterpolateStatus::<Transform>::default(),
+                    Mesh3d(quad.clone()),
+
+                    // @todo-brian: We should probably have a separate material for projectiles, so we're not using PBR.
+                    // But at least right now they get affected by fog and stuff, so maybe it's fine.
+                    MeshMaterial3d(materials.add(StandardMaterial {
+                        base_color: *base_color,
+                        base_color_texture: Some(texture.clone()),
+                        alpha_mode: AlphaMode::Blend,
+                        ..Default::default()
+                    })),
+                    NotShadowReceiver,
+                    NotShadowCaster,
+                    VfxBillboard,
+                ));
+            } else {
+                error!("Failed to load texture for projectile visuals: {}", texture_asset_path);
+            }
+        }
+        ProjectileVisuals::Mesh { mesh_asset_path, base_color_texture_path, scale } => {
+            unimplemented!();
+        }
+    }
 }
 
 /// Whenever weapon data is loaded/reloaded we load/reload the weapon sounds

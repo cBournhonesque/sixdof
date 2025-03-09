@@ -1,13 +1,13 @@
 use std::time::Duration;
 
-use avian3d::{math::Vector, prelude::{Collider, CollisionLayers, LinearVelocity, Position, RigidBody, SpatialQuery}};
-use bevy::{prelude::*, scene::ron::ser::{to_string_pretty, PrettyConfig}, utils::HashMap};
+use avian3d::{math::Vector, prelude::*};
+use bevy::{prelude::*, utils::HashMap};
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::{client::prediction::rollback::DisableRollback, prelude::{client::{Predicted, Rollback}, *}, shared::replication::components::Controlled};
+use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{data::weapons::*, physics::GameLayer, player::Player, prelude::{Moveable, MoveableExtras, MoveableHit, MoveableHitData, MoveableShape, PlayerInput, UniqueIdentity}, utils::DespawnAfter};
+use crate::{data::weapons::*, physics::GameLayer, prelude::{Moveable, MoveableExtras, MoveableHit, MoveableHitData, MoveableShape, PlayerInput, UniqueIdentity}, utils::DespawnAfter};
 
 pub type WeaponId = u32;
 
@@ -177,7 +177,9 @@ impl Weapon {
 
 // TODO: maybe make this an enum with the type of projectile?
 #[derive(Component, Debug, Clone)]
-pub struct Projectile;
+pub struct Projectile {
+    pub weapon_id: WeaponId,
+}
 
 /// The resource that contains all the weapon configurations.
 #[derive(Resource, Asset, TypePath, Debug, Deserialize, Serialize)]
@@ -287,7 +289,9 @@ pub fn handle_shooting(
                         commands.spawn((
                             new_transform,
                             linear_bullet_event,
-                            Projectile,
+                            Projectile {
+                                weapon_id: current_weapon_idx,
+                            },
                             Moveable {
                                 velocity: direction.normalize_or_zero() * weapon_data.projectile.speed,
                                 angular_velocity: Vec3::ZERO,

@@ -5,9 +5,9 @@
             description: "A pair of lasers that fire in unison.",
             barrel_positions: [
                 // Right barrel
-                (0.25, -0.15, 0.0),
+                (0.25, -0.25, 0.0),
                 // Left barrel
-                (-0.25, -0.15, 0.0),
+                (-0.25, -0.25, 0.0),
             ],
             barrel_mode: Simultaneous,
             fire_mode: Auto(
@@ -55,6 +55,16 @@
                     mid_max_db: 0.0,
                     low_min_db: 0.0,
                     low_max_db: 0.0,
+                )),
+            ),
+            projectile_visuals: Sprite (
+                texture_asset_path: "kenney_particle_pack/circle_05.png",
+                scale: 0.25,
+                base_color: LinearRgba((
+                    red: 0.0,
+                    green: 10.0,
+                    blue: 30.0,
+                    alpha: 1.0,
                 )),
             ),
         ),
@@ -115,6 +125,16 @@
                     mid_max_db: 1.0,
                     low_min_db: 5.0,
                     low_max_db: 10.0,
+                )),
+            ),
+            projectile_visuals: Sprite (
+                texture_asset_path: "kenney_particle_pack/circle_05.png",
+                scale: 0.5,
+                base_color: LinearRgba((
+                    red: 0.0,
+                    green: 30.0,
+                    blue: 10.0,
+                    alpha: 1.0,
                 )),
             ),
         ),

@@ -25,6 +25,8 @@ pub struct WeaponBehavior {
     pub starting_ammo: u32,
     /// The sound emitter behavior of the firing sound of the weapon.
     pub firing_sound: SoundEmitterBehavior,
+    /// The visuals of the projectile that is spawned when the weapon is fired.
+    pub projectile_visuals: ProjectileVisuals,
 }
 
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -88,5 +90,37 @@ pub struct CrosshairConfiguration {
 impl Default for CrosshairConfiguration {
     fn default() -> Self {
         Self { color: Color::WHITE, image: "kenney_crosshair_pack/crosshair018.png".to_string() }
+    }
+}
+
+/// Defines the visuals of a projectile that is spawned when the weapon is fired.
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub enum ProjectileVisuals {
+    /// A quad that is billboarded and uses a texture for the visuals.
+    Sprite {
+        /// Relative to assets/textures/
+        texture_asset_path: String,
+        /// The base color of the projectile.
+        base_color: Color,
+        /// The scale of the sprite. By default, the quad is 1x1 meters.
+        scale: f32,
+    },
+    /// A 3D mesh
+    Mesh {
+        /// Relative to assets/models/
+        mesh_asset_path: String,
+        /// Relative to assets/textures/
+        base_color_texture_path: String,
+        scale: Vec3,
+    }
+}
+
+impl Default for ProjectileVisuals {
+    fn default() -> Self {
+        Self::Sprite { 
+            texture_asset_path: "kenney_particle_pack/circle_05.png".to_string(), 
+            base_color: Color::WHITE, 
+            scale: 1.0 
+        }
     }
 }

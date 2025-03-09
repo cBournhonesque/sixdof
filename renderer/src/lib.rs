@@ -36,8 +36,9 @@ impl Plugin for RendererPlugin {
         app.add_plugins(bot::BotPlugin);
         app.add_plugins(physics::PhysicsPlugin);
         app.add_plugins(player::PlayerPlugin);
-        app.add_plugins(::sfx::SfxAudioPlugin::default());
+        app.add_plugins(sfx::SfxAudioPlugin::default());
         app.add_plugins(weapons::WeaponsPlugin);
+        app.add_plugins(vfx::VfxPlugin);
         app.insert_resource(AmbientLight {
             brightness: 0.0,
             ..default()
