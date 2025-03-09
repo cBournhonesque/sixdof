@@ -25,7 +25,7 @@ impl Plugin for PlayerPlugin {
         app.add_plugins(ConfigAssetLoaderPlugin::<PlayerShipData>::new("data/player_ship.ron"));
         app.add_systems(FixedUpdate, move_player.run_if(resource_exists::<PlayerShipData>));
         // app.add_systems(FixedUpdate, debug_input);
-        app.add_systems(FixedPostUpdate, debug_after_sync.after(PhysicsSet::Sync));
+        // app.add_systems(FixedPostUpdate, debug_after_sync.after(PhysicsSet::Sync));
     }
 }
 
