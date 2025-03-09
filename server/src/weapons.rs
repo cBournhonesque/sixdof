@@ -1,7 +1,12 @@
+use avian3d::prelude::{LinearVelocity, PhysicsStepSet, Position, SpatialQueryFilter};
+use bevy::math::NormedVectorSpace;
 use bevy::prelude::*;
-use lightyear::prelude::Replicating;
+use lightyear::prelude::{Replicating, ServerConnectionManager, TickManager};
 use shared::{prelude::{Damageable, PlayerInput, UniqueIdentity}, weapons::{handle_shooting, CurrentWeaponIndex, ProjectileHitEvent, WeaponInventory, WeaponsData}};
 use leafwing_input_manager::prelude::ActionState;
+use lightyear::prelude::client::InterpolationDelay;
+use lightyear_avian::prelude::LagCompensationSpatialQuery;
+use shared::prelude::{GameLayer, Projectile, WeaponFiredEvent};
 
 /// Handles projectiles colliding with walls and enemies
 pub(crate) struct WeaponsPlugin;
@@ -10,6 +15,8 @@ impl Plugin for WeaponsPlugin {
         app.add_event::<ProjectileHitEvent>();
         app.add_systems(Update, weapon_switch_system);
         app.add_systems(FixedPostUpdate, projectile_hit_system.run_if(resource_exists::<WeaponsData>));
+        // lag compensation collisions must run after the SpatialQuery has been updated
+        app.add_systems(FixedPostUpdate, bullet_hit_detection.after(PhysicsStepSet::SpatialQuery));
         app.add_systems(FixedUpdate, shoot_system.run_if(resource_exists::<WeaponsData>));
     }
 }
@@ -72,6 +79,63 @@ fn projectile_hit_system(
             }
         }
     }
+}
+
+// TODO: be able to handle cases without lag compensation enabled! (have another system for non lag compensation?)
+/// Handle potential hits for a linear projectile. The projectile is not actually spawned
+/// - broad-phase: check hits via raycast between bullet and the AABB envelope history
+/// - narrow-phase: if there is a broadphase hit, check hits via raycast between bullet and the interlated history collider
+fn bullet_hit_detection(
+    mut commands: Commands,
+    tick_manager: Res<TickManager>,
+    // mut raycast_bullets: EventReader<LinearProjectile>,
+    nonraycast_bullets: Query<(Entity, &Position, &LinearVelocity, &WeaponFiredEvent), With<Projectile>>,
+    mut hit_events: EventWriter<ProjectileHitEvent>,
+    query: LagCompensationSpatialQuery,
+    manager: Res<ServerConnectionManager>,
+    client_query: Query<&InterpolationDelay>,
+) {
+    let tick = tick_manager.tick();
+        nonraycast_bullets.iter()
+        .for_each(|(bullet_entity, current_pos, current_velocity, fired_event)| {
+            let delay = match fired_event.shooter_id {
+                UniqueIdentity::Player(client_id) => {
+                    let Ok(delay) = manager
+                        .client_entity(client_id)
+                        .map(|client_entity| client_query.get(client_entity).unwrap())
+                    else {
+                        error!("Could not retrieve InterpolationDelay for client {client_id:?}");
+                        return;
+                    };
+                    *delay
+                }
+                UniqueIdentity::Bot(_) => InterpolationDelay {
+                    delay_ms: 0,
+                }
+            };
+            if let Some(hit) = query.cast_ray(
+                delay,
+                current_pos.0,
+                // NOTE: we could also use the current LinearVelocity
+                fired_event.fire_direction,
+                current_velocity.norm(),
+                false,
+                &mut SpatialQueryFilter::from_mask(GameLayer::Player),
+            ) {
+                let hit_event = ProjectileHitEvent {
+                    shooter_id: fired_event.shooter_id,
+                    weapon_index: fired_event.weapon_index,
+                    projectile_entity: bullet_entity,
+                    entity_hit: Some(hit.entity),
+                };
+                info!(?tick, "Sending bullet hit event: {:?}", hit_event);
+                hit_events.send(hit_event);
+
+                // if the bullet was a projectile, despawn it
+                // TODO: how to make sure that the bullet is visually despawned on the client?
+                commands.entity(bullet_entity).despawn_recursive();
+            }
+        });
 }
 
 fn shoot_system(

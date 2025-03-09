@@ -7,7 +7,7 @@ use leafwing_input_manager::prelude::ActionState;
 use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{data::weapons::*, physics::GameLayer, prelude::{Moveable, MoveableExtras, MoveableHit, MoveableHitData, MoveableShape, PlayerInput, UniqueIdentity}, utils::DespawnAfter};
+use crate::{data::weapons::*, physics::GameLayer, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
 
 pub type WeaponId = u32;
 
@@ -27,31 +27,6 @@ impl Plugin for WeaponsPlugin {
     }
 }
 
-// // TODO: maybe have a separate event for ray-cast vs slow bullets?
-// /// Bullet that shoots in a straight line
-#[derive(Event, Clone, Debug)]
-pub struct LinearProjectile {
-    pub shooter: UniqueIdentity,
-    pub shooter_entity: Entity,
-    pub source: Vector,
-    pub direction: Dir3,
-    pub speed: f32,
-    pub interpolation_delay_millis: u16,
-}
-
-impl Default for LinearProjectile {
-    fn default() -> Self {
-        Self {
-            shooter: UniqueIdentity::Player(ClientId::Local(0)),
-            shooter_entity: Entity::PLACEHOLDER,
-            source: Vector::ZERO,
-            direction: Dir3::Z,
-            // the default is to shoot raycast bullets
-            speed: 1000.0,
-            interpolation_delay_millis: 0,
-        }
-    }
-}
 
 /// Event that is sent when a weapon is fired.
 /// Can be used to play a firing sound, etc.
@@ -268,16 +243,7 @@ pub fn handle_shooting(
                         let mut new_transform = *shooter_transform;
                         new_transform.translation += rotated_barrel_pos;
 
-                        // we include information about the shooter to be able to
-                        // use the correct lag compensation values
-                        let linear_bullet_event = LinearProjectile {
-                            shooter: identity.clone(),
-                            shooter_entity: shooting_entity,
-                            source: new_transform.translation,
-                            direction,
-                            speed: weapon_data.projectile.speed,
-                            interpolation_delay_millis: 0,
-                        };
+                        // TODO: spawn an initial-replicated bullet, with
 
                         // we shoot a non-networked linear bullet
                         // it's trajectory should be deterministic on the client and server
@@ -288,23 +254,24 @@ pub fn handle_shooting(
                         //info!("speed: {}", weapon_data.projectile.speed);
                         commands.spawn((
                             new_transform,
-                            linear_bullet_event,
+                            WeaponFiredEvent {
+                                shooter_id: identity.clone(),
+                                weapon_index: current_weapon_idx,
+                                shooter_entity: shooting_entity,
+                                fire_origin: shooter_transform.translation,
+                                fire_direction: direction,
+                            },
                             Projectile {
                                 weapon_id: current_weapon_idx,
                             },
-                            Moveable {
-                                velocity: direction.normalize_or_zero() * weapon_data.projectile.speed,
-                                angular_velocity: Vec3::ZERO,
-                                collision_shape: MoveableShape::Point,
-                                collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
-                            },
-                            MoveableExtras {
-                                ignore_entities: Some(vec![shooting_entity]),
-                                moveable_owner_id: identity.clone(),
-                                moveable_type_id: current_weapon_idx,
-                                on_hit: Some(Box::new(on_projectile_hit)),
-                            },
-                            DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once))
+                            // TODO(cb): for some it's necessary to include both Position and Transform
+                            Position(new_transform.translation),
+                            LinearVelocity(direction * weapon_data.projectile.speed),
+                            DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once)),
+
+                            // TODO: should we not include collision layers to accelerate collision computation performance?
+                            // CollisionLayers::new([GameLayer::Projectile], [GameLayer::Player, GameLayer::Wall]),
+                            RigidBody::Kinematic,
                         ));
                     }
 
@@ -323,30 +290,4 @@ pub fn handle_shooting(
             }
         }
     }
-}
-
-fn on_projectile_hit(
-    hit: MoveableHit,
-    commands: &mut Commands,
-    _spatial_query: &mut SpatialQuery,
-) -> bool {
-    let entity_hit = match hit.hit_data {
-        MoveableHitData::ShapeCast(hit) => {
-            Some(hit.entity)
-        }
-        MoveableHitData::RayCast(hit) => {
-            Some(hit.entity)
-        }
-    };
-
-    // send an event so that we can spawn vfx/sfx
-    // and so that the server can subscribe to it for applying damage
-    commands.send_event(ProjectileHitEvent {
-        shooter_id: hit.moveable_owner_id,
-        weapon_index: hit.moveable_type_id,
-        projectile_entity: hit.moveable_entity,
-        entity_hit
-    });
-    commands.entity(hit.moveable_entity).despawn_recursive();
-    true
 }

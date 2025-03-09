@@ -61,14 +61,15 @@ fn handle_predicted_spawn(
             .with_dual_axis(PlayerInput::Look, MouseMove::default());
 
         // Adds an InputMap to Predicted so that the user can control the predicted entity
-        commands.entity(entity).insert((input_map, 
-            // We add a Moveable component so that we can predict velocity and angular velocity
-            Moveable {
-                velocity: Vec3::ZERO,
-                angular_velocity: Vec3::ZERO,
-                collision_shape: MoveableShape::Sphere(0.5),
-                collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
-            },
+        commands.entity(entity).insert((input_map,
+            RigidBody::Kinematic
+            // // We add a Moveable component so that we can predict velocity and angular velocity
+            // Moveable {
+            //     velocity: Vec3::ZERO,
+            //     angular_velocity: Vec3::ZERO,
+            //     collision_shape: MoveableShape::Sphere(0.5),
+            //     collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
+            // },
         ));
     }
 }

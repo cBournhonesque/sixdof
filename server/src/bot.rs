@@ -61,7 +61,7 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
             RigidBody::Kinematic,
             Collider::sphere(0.5),
             CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
-            //LagCompensationHistory::default(),
+            LagCompensationHistory::default(),
         )
     );
     bot_manager.next_bot_id += 1;

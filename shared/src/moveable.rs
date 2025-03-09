@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use avian3d::prelude::*;
-use lightyear::prelude::client::{Predicted, Rollback, RollbackState};
+use lightyear::prelude::client::{Predicted, Rollback};
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::UniqueIdentity;

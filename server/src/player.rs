@@ -2,7 +2,9 @@ use bevy::prelude::*;
 use lightyear::prelude::server::*;
 use shared::{player::Player, prelude::{Damageable, GameLayer, Moveable, MoveableShape, UniqueIdentity}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
 use avian3d::prelude::*;
-use lightyear::prelude::{NetworkTarget, ReplicateHierarchy};
+use lightyear::prelude::{NetworkTarget, ReplicateHierarchy, ReplicationGroup};
+use lightyear::shared::replication::components::ReplicationGroupId;
+use shared::prelude::{PREDICTION_REPLICATION_GROUP_ID};
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -37,7 +39,7 @@ fn spawn_player_on_connect(
                         enabled: false,
                         recursive: false,
                     },
-                    // TODO: all predicted entities must be part of the same replication group
+                    group: ReplicationGroup::new_id(PREDICTION_REPLICATION_GROUP_ID),
                     ..default()
                 },
                 UniqueIdentity::Player(event.client_id),
@@ -48,15 +50,18 @@ fn spawn_player_on_connect(
                 Damageable {
                     health: 200,
                 },
-                Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
+                // Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
                 CurrentWeaponIndex(0),
                 WeaponInventory::from_data(&weapons_data, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
-                Moveable {
-                    velocity: Vec3::ZERO,
-                    angular_velocity: Vec3::ZERO,
-                    collision_shape: MoveableShape::Sphere(0.5),
-                    collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
-                },
+                Position::from_xyz(0.0, 2.0, 0.0),
+                CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
+                RigidBody::Kinematic,
+                // Moveable {
+                //     velocity: Vec3::ZERO,
+                //     angular_velocity: Vec3::ZERO,
+                //     collision_shape: MoveableShape::Sphere(0.5),
+                //     collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
+                // },
             )
         );
     }
