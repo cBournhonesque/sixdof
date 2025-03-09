@@ -292,18 +292,21 @@ pub fn handle_shooting(
                             Projectile {
                                 weapon_id: current_weapon_idx,
                             },
-                            Moveable {
-                                velocity: direction.normalize_or_zero() * weapon_data.projectile.speed,
-                                angular_velocity: Vec3::ZERO,
-                                collision_shape: MoveableShape::Point,
-                                collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
-                            },
-                            MoveableExtras {
-                                ignore_entities: Some(vec![shooting_entity]),
-                                moveable_owner_id: identity.clone(),
-                                moveable_type_id: current_weapon_idx,
-                                on_hit: Some(Box::new(on_projectile_hit)),
-                            },
+                            // TODO(cb): for some it's necessary to include both Position and Transform
+                            Position(new_transform.translation),
+                            LinearVelocity(direction * weapon_data.projectile.speed),
+                            // Moveable {
+                            //     velocity: direction.normalize_or_zero() * weapon_data.projectile.speed,
+                            //     angular_velocity: Vec3::ZERO,
+                            //     collision_shape: MoveableShape::Point,
+                            //     collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
+                            // },
+                            // MoveableExtras {
+                            //     ignore_entities: Some(vec![shooting_entity]),
+                            //     moveable_owner_id: identity.clone(),
+                            //     moveable_type_id: current_weapon_idx,
+                            //     on_hit: Some(Box::new(on_projectile_hit)),
+                            // },
                             DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once))
                         ));
                     }

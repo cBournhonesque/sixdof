@@ -32,12 +32,23 @@ impl Plugin for PhysicsPlugin {
         //    a RigidBody) so instead we roll out our own sync system
         // 3. We still need to run the SyncPlugin in FixedPostUpdate; if we run it in RunFixedMainLoop, the visual interpolation will have
         //    empty Transform values when updating VisualInterpolation. VisualInterpolationUpdate runs in FixedLast.
+        // 4. We also need to run the SyncPlugin in FixedUpdate, for example if you have multiple Updates in a row without FixedUpdates,
+        //    and the first one triggers a rollback with Correction. Then on the first frame we reset the Position to the original_prediction
+        //    and we need a sync to make sure that visually we also use this value!
 
         // SYSTEMS
         app.add_systems(
             FixedPostUpdate,
             position_to_transform
                 .in_set(SyncSet::PositionToTransform)
+        );
+        app.add_systems(
+            PostUpdate,
+            position_to_transform
+                .in_set(SyncSet::PositionToTransform)
+        );
+        app.configure_sets(
+            PostUpdate, SyncSet::PositionToTransform.in_set(PhysicsSet::Sync)
         );
 
         // RESOURCES
