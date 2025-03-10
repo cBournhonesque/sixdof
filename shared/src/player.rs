@@ -4,7 +4,7 @@ use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use leafwing_input_manager::prelude::*;
 use lightyear::prelude::{*, client::*};
 use serde::{Deserialize, Serialize};
-use crate::prelude::{PlayerInput, Moveable};
+use crate::prelude::{PlayerInput};
 
 #[derive(Asset, Resource, Default,TypePath, Debug, Deserialize)]
 pub struct PlayerShipData {
@@ -24,6 +24,8 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(ConfigAssetLoaderPlugin::<PlayerShipData>::new("data/player_ship.ron"));
         app.add_systems(FixedUpdate, move_player.run_if(resource_exists::<PlayerShipData>));
+        // app.add_systems(FixedUpdate, debug_input);
+        // app.add_systems(FixedPostUpdate, debug_after_sync.after(PhysicsSet::Sync));
     }
 }
 
@@ -47,7 +49,7 @@ pub fn debug_input(
             ?entity,
             ?look,
             ?info,
-            "BeforeInputs"
+            "FixedUpdate"
         );
     }
 }
@@ -57,7 +59,7 @@ pub fn debug_after_sync(
     tick_manager: Res<TickManager>,
     rollback: Option<Res<Rollback>>,
     query: Query<
-        (Entity, (&Transform, &Position, &Rotation)),
+        (Entity, &ActionState<PlayerInput>, (&Transform, &Position, &Rotation, &LinearVelocity, &AngularVelocity)),
         (With<Player>, Or<(With<Predicted>, With<Replicating>)>)
     >
 ) {
@@ -65,11 +67,13 @@ pub fn debug_after_sync(
         tick_manager.tick_or_rollback_tick(r.as_ref())
     });
     let is_rollback = rollback.map_or(false, |r| r.is_rollback());
-    for (entity, info) in query.iter() {
+    for (entity, action_state, info) in query.iter() {
+        let look = action_state.axis_pair(&PlayerInput::Look);
         info!(
             ?is_rollback,
             ?tick,
             ?entity,
+            ?look,
             ?info,
             "After Physics"
         );
@@ -82,14 +86,15 @@ pub fn move_player(
     fixed_time: Res<Time<Fixed>>,
     mut query: Query<(
         &Player,
-        &mut Moveable,
-        &mut Transform,
+        &Rotation,
+        &mut LinearVelocity,
+        &mut AngularVelocity,
         &ActionState<PlayerInput>,
     ),
     Or<(With<Predicted>, With<Replicating>)>>,
     data: Res<PlayerShipData>,
 ) {
-    for (_player, mut moveable, transform, action_state) in query.iter_mut() {
+    for (_player, rotation, mut linear_velocity, mut angular_velocity, action_state) in query.iter_mut() {
         let mut wish_dir = Vec3::ZERO;
 
         // @todo-brian: Also send the mouse sensitivity to the server, probably just do it thru PlayerInput
@@ -98,10 +103,10 @@ pub fn move_player(
             let yaw = -mouse_data.x * data.look_rotation_force;
             let pitch = -mouse_data.y * data.look_rotation_force;
 
-            let right = transform.rotation * Vec3::X;
-            let up = transform.rotation * Vec3::Y;
+            let right = rotation.0 * Vec3::X;
+            let up = rotation.0 * Vec3::Y;
 
-            moveable.angular_velocity += up * yaw + right * pitch;
+            angular_velocity.0 += up * yaw + right * pitch;
         }
 
         let mut roll_force = 0.0;
@@ -113,64 +118,65 @@ pub fn move_player(
         }
         
         if roll_force != 0.0 {
-            let forward = transform.rotation * Vec3::NEG_Z;
-            moveable.angular_velocity += forward * roll_force;
+            let forward = rotation.0 * Vec3::NEG_Z;
+            angular_velocity.0 += forward * roll_force;
         }
 
-        moveable.angular_velocity *= 1.0 - data.rotation_damping;
+        // TODO: use avian's AngularDamping?
+        angular_velocity.0 *= 1.0 - data.rotation_damping;
         
-        if moveable.angular_velocity.length_squared() > data.max_rotation_speed * data.max_rotation_speed {
-            moveable.angular_velocity = moveable.angular_velocity.normalize() * data.max_rotation_speed;
+        if angular_velocity.length_squared() > data.max_rotation_speed * data.max_rotation_speed {
+            angular_velocity.0 = angular_velocity.normalize() * data.max_rotation_speed;
         }
         
         // Accelerate in the direction of the input
         if action_state.pressed(&PlayerInput::MoveForward) {
-            wish_dir += transform.rotation * Vec3::NEG_Z;
+            wish_dir += rotation.0 * Vec3::NEG_Z;
         }
         if action_state.pressed(&PlayerInput::MoveBackward) {
-            wish_dir += transform.rotation * Vec3::Z;
+            wish_dir += rotation.0 * Vec3::Z;
         }
         if action_state.pressed(&PlayerInput::MoveLeft) {
-            wish_dir += transform.rotation * Vec3::NEG_X;
+            wish_dir += rotation.0 * Vec3::NEG_X;
         }
         if action_state.pressed(&PlayerInput::MoveRight) {
-            wish_dir += transform.rotation * Vec3::X;
+            wish_dir += rotation.0 * Vec3::X;
         }
         if action_state.pressed(&PlayerInput::MoveUp) {
-            wish_dir += transform.rotation * Vec3::Y;
+            wish_dir += rotation.0 * Vec3::Y;
         }
         if action_state.pressed(&PlayerInput::MoveDown) {
-            wish_dir += transform.rotation * Vec3::NEG_Y;
+            wish_dir += rotation.0 * Vec3::NEG_Y;
         }
 
         let wish_dir = wish_dir.normalize_or_zero();
         
         // apply drag
-        moveable.velocity = apply_drag(
-            moveable.velocity, 
-            moveable.velocity.length(), 
+        linear_velocity.0 = apply_drag(
+            linear_velocity.0,
+            linear_velocity.length(),
             data.drag, 
             fixed_time.delta_secs()
         );
 
         // apply acceleration
-        let velocity = moveable.velocity;
-        moveable.velocity += accelerate(
+        let current_speed = linear_velocity.dot(wish_dir);
+        linear_velocity.0 += accelerate(
             wish_dir, 
-            data.base_speed, 
-            velocity.dot(wish_dir), 
-            data.accel_speed, 
+            data.base_speed,
+            current_speed,
+            data.accel_speed,
             fixed_time.delta_secs()
         );
 
         // apply afterburners accelerate you forward
         if action_state.pressed(&PlayerInput::AfterBurners) {
-            let velocity = moveable.velocity;
-            let wish_dir = transform.rotation * Vec3::NEG_Z;
-            moveable.velocity += accelerate(
+            let wish_dir = rotation.0 * Vec3::NEG_Z;
+            let current_speed = linear_velocity.dot(rotation.0 * Vec3::NEG_Z);
+            linear_velocity.0 += accelerate(
                 wish_dir, 
-                data.base_speed, 
-                velocity.dot(transform.rotation * Vec3::NEG_Z),
+                data.base_speed,
+                current_speed,
                 data.afterburner_accel_speed,
                 fixed_time.delta_secs()
             );

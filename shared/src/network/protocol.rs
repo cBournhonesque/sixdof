@@ -3,14 +3,22 @@ use leafwing_input_manager::Actionlike;
 use lightyear::prelude::*;
 use avian3d::prelude::*;
 use lightyear::prelude::client::{ComponentSyncMode, LerpFn};
+use lightyear::shared::replication::components::ReplicationGroupId;
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
-use crate::prelude::{Damageable, Moveable, UniqueIdentity};
-use crate::moveable;
+use crate::prelude::{Damageable, UniqueIdentity};
 use crate::weapons::{CurrentWeaponIndex, WeaponInventory};
 use lightyear::utils::bevy::TransformLinearInterpolation;
 use crate::bot::Bot;
 
+/// Networking model:
+/// - client is predicted
+/// - other players are interpolated
+/// - we use lag compensation for hit detection of bullets
+/// - bullets will be
+///   - pre-spawned on the client
+///   - initial-replicated on the server (predicted on the client who fired the bullet, interpolated for other clients)
+///     - we stop sending any replication updates after the first one
 pub struct ProtocolPlugin;
 
 
@@ -80,18 +88,35 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<ExternalImpulse>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full);
 
-        app.register_component::<Moveable>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full)
-            .add_interpolation(ComponentSyncMode::Full)
-            .add_interpolation_fn(moveable::lerp);
+        // app.register_component::<Moveable>(ChannelDirection::ServerToClient)
+        //     .add_prediction(ComponentSyncMode::Full)
+        //     .add_interpolation(ComponentSyncMode::Full)
+        //     .add_interpolation_fn(moveable::lerp);
 
         app.register_component::<WeaponInventory>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Once);
-        
-        app.register_component::<Transform>(ChannelDirection::ServerToClient)
+
+        app.register_component::<Position>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full)
+            .add_interpolation_fn(position::lerp)
             .add_interpolation(ComponentSyncMode::Full)
-            .add_interpolation_fn(TransformLinearInterpolation::lerp);
+            .add_correction_fn(position::lerp);
+
+        app.register_component::<Rotation>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Full)
+            .add_interpolation_fn(rotation::lerp)
+            .add_interpolation(ComponentSyncMode::Full)
+            .add_correction_fn(rotation::lerp);
+
+        // do not replicate Transform but make sure to register an interpolation function
+        // for it so that we can do visual interpolation
+        // (another option would be to replicate transform and not use Position/Rotation at all)
+        // app.register_component::<Transform>(ChannelDirection::ServerToClient)
+        //     .add_prediction(ComponentSyncMode::Full)
+        //     .add_interpolation(ComponentSyncMode::Full)
+        //     .add_interpolation_fn(TransformLinearInterpolation::lerp);
+        app.add_interpolation::<Transform>(ComponentSyncMode::None);
+        app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
 
         app.register_component::<UniqueIdentity>(ChannelDirection::ServerToClient);        
         app.register_component::<Damageable>(ChannelDirection::ServerToClient);

@@ -18,7 +18,7 @@ use rand::Rng;
 use shared::bot::Bot;
 use shared::physics::GameLayer;
 use shared::player::{self, Player};
-use shared::prelude::{DespawnAfter, LinearProjectile, PlayerInput, ProjectileVisuals, ReverbMix, UniqueIdentity};
+use shared::prelude::{DespawnAfter, PlayerInput, ProjectileVisuals, ReverbMix, UniqueIdentity};
 use shared::weapons::*;
 use vfx::VfxBillboard;
 
@@ -110,9 +110,9 @@ fn spawn_projectile_visuals_observer(
                 commands.entity(entity).insert((
                     InheritedVisibility::default(),
                     Visibility::default(),
+                    // TODO: this is only necessary for Predicted projectiles, not interpolated ones!
                     VisualInterpolateStatus::<Transform>::default(),
                     Mesh3d(quad.clone()),
-
                     // @todo-brian: We should probably have a separate material for projectiles, so we're not using PBR.
                     // But at least right now they get affected by fog and stuff, so maybe it's fine.
                     MeshMaterial3d(materials.add(StandardMaterial {
