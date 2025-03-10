@@ -87,7 +87,7 @@ fn spawn_projectile_visuals_observer(
     };
 
     match &weapon.projectile_visuals {
-        ProjectileVisuals::Sprite { texture_asset_path, base_color, scale } => {
+        ProjectileVisuals::Sprite { texture_asset_path, base_color, emissive_color, light_color, scale } => {
 
             let quad = if let Some(quad) = cache.quad.clone() {
                 quad
@@ -118,6 +118,11 @@ fn spawn_projectile_visuals_observer(
                     MeshMaterial3d(materials.add(StandardMaterial {
                         base_color: *base_color,
                         base_color_texture: Some(texture.clone()),
+                        emissive: if let Some(emissive_color) = emissive_color {
+                            (*emissive_color).into()
+                        } else {
+                            LinearRgba::BLACK
+                        },
                         alpha_mode: AlphaMode::Blend,
                         ..Default::default()
                     })),
@@ -125,6 +130,17 @@ fn spawn_projectile_visuals_observer(
                     NotShadowCaster,
                     VfxBillboard,
                 ));
+
+                if let Some(light_color) = light_color {
+                    commands.entity(entity).insert(PointLight {
+                        color: *light_color,
+                        intensity: 10000.0,
+                        // range: 100.0,
+                        // radius: 0.1,
+                        shadows_enabled: false,
+                        ..default()
+                    });
+                }
             } else {
                 error!("Failed to load texture for projectile visuals: {}", texture_asset_path);
             }

@@ -102,8 +102,12 @@ pub enum ProjectileVisuals {
         texture_asset_path: String,
         /// The base color of the projectile.
         base_color: Color,
+        /// The emissive color of the projectile.
+        emissive_color: Option<Color>,
         /// The scale of the sprite. By default, the quad is 1x1 meters.
         scale: f32,
+        /// The light color of the projectile.
+        light_color: Option<Color>,
     },
     /// A 3D mesh
     Mesh {
@@ -120,7 +124,9 @@ impl Default for ProjectileVisuals {
         Self::Sprite { 
             texture_asset_path: "kenney_particle_pack/circle_05.png".to_string(), 
             base_color: Color::WHITE, 
-            scale: 1.0 
+            emissive_color: None,
+            scale: 1.0,
+            light_color: None,
         }
     }
 }
