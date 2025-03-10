@@ -1,7 +1,7 @@
 use avian3d::prelude::{LinearVelocity, PhysicsStepSet, Position, SpatialQueryFilter};
 use bevy::math::NormedVectorSpace;
 use bevy::prelude::*;
-use lightyear::prelude::{Replicating, ServerConnectionManager, TickManager};
+use lightyear::prelude::{NetworkIdentity, Replicating, ServerConnectionManager, TickManager};
 use shared::{prelude::{Damageable, PlayerInput, UniqueIdentity}, weapons::{handle_shooting, CurrentWeaponIndex, ProjectileHitEvent, WeaponInventory, WeaponsData}};
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::prelude::client::InterpolationDelay;
@@ -154,8 +154,9 @@ fn shoot_system(
     for (shooting_entity, transform, identity, current_weapon_idx, mut inventory, action) in replicated_player.iter_mut() {
         handle_shooting(
             shooting_entity, 
-            identity, 
-            transform, 
+            identity,
+            true,
+            transform,
             current_weapon_idx.0, 
             &mut inventory, 
             action, 

@@ -5,9 +5,11 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::prelude::*;
+use lightyear::prelude::server::{ControlledBy, Replicate, SyncTarget};
 use serde::{Deserialize, Serialize};
 
 use crate::{data::weapons::*, physics::GameLayer, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
+use crate::prelude::PREDICTION_REPLICATION_GROUP_ID;
 
 pub type WeaponId = u32;
 
@@ -202,6 +204,7 @@ fn update_weapon_timers_system(
 pub fn handle_shooting(
     shooting_entity: Entity,
     identity: &UniqueIdentity,
+    is_server: bool,
     shooter_transform: &Transform,
     current_weapon_idx: WeaponId,
     inventory: &mut WeaponInventory,
@@ -238,7 +241,7 @@ pub fn handle_shooting(
             match weapon_data.barrel_mode {
                 BarrelMode::Simultaneous => {
                     let direction = shooter_transform.forward();
-                    for barrel_position in weapon_data.barrel_positions.iter() {
+                    for (i, barrel_position) in weapon_data.barrel_positions.iter().enumerate() {
                         let rotated_barrel_pos = shooter_transform.rotation * *barrel_position;
                         let mut new_transform = *shooter_transform;
                         new_transform.translation += rotated_barrel_pos;
@@ -252,7 +255,7 @@ pub fn handle_shooting(
                         // TODO: maybe enemy bullets can be sped up to be in the predicted timeline so that
                         //  they can hit us, similar to what Piefayth does
                         //info!("speed: {}", weapon_data.projectile.speed);
-                        commands.spawn((
+                        let projectile_bundle = (
                             new_transform,
                             WeaponFiredEvent {
                                 shooter_id: identity.clone(),
@@ -272,9 +275,52 @@ pub fn handle_shooting(
                             // TODO: should we not include collision layers to accelerate collision computation performance?
                             // CollisionLayers::new([GameLayer::Projectile], [GameLayer::Player, GameLayer::Wall]),
                             RigidBody::Kinematic,
-                        ));
+                            PreSpawnedPlayerObject::default_with_salt(i as u64)
+                        );
+
+                        let mut replicate = None;
+                        if let UniqueIdentity::Player(client_id) = identity {
+                            if is_server {
+                                replicate = Some(Replicate {
+                                    sync: SyncTarget {
+                                        // the bullet is predicted for the client who shot it
+                                        prediction: NetworkTarget::Single(*client_id),
+                                        // TODO: we don't want to interpolate bullet states because it's too expensive!
+                                        // the bullet is interpolated for other clients
+                                        interpolation: NetworkTarget::AllExceptSingle(*client_id),
+                                    },
+                                    controlled_by: ControlledBy {
+                                        target: NetworkTarget::Single(*client_id),
+                                        ..default()
+                                    },
+                                    // NOTE: all predicted entities need to have the same replication group
+                                    //  maybe the group should be set per replication_target? for non-predicted clients we could use a different group...
+                                    group: ReplicationGroup::new_id(PREDICTION_REPLICATION_GROUP_ID),
+                                    ..default()
+                                });
+                            }
+                        } else {
+                            replicate = Some(Replicate {
+                                sync: SyncTarget {
+                                    interpolation: NetworkTarget::All,
+                                    ..default()
+                                },
+                                ..default()
+                            });
+                        }
+                        if let Some(replicate) = replicate {
+                            commands.spawn((
+                                projectile_bundle,
+                                replicate
+                            ));
+                        } else {
+                            commands.spawn((
+                                projectile_bundle,
+                            ));
+                        }
                     }
 
+                    // TODO(cb): maybe don't send event if renderer is not enabled?
                     // send an event so that we can spawn vfx/sfx
                     commands.send_event(WeaponFiredEvent {
                         shooter_id: identity.clone(),
