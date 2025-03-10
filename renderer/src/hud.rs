@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use lightyear::client::prediction::diagnostics::PredictionMetrics;
+use shared::prelude::{CurrentWeaponIndex, WeaponsData};
 
 pub struct HudPlugin;
 
@@ -7,6 +8,10 @@ impl Plugin for HudPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(spawn_hud);
         app.add_systems(Update, prediction_metrics_system);
+        app.add_systems(
+            Update,
+            weapon_crosshair_switch_system.run_if(resource_exists::<WeaponsData>)
+        );
     }
 }
 
@@ -104,4 +109,20 @@ fn spawn_hud(
                 }
             ));
         });
+}
+
+fn weapon_crosshair_switch_system(
+    query: Query<(&CurrentWeaponIndex), Changed<CurrentWeaponIndex>>,
+    mut crosshair_image_node_query: Query<&mut ImageNode, With<Crosshair>>,
+    weapons_data: Res<WeaponsData>,
+    asset_server: Res<AssetServer>,
+) {
+    if let Some(current_weapon_idx) = query.iter().next() {
+        if let Some(weaponData) = weapons_data.weapons.get(&current_weapon_idx.0) {
+            for mut crosshair_image_node in crosshair_image_node_query.iter_mut() {
+                crosshair_image_node.image =
+                    asset_server.load(format!("crosshairs/{}", weaponData.crosshair.image))
+            }
+        }
+    }
 }
