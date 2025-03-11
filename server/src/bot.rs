@@ -21,7 +21,7 @@ impl Plugin for BotPlugin {
         app.add_systems(Startup, spawn_bot);
         app.add_systems(FixedUpdate, move_bot.run_if(resource_exists::<ShipsData>));
     }
-}
+}   
 
 #[derive(Resource)]
 struct BotManager {

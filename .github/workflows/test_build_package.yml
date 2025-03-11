@@ -86,26 +86,28 @@ jobs:
     
     - name: Prepare release package
       run: |
-        mkdir -p release-package
+        mkdir -p release-package/bin
+        mkdir -p release-package/assets
+        
         # List files to debug
         echo "Files in target/release directory:"
         ls -la target/release/
         
-        # Copy binaries based on OS
+        # Copy binaries based on OS into bin directory
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
           # Copy the launcher executable and any DLLs
-          cp target/release/launcher.exe release-package/ 2>/dev/null || echo "launcher.exe not found"
-          cp target/release/*.dll release-package/ 2>/dev/null || echo "No .dll files found"
+          cp target/release/launcher.exe release-package/bin/ 2>/dev/null || echo "launcher.exe not found"
+          cp target/release/*.dll release-package/bin/ 2>/dev/null || echo "No .dll files found"
         elif [ "${{ matrix.os }}" == "macos-latest" ]; then
           # Copy the launcher binary
-          cp target/release/launcher release-package/ 2>/dev/null || echo "launcher binary not found"
+          cp target/release/launcher release-package/bin/ 2>/dev/null || echo "launcher binary not found"
         else  # linux
           # Copy the launcher binary
-          cp target/release/launcher release-package/ 2>/dev/null || echo "launcher binary not found"
+          cp target/release/launcher release-package/bin/ 2>/dev/null || echo "launcher binary not found"
         fi
         
         # Copy assets folder
-        cp -r ./assets release-package/ 2>/dev/null || echo "No assets folder found"
+        cp -r ./assets/* release-package/assets/ 2>/dev/null || echo "No assets found"
       shell: bash
       
     - name: Create ${{ matrix.artifact_name }} Artifact
