@@ -55,14 +55,14 @@ fn spawn_player_on_connect(
                 WeaponInventory::from_data(&weapons_data, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
                 Position::from_xyz(0.0, 2.0, 0.0),
                 CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
+                
                 RigidBody::Dynamic,
                 Collider::sphere(0.5),
-                // Moveable {
-                //     velocity: Vec3::ZERO,
-                //     angular_velocity: Vec3::ZERO,
-                //     collision_shape: MoveableShape::Sphere(0.5),
-                //     collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
-                // },
+                Friction {
+                    dynamic_coefficient: 0.0,
+                    static_coefficient: 0.1,
+                    combine_rule: CoefficientCombine::Min,
+                },
             )
         );
     }

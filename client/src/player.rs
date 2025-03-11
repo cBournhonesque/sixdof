@@ -65,13 +65,11 @@ fn handle_predicted_spawn(
             RigidBody::Dynamic,
             Collider::sphere(0.5),
             CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
-            // // We add a Moveable component so that we can predict velocity and angular velocity
-            // Moveable {
-            //     velocity: Vec3::ZERO,
-            //     angular_velocity: Vec3::ZERO,
-            //     collision_shape: MoveableShape::Sphere(0.5),
-            //     collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
-            // },
+            Friction {
+                dynamic_coefficient: 0.0,
+                static_coefficient: 0.1,
+                combine_rule: CoefficientCombine::Min,
+            },
         ));
     }
 }

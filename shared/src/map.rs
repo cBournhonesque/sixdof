@@ -1,5 +1,5 @@
 use avian3d::collision::CollisionLayers;
-use avian3d::prelude::RigidBody;
+use avian3d::prelude::{Friction, RigidBody};
 use bevy::prelude::*;
 use qevy::PostBuildMapEvent;
 use serde::{Deserialize, Serialize};
@@ -100,8 +100,9 @@ fn add_map_colliders(
         query.iter_descendants(event.map).for_each(|child| {
              if let Some(mut child_commands) = commands.get_entity(child) {
                 child_commands.insert((
-                    RigidBody::Static,
+                    Name::from("MapCollider"),
                     CollisionLayers::new([GameLayer::Wall], [GameLayer::Player, GameLayer::Projectile]),
+                    // map objects already have RigidBody::Static
                 ));
             }
         });
