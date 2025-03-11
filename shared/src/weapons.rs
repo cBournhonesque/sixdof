@@ -4,7 +4,9 @@ use avian3d::prelude::*;
 use bevy::{prelude::*, utils::HashMap};
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
+use lightyear::client::prediction::Predicted;
 use lightyear::prelude::*;
+use lightyear::prelude::client::{PredictionSet, Rollback};
 use lightyear::prelude::server::{ControlledBy, Replicate, SyncTarget};
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +16,11 @@ use crate::prelude::PREDICTION_REPLICATION_GROUP_ID;
 pub type WeaponId = u32;
 
 pub(crate) struct WeaponsPlugin;
+
+#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone, Copy)]
+pub enum WeaponsSet {
+    Shoot,
+}
 
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
@@ -26,6 +33,12 @@ impl Plugin for WeaponsPlugin {
         app.add_event::<WeaponFiredEvent>();
         app.add_plugins(ConfigAssetLoaderPlugin::<WeaponsData>::new("data/weapons.ron"));
         app.add_systems(FixedUpdate, update_weapon_timers_system.run_if(resource_exists::<WeaponsData>));
+        app.add_systems(PreUpdate, debug_projectiles_before_check_rollback
+            .run_if(is_client)
+            .after(MainSet::Receive)
+            .after(PredictionSet::Sync)
+            .before(PredictionSet::CheckRollback));
+        app.add_systems(FixedUpdate, debug_projectiles.after(WeaponsSet::Shoot));
     }
 }
 
@@ -263,16 +276,14 @@ pub fn handle_shooting(
                                 fire_direction: direction,
                             },
                             Projectile,
+                            // TODO: should we make this Dynamic to support ocllisions with walls?
                             RigidBody::Kinematic,
                             // TODO(cb): for some it's necessary to include both Position and Transform
                             Position(new_transform.translation),
                             LinearVelocity(direction * weapon_data.projectile.speed),
                             DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once)),
-
                             // TODO: should we not include collision layers to accelerate collision computation performance?
                             // CollisionLayers::new([GameLayer::Projectile], [GameLayer::Player, GameLayer::Wall]),
-                            RigidBody::Kinematic,
-                            PreSpawnedPlayerObject::default_with_salt(i as u64)
                         );
 
                         if is_server {
@@ -336,3 +347,50 @@ pub fn handle_shooting(
         }
     }
 }
+
+/// Print the inputs at FixedUpdate, after they have been updated on the client/server
+/// Also prints the Transform before `move_player` is applied (inputs handled)
+pub fn debug_projectiles(
+    tick_manager: Res<TickManager>,
+    rollback: Option<Res<Rollback>>,
+    query: Query<(Entity, (&Position, &LinearVelocity)),
+        (Or<(With<Predicted>, With<Replicating>)>, With<Projectile>)>
+) {
+    let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
+        tick_manager.tick_or_rollback_tick(r.as_ref())
+    });
+    let is_rollback = rollback.map_or(false, |r| r.is_rollback());
+    for (entity, info) in query.iter() {
+        info!(
+            ?is_rollback,
+            ?tick,
+            ?entity,
+            ?info,
+            "FixedUpdate Projectile"
+        );
+    }
+}
+
+/// Print the inputs at FixedUpdate, after they have been updated on the client/server
+/// Also prints the Transform before `move_player` is applied (inputs handled)
+pub fn debug_projectiles_before_check_rollback(
+    tick_manager: Res<TickManager>,
+    rollback: Option<Res<Rollback>>,
+    query: Query<(Entity, (&Position, &LinearVelocity)),
+        (Or<(With<Predicted>, With<PreSpawnedPlayerObject>, With<Replicating>)>, With<Projectile>)>
+) {
+    let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
+        tick_manager.tick_or_rollback_tick(r.as_ref())
+    });
+    let is_rollback = rollback.map_or(false, |r| r.is_rollback());
+    for (entity, info) in query.iter() {
+        info!(
+            ?is_rollback,
+            ?tick,
+            ?entity,
+            ?info,
+            "PreUpdate Projectile before CheckRollback"
+        );
+    }
+}
+

@@ -4,16 +4,19 @@ use leafwing_input_manager::prelude::ActionState;
 use lightyear::{prelude::client::{Predicted, Rollback}, shared::replication::components::Controlled};
 use lightyear::prelude::{is_host_server, NetworkIdentity};
 use shared::{prelude::{CurrentWeaponIndex, GameLayer, PlayerInput, UniqueIdentity}, weapons::{handle_shooting, Projectile, ProjectileHitEvent, WeaponFiredEvent, WeaponInventory, WeaponsData}};
+use shared::prelude::WeaponsSet;
 
 pub(crate) struct WeaponPlugin;
 
 impl Plugin for WeaponPlugin {
     fn build(&self, app: &mut App) {
         // do not shoot a bullet twice if we are the host-server!
-        app.add_systems(FixedUpdate, shoot_system.run_if(not(is_host_server)));
-        app.add_systems(FixedPostUpdate, (
-            projectile_predict_hit_detection_system,
-        ));
+        app.add_systems(FixedUpdate, shoot_system
+            .in_set(WeaponsSet::Shoot)
+            .run_if(not(is_host_server)));
+        // app.add_systems(FixedPostUpdate, (
+        //     projectile_predict_hit_detection_system,
+        // ));
     }
 }
 

@@ -6,10 +6,12 @@ use shared::{prelude::{Damageable, PlayerInput, UniqueIdentity}, weapons::{handl
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::prelude::client::InterpolationDelay;
 use lightyear_avian::prelude::LagCompensationSpatialQuery;
-use shared::prelude::{GameLayer, Projectile, WeaponFiredEvent};
+use shared::prelude::{GameLayer, Projectile, WeaponFiredEvent, WeaponsSet};
 
 /// Handles projectiles colliding with walls and enemies
 pub(crate) struct WeaponsPlugin;
+
+
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ProjectileHitEvent>();
@@ -17,7 +19,10 @@ impl Plugin for WeaponsPlugin {
         app.add_systems(FixedPostUpdate, projectile_hit_system.run_if(resource_exists::<WeaponsData>));
         // lag compensation collisions must run after the SpatialQuery has been updated
         app.add_systems(FixedPostUpdate, bullet_hit_detection.after(PhysicsStepSet::SpatialQuery));
-        app.add_systems(FixedUpdate, shoot_system.run_if(resource_exists::<WeaponsData>));
+        app.add_systems(FixedUpdate, shoot_system
+            .in_set(WeaponsSet::Shoot)
+            .run_if(resource_exists::<WeaponsData>)
+        );
     }
 }
 
