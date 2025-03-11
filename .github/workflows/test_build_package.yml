@@ -90,12 +90,14 @@ jobs:
     - name: Prepare release package
       run: |
         mkdir -p release-package
-        # Copy binaries
+        # Copy binaries based on OS
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
           cp target/release/*.exe release-package/
           cp target/release/*.dll release-package/ 2>/dev/null || true
-        else
-          cp target/release/sixdof* release-package/ 2>/dev/null || true
+        elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+          cp target/release/sixdof release-package/
+        else  # linux
+          cp target/release/sixdof release-package/
         fi
         # Copy assets folder
         cp -r target/release/${{ matrix.asset_dest }} release-package/
