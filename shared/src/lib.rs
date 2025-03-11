@@ -10,9 +10,9 @@ pub mod weapons;
 pub mod identity;
 pub mod bot;
 pub mod utils;
-pub mod moveable;
 pub mod damageable;
 pub mod data;
+pub mod ships;
 
 pub mod prelude {
     pub use crate::network::{protocol::*, settings::*};
@@ -23,10 +23,10 @@ pub mod prelude {
     pub use crate::player::Player;
     pub use crate::identity::*;
     pub use crate::utils::DespawnAfter;
-    pub use crate::moveable::*;
     pub use crate::damageable::*;
     pub use crate::data::audio::*;
     pub use crate::data::weapons::*;
+    pub use crate::ships::*;
 }
 
 #[derive(Clone, Default)]

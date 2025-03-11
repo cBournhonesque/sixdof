@@ -8,6 +8,7 @@ use lightyear::prelude::server::*;
 use lightyear_avian::prelude::LagCompensationHistory;
 use shared::bot::Bot;
 use shared::prelude::{Damageable, GameLayer, UniqueIdentity};
+use shared::ships::shared_ship_components;
 // TODO: should bots be handled similarly to players? i.e. they share most of the same code (visuals, collisions)
 //  but they are simply controlled by the server. The server could be sending fake inputs to the bots so that their movement
 //  is the same as players
@@ -29,9 +30,8 @@ struct BotManager {
 
 fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
     // TODO: use spawn-events so we can control spawn position, etc.
-    let transform = Transform::from_xyz(1.0, 4.0, -1.0);
-    let position = Position(transform.translation);
-    let rotation = Rotation(transform.rotation);
+    let position = Position(Vec3::new(1.0, 4.0, -1.0));
+    let rotation = Rotation(Quat::from_rotation_arc(Vec3::Y, Vec3::NEG_Z));
     commands.spawn(
         (
             Name::from("Bot"),
@@ -53,15 +53,12 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
             Damageable {
                 health: 50,
             },
-            Transform::from_xyz(1.0, 4.0, -1.0),
             // TODO: UNDERSTAND WHY IT IS NECESSARY TO MANUALLY INSERT THE CORRECT POSITION/ROTATION
             //  ON THE ENTITY! I THOUGHT THE PREPARE_SET WOULD DO THIS AUTOMATICALLY
             position,
             rotation,
-            RigidBody::Kinematic,
-            Collider::sphere(0.5),
-            CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
-            LagCompensationHistory::default(),
+            shared_ship_components(Collider::sphere(0.5))
+            //LagCompensationHistory::default(),
         )
     );
     bot_manager.next_bot_id += 1;
@@ -71,22 +68,22 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
 /// For some reason we cannot use the TimeManager.delta() here, maybe because we're running in FixedUpdate?
 fn move_bot(
     tick_manager: Res<TickManager>,
-    time: Res<Time>, mut query: Query<&mut Position, With<Bot>>, mut timer: Local<(Stopwatch, bool)>)
+    time: Res<Time>, mut query: Query<&mut LinearVelocity, With<Bot>>, mut timer: Local<(Stopwatch, bool)>)
 {
     let tick = tick_manager.tick();
     let (stopwatch, go_up) = timer.deref_mut();
-    query.iter_mut().for_each(|mut position| {
+    query.iter_mut().for_each(|mut velocity| {
         stopwatch.tick(time.delta());
         if stopwatch.elapsed() > Duration::from_secs_f32(4.0) {
             stopwatch.reset();
             *go_up = !*go_up;
         }
         if *go_up {
-            position.y += 0.02;
+            velocity.0.y = 5.0;
         } else {
-            position.y -= 0.02;
+            velocity.0.y = -5.0;
         }
-        trace!(?tick, ?position, "Bot position");
+        trace!(?tick, ?velocity, "Bot velocity");
     });
 }
 

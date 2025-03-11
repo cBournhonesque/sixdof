@@ -59,7 +59,7 @@ fn spawn_projectile_visuals_observer(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut cache: ResMut<ProjectileVisualsCache>,
-    mut projectile: Query<(&mut Transform, &Projectile), Without<Camera>>,
+    mut projectile: Query<(&mut Transform, &WeaponFiredEvent), With<Projectile>>,
     mut asset_server: ResMut<AssetServer>,
 ) {
     let entity = trigger.entity();
@@ -78,7 +78,7 @@ fn spawn_projectile_visuals_observer(
         return;
     };
 
-    let weapon_id = projectile.weapon_id;
+    let weapon_id = projectile.weapon_index;
     let weapon = if let Some(data) = weapons_data.weapons.get(&weapon_id) {
         data
     } else {

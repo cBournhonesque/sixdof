@@ -8,6 +8,7 @@ mod hud;
 
 mod physics;
 
+use avian3d::prelude::PhysicsDebugPlugin;
 use bevy::ecs::query::QueryFilter;
 use bevy::prelude::*;
 use lightyear::client::interpolation::VisualInterpolationPlugin;
@@ -39,6 +40,7 @@ impl Plugin for RendererPlugin {
         app.add_plugins(sfx::SfxAudioPlugin::default());
         app.add_plugins(weapons::WeaponsPlugin);
         app.add_plugins(vfx::VfxPlugin);
+        app.add_plugins(PhysicsDebugPlugin::default());
         app.insert_resource(AmbientLight {
             brightness: 0.0,
             ..default()

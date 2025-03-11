@@ -1,13 +1,12 @@
 use std::time::Duration;
 
-use avian3d::{math::Vector, prelude::*};
+use avian3d::prelude::*;
 use bevy::{prelude::*, utils::HashMap};
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{data::weapons::*, physics::GameLayer, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
+use crate::{data::weapons::*, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
 
 pub type WeaponId = u32;
 
@@ -152,9 +151,7 @@ impl Weapon {
 
 // TODO: maybe make this an enum with the type of projectile?
 #[derive(Component, Debug, Clone)]
-pub struct Projectile {
-    pub weapon_id: WeaponId,
-}
+pub struct Projectile;
 
 /// The resource that contains all the weapon configurations.
 #[derive(Resource, Asset, TypePath, Debug, Deserialize, Serialize)]
@@ -261,17 +258,12 @@ pub fn handle_shooting(
                                 fire_origin: shooter_transform.translation,
                                 fire_direction: direction,
                             },
-                            Projectile {
-                                weapon_id: current_weapon_idx,
-                            },
+                            Projectile,
+                            RigidBody::Kinematic,
                             // TODO(cb): for some it's necessary to include both Position and Transform
                             Position(new_transform.translation),
                             LinearVelocity(direction * weapon_data.projectile.speed),
                             DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once)),
-
-                            // TODO: should we not include collision layers to accelerate collision computation performance?
-                            // CollisionLayers::new([GameLayer::Projectile], [GameLayer::Player, GameLayer::Wall]),
-                            RigidBody::Kinematic,
                         ));
                     }
 
