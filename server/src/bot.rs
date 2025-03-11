@@ -8,6 +8,7 @@ use lightyear::prelude::server::*;
 use lightyear_avian::prelude::LagCompensationHistory;
 use shared::bot::Bot;
 use shared::prelude::{Damageable, GameLayer, UniqueIdentity};
+use shared::ships::shared_ship_components;
 // TODO: should bots be handled similarly to players? i.e. they share most of the same code (visuals, collisions)
 //  but they are simply controlled by the server. The server could be sending fake inputs to the bots so that their movement
 //  is the same as players
@@ -56,14 +57,7 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
             //  ON THE ENTITY! I THOUGHT THE PREPARE_SET WOULD DO THIS AUTOMATICALLY
             position,
             rotation,
-            RigidBody::Dynamic,
-            Collider::sphere(0.5),
-            CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
-            Friction {
-                dynamic_coefficient: 0.0,
-                static_coefficient: 0.1,
-                combine_rule: CoefficientCombine::Min,
-            },
+            shared_ship_components(Collider::sphere(0.5))
             //LagCompensationHistory::default(),
         )
     );
@@ -85,9 +79,9 @@ fn move_bot(
             *go_up = !*go_up;
         }
         if *go_up {
-            velocity.0.y = 20.0;
+            velocity.0.y = 5.0;
         } else {
-            velocity.0.y = -20.0;
+            velocity.0.y = -5.0;
         }
         trace!(?tick, ?velocity, "Bot velocity");
     });

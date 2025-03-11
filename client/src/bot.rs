@@ -6,6 +6,7 @@ use lightyear::prelude::client::InterpolateStatus;
 use lightyear::prelude::TickManager;
 use shared::bot::Bot;
 use shared::physics::GameLayer;
+use shared::ships::shared_ship_components;
 
 pub(crate) struct BotPlugin;
 
@@ -38,15 +39,8 @@ fn add_bot_collider(
     query: Query<(), With<Interpolated>>,
 ) {
     if query.get(trigger.entity()).is_ok() {
-        commands.entity(trigger.entity()).insert((
-            RigidBody::Dynamic,
-            Collider::sphere(0.5),
-            CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
-            Friction {
-                dynamic_coefficient: 0.0,
-                static_coefficient: 0.1,
-                combine_rule: CoefficientCombine::Min,
-            },
-        ));
+        commands.entity(trigger.entity()).insert(
+            shared_ship_components(Collider::sphere(0.5))
+        );
     }
 }

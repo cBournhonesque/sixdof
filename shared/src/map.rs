@@ -101,7 +101,7 @@ fn add_map_colliders(
              if let Some(mut child_commands) = commands.get_entity(child) {
                 child_commands.insert((
                     Name::from("MapCollider"),
-                    CollisionLayers::new([GameLayer::Wall], [GameLayer::Player, GameLayer::Projectile]),
+                    CollisionLayers::new([GameLayer::Wall], [GameLayer::Ship, GameLayer::Projectile]),
                     // map objects already have RigidBody::Static
                 ));
             }

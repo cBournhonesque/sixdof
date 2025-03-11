@@ -13,6 +13,7 @@ pub mod utils;
 pub mod moveable;
 pub mod damageable;
 pub mod data;
+pub mod ships;
 
 pub mod prelude {
     pub use crate::network::{protocol::*, settings::*};
@@ -27,6 +28,7 @@ pub mod prelude {
     pub use crate::damageable::*;
     pub use crate::data::audio::*;
     pub use crate::data::weapons::*;
+    pub use crate::ships::*;
 }
 
 #[derive(Clone, Default)]

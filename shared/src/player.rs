@@ -169,7 +169,7 @@ pub fn move_player(
             fixed_time.delta_secs()
         );
 
-        // apply afterburners accelerate you forward
+        // afterburners accelerate you forward
         if action_state.pressed(&PlayerInput::AfterBurners) {
             let wish_dir = rotation.0 * Vec3::NEG_Z;
             let current_speed = linear_velocity.dot(rotation.0 * Vec3::NEG_Z);
@@ -181,11 +181,6 @@ pub fn move_player(
                 fixed_time.delta_secs()
             );
         }
-
-        // // max speed
-        // if moveable.velocity.length_squared() > data.base_speed * data.base_speed {
-        //     moveable.velocity = moveable.velocity.normalize() * data.base_speed;
-        // }
     }
 }
 

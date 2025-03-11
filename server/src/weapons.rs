@@ -120,7 +120,10 @@ fn bullet_hit_detection(
                 fired_event.fire_direction,
                 current_velocity.norm(),
                 false,
-                &mut SpatialQueryFilter::from_mask(GameLayer::Player),
+                &mut SpatialQueryFilter {
+                    mask: [GameLayer::Ship, GameLayer::Wall].into(),
+                    ..default()
+                }.with_excluded_entities([fired_event.shooter_entity])
             ) {
                 let hit_event = ProjectileHitEvent {
                     shooter_id: fired_event.shooter_id,

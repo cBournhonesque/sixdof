@@ -13,7 +13,7 @@ pub enum GameLayer {
     Default,
     Wall,
     Projectile,
-    Player,
+    Ship,
     /// Used for lag compensation: we will check the collision between the bullet and the AABB bounding box
     /// of the collider + it's history
     LagCompensatedBroadPhase,

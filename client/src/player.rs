@@ -6,6 +6,7 @@ use lightyear::shared::replication::components::Controlled;
 use lightyear::prelude::{client::*, ClientId};
 use shared::player::Player;
 use shared::prelude::{GameLayer, Moveable, PlayerInput, MoveableShape, UniqueIdentity};
+use shared::ships::shared_ship_components;
 use shared::weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData};
 
 pub(crate) struct PlayerPlugin;
@@ -62,14 +63,7 @@ fn handle_predicted_spawn(
 
         // Adds an InputMap to Predicted so that the user can control the predicted entity
         commands.entity(entity).insert((input_map,
-            RigidBody::Dynamic,
-            Collider::sphere(0.5),
-            CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
-            Friction {
-                dynamic_coefficient: 0.0,
-                static_coefficient: 0.1,
-                combine_rule: CoefficientCombine::Min,
-            },
+            shared_ship_components(Collider::sphere(0.5))
         ));
     }
 }
