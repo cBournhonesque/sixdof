@@ -10,9 +10,10 @@ pub(crate) struct PhysicsPlugin;
 #[derive(PhysicsLayer, Default)]
 pub enum GameLayer {
     #[default]
+    Default,
     Wall,
     Projectile,
-    Player,
+    Ship,
     /// Used for lag compensation: we will check the collision between the bullet and the AABB bounding box
     /// of the collider + it's history
     LagCompensatedBroadPhase,
@@ -50,6 +51,7 @@ impl Plugin for PhysicsPlugin {
         app.configure_sets(
             PostUpdate, SyncSet::PositionToTransform.in_set(PhysicsSet::Sync)
         );
+        //app.add_systems(Update, log_collisions);
 
         // RESOURCES
         // disable sleeping

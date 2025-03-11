@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use avian3d::{math::Vector, prelude::*};
+use avian3d::prelude::*;
 use bevy::{prelude::*, utils::HashMap};
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
@@ -8,7 +8,7 @@ use lightyear::prelude::*;
 use lightyear::prelude::server::{ControlledBy, Replicate, SyncTarget};
 use serde::{Deserialize, Serialize};
 
-use crate::{data::weapons::*, physics::GameLayer, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
+use crate::{data::weapons::*, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
 use crate::prelude::PREDICTION_REPLICATION_GROUP_ID;
 
 pub type WeaponId = u32;
@@ -154,9 +154,7 @@ impl Weapon {
 
 // TODO: maybe make this an enum with the type of projectile?
 #[derive(Component, Debug, Clone)]
-pub struct Projectile {
-    pub weapon_id: WeaponId,
-}
+pub struct Projectile;
 
 /// The resource that contains all the weapon configurations.
 #[derive(Resource, Asset, TypePath, Debug, Deserialize, Serialize)]
@@ -264,9 +262,8 @@ pub fn handle_shooting(
                                 fire_origin: shooter_transform.translation,
                                 fire_direction: direction,
                             },
-                            Projectile {
-                                weapon_id: current_weapon_idx,
-                            },
+                            Projectile,
+                            RigidBody::Kinematic,
                             // TODO(cb): for some it's necessary to include both Position and Transform
                             Position(new_transform.translation),
                             LinearVelocity(direction * weapon_data.projectile.speed),
@@ -278,44 +275,46 @@ pub fn handle_shooting(
                             PreSpawnedPlayerObject::default_with_salt(i as u64)
                         );
 
-                        let mut replicate = None;
-                        if let UniqueIdentity::Player(client_id) = identity {
-                            if is_server {
-                                replicate = Some(Replicate {
-                                    sync: SyncTarget {
-                                        // the bullet is predicted for the client who shot it
-                                        prediction: NetworkTarget::Single(*client_id),
-                                        // TODO: we don't want to interpolate bullet states because it's too expensive!
-                                        // the bullet is interpolated for other clients
-                                        interpolation: NetworkTarget::AllExceptSingle(*client_id),
-                                    },
-                                    controlled_by: ControlledBy {
-                                        target: NetworkTarget::Single(*client_id),
+                        if is_server {
+                            if let UniqueIdentity::Player(client_id) = identity {
+                                commands.spawn((
+                                    projectile_bundle,
+                                    Replicate {
+                                        sync: SyncTarget {
+                                            // the bullet is predicted for the client who shot it
+                                            prediction: NetworkTarget::Single(*client_id),
+                                            // TODO: we don't want to interpolate bullet states because it's too expensive!
+                                            // the bullet is interpolated for other clients
+                                            interpolation: NetworkTarget::AllExceptSingle(*client_id),
+                                        },
+                                        controlled_by: ControlledBy {
+                                            target: NetworkTarget::Single(*client_id),
+                                            ..default()
+                                        },
+                                        // NOTE: all predicted entities need to have the same replication group
+                                        //  maybe the group should be set per replication_target? for non-predicted clients we could use a different group...
+                                        group: ReplicationGroup::new_id(PREDICTION_REPLICATION_GROUP_ID),
                                         ..default()
                                     },
-                                    // NOTE: all predicted entities need to have the same replication group
-                                    //  maybe the group should be set per replication_target? for non-predicted clients we could use a different group...
-                                    group: ReplicationGroup::new_id(PREDICTION_REPLICATION_GROUP_ID),
-                                    ..default()
-                                });
+                                    PreSpawnedPlayerObject::default_with_salt(i as u64),
+                                    OverrideTargetComponent::<PreSpawnedPlayerObject>::new(NetworkTarget::Single(*client_id)),
+                                ));
+                            } else {
+                                commands.spawn((
+                                    projectile_bundle,
+                                    Replicate {
+                                        sync: SyncTarget {
+                                            interpolation: NetworkTarget::All,
+                                            ..default()
+                                        },
+                                        ..default()
+                                    }
+                                ));
                             }
                         } else {
-                            replicate = Some(Replicate {
-                                sync: SyncTarget {
-                                    interpolation: NetworkTarget::All,
-                                    ..default()
-                                },
-                                ..default()
-                            });
-                        }
-                        if let Some(replicate) = replicate {
                             commands.spawn((
                                 projectile_bundle,
-                                replicate
-                            ));
-                        } else {
-                            commands.spawn((
-                                projectile_bundle,
+                                PreSpawnedPlayerObject::default_with_salt(i as u64),
                             ));
                         }
                     }

@@ -1,11 +1,12 @@
 use avian3d::collision::CollisionLayers;
-use avian3d::prelude::{Collider, Position, RigidBody};
+use avian3d::prelude::{CoefficientCombine, Collider, Friction, Position, RigidBody};
 use bevy::prelude::*;
 use lightyear::client::interpolation::Interpolated;
 use lightyear::prelude::client::InterpolateStatus;
 use lightyear::prelude::TickManager;
 use shared::bot::Bot;
 use shared::physics::GameLayer;
+use shared::ships::shared_ship_components;
 
 pub(crate) struct BotPlugin;
 
@@ -38,10 +39,8 @@ fn add_bot_collider(
     query: Query<(), With<Interpolated>>,
 ) {
     if query.get(trigger.entity()).is_ok() {
-        commands.entity(trigger.entity()).insert((
-            RigidBody::Kinematic,
-            Collider::sphere(0.5),
-            CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
-        ));
+        commands.entity(trigger.entity()).insert(
+            shared_ship_components(Collider::sphere(0.5))
+        );
     }
 }

@@ -5,7 +5,8 @@ use leafwing_input_manager::prelude::*;
 use lightyear::shared::replication::components::Controlled;
 use lightyear::prelude::{client::*, ClientId};
 use shared::player::Player;
-use shared::prelude::{GameLayer, Moveable, PlayerInput, MoveableShape, UniqueIdentity};
+use shared::prelude::{GameLayer, PlayerInput, UniqueIdentity};
+use shared::ships::shared_ship_components;
 use shared::weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData};
 
 pub(crate) struct PlayerPlugin;
@@ -62,14 +63,7 @@ fn handle_predicted_spawn(
 
         // Adds an InputMap to Predicted so that the user can control the predicted entity
         commands.entity(entity).insert((input_map,
-            RigidBody::Kinematic
-            // // We add a Moveable component so that we can predict velocity and angular velocity
-            // Moveable {
-            //     velocity: Vec3::ZERO,
-            //     angular_velocity: Vec3::ZERO,
-            //     collision_shape: MoveableShape::Sphere(0.5),
-            //     collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
-            // },
+            shared_ship_components(Collider::sphere(0.5))
         ));
     }
 }
