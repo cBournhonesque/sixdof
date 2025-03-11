@@ -14,10 +14,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Cache Rust dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-test-
+    
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+    
     - name: Run tests
       run: cargo test --verbose
 
@@ -29,15 +42,35 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            artifact_name: sixdof-linux
+            asset_dest: assets
+            binary_path: target/release/sixdof*
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            artifact_name: sixdof-windows
+            asset_dest: assets
+            binary_path: target/release/*.exe target/release/*.dll
           - os: macos-latest
             target: x86_64-apple-darwin
+            artifact_name: sixdof-macos
+            asset_dest: assets
+            binary_path: target/release/sixdof*
     
     runs-on: ${{ matrix.os }}
     
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Cache Rust dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-build-
     
     - name: Install Linux dependencies
       if: matrix.os == 'ubuntu-latest'
@@ -48,11 +81,16 @@ jobs:
     - name: Build
       run: cargo build --verbose --release
     
-    - name: Upload artifacts
+    - name: Copy assets
+      run: |
+        mkdir -p target/release/${{ matrix.asset_dest }}
+        cp -r ./assets/* target/release/${{ matrix.asset_dest }}/
+      shell: bash
+    
+    - name: Create ${{ matrix.artifact_name }} Artifact
       uses: actions/upload-artifact@v3
       with:
-        name: game-${{ matrix.target }}
+        name: ${{ matrix.artifact_name }}
         path: |
-          target/release/sixdof*
-          target/release/*.exe
-          target/release/*.dll
+          ${{ matrix.binary_path }}
+          target/release/${{ matrix.asset_dest }}
