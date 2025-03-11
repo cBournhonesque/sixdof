@@ -87,10 +87,22 @@ jobs:
         cp -r ./assets/* target/release/${{ matrix.asset_dest }}/
       shell: bash
     
+    - name: Prepare release package
+      run: |
+        mkdir -p release-package
+        # Copy binaries
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          cp target/release/*.exe release-package/
+          cp target/release/*.dll release-package/ 2>/dev/null || true
+        else
+          cp target/release/sixdof* release-package/ 2>/dev/null || true
+        fi
+        # Copy assets folder
+        cp -r target/release/${{ matrix.asset_dest }} release-package/
+      shell: bash
+      
     - name: Create ${{ matrix.artifact_name }} Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
-        path: |
-          ${{ matrix.binary_path }}
-          target/release/${{ matrix.asset_dest }}
+        path: release-package
