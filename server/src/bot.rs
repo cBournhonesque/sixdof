@@ -7,7 +7,7 @@ use lightyear::prelude::*;
 use lightyear::prelude::server::*;
 use lightyear_avian::prelude::LagCompensationHistory;
 use shared::bot::Bot;
-use shared::prelude::{Damageable, GameLayer, UniqueIdentity};
+use shared::prelude::{Damageable, GameLayer, KCCPosition, KCCRotation, Moveable, MoveableShape, UniqueIdentity};
 // TODO: should bots be handled similarly to players? i.e. they share most of the same code (visuals, collisions)
 //  but they are simply controlled by the server. The server could be sending fake inputs to the bots so that their movement
 //  is the same as players
@@ -18,7 +18,9 @@ impl Plugin for BotPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(BotManager { next_bot_id: 0 });
         app.add_systems(Startup, spawn_bot);
-        app.add_systems(FixedUpdate, move_bot);
+        app.add_systems(FixedUpdate, (
+            move_bot,
+        ));
     }
 }
 
@@ -29,14 +31,13 @@ struct BotManager {
 
 fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
     // TODO: use spawn-events so we can control spawn position, etc.
-    let transform = Transform::from_xyz(1.0, 4.0, -1.0);
-    let position = Position(transform.translation);
-    let rotation = Rotation(transform.rotation);
+    let spawn_position = Vec3::new(1.0, 3.5, -1.0);
     commands.spawn(
         (
             Name::from("Bot"),
             Replicate {
                 sync: SyncTarget {
+                    prediction: NetworkTarget::None,
                     interpolation: NetworkTarget::All,
                     ..default()
                 },
@@ -53,15 +54,14 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
             Damageable {
                 health: 50,
             },
-            Transform::from_xyz(1.0, 4.0, -1.0),
-            // TODO: UNDERSTAND WHY IT IS NECESSARY TO MANUALLY INSERT THE CORRECT POSITION/ROTATION
-            //  ON THE ENTITY! I THOUGHT THE PREPARE_SET WOULD DO THIS AUTOMATICALLY
-            position,
-            rotation,
-            RigidBody::Kinematic,
-            Collider::sphere(0.5),
-            CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
-            LagCompensationHistory::default(),
+            KCCPosition(spawn_position),
+            KCCRotation(Quat::IDENTITY),
+            Moveable {
+                collision_shape: MoveableShape::Sphere(0.5),
+                collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
+            },
+            Transform::from_translation(spawn_position),
+            //LagCompensationHistory::default(),
         )
     );
     bot_manager.next_bot_id += 1;
@@ -71,7 +71,7 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
 /// For some reason we cannot use the TimeManager.delta() here, maybe because we're running in FixedUpdate?
 fn move_bot(
     tick_manager: Res<TickManager>,
-    time: Res<Time>, mut query: Query<&mut Position, With<Bot>>, mut timer: Local<(Stopwatch, bool)>)
+    time: Res<Time>, mut query: Query<&mut KCCPosition, With<Bot>>, mut timer: Local<(Stopwatch, bool)>)
 {
     let tick = tick_manager.tick();
     let (stopwatch, go_up) = timer.deref_mut();
@@ -82,11 +82,10 @@ fn move_bot(
             *go_up = !*go_up;
         }
         if *go_up {
-            position.y += 0.02;
+            position.0.y += 0.02;
         } else {
-            position.y -= 0.02;
+            position.0.y -= 0.02;
         }
         trace!(?tick, ?position, "Bot position");
     });
 }
-

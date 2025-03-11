@@ -7,7 +7,7 @@ members = [
     "server",
     "shared", 
     "sfx",
-    "vfx", "moveable",
+    "vfx",
 ]
 
 [workspace.package]

@@ -4,7 +4,7 @@ use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use leafwing_input_manager::prelude::*;
 use lightyear::prelude::{*, client::*};
 use serde::{Deserialize, Serialize};
-use crate::prelude::{PlayerInput};
+use crate::prelude::{KCCAngularVelocity, KCCLinearVelocity, KCCRotation, PlayerInput};
 
 #[derive(Asset, Resource, Default,TypePath, Debug, Deserialize)]
 pub struct PlayerShipData {
@@ -86,9 +86,9 @@ pub fn move_player(
     fixed_time: Res<Time<Fixed>>,
     mut query: Query<(
         &Player,
-        &Rotation,
-        &mut LinearVelocity,
-        &mut AngularVelocity,
+        &KCCRotation,
+        &mut KCCLinearVelocity,
+        &mut KCCAngularVelocity,
         &ActionState<PlayerInput>,
     ),
     Or<(With<Predicted>, With<Replicating>)>>,
@@ -125,8 +125,8 @@ pub fn move_player(
         // TODO: use avian's AngularDamping?
         angular_velocity.0 *= 1.0 - data.rotation_damping;
         
-        if angular_velocity.length_squared() > data.max_rotation_speed * data.max_rotation_speed {
-            angular_velocity.0 = angular_velocity.normalize() * data.max_rotation_speed;
+        if angular_velocity.0.length_squared() > data.max_rotation_speed * data.max_rotation_speed {
+            angular_velocity.0 = angular_velocity.0.normalize() * data.max_rotation_speed;
         }
         
         // Accelerate in the direction of the input
@@ -154,13 +154,13 @@ pub fn move_player(
         // apply drag
         linear_velocity.0 = apply_drag(
             linear_velocity.0,
-            linear_velocity.length(),
+            linear_velocity.0.length(),
             data.drag, 
             fixed_time.delta_secs()
         );
 
         // apply acceleration
-        let current_speed = linear_velocity.dot(wish_dir);
+        let current_speed = linear_velocity.0.dot(wish_dir);
         linear_velocity.0 += accelerate(
             wish_dir, 
             data.base_speed,
@@ -172,7 +172,7 @@ pub fn move_player(
         // apply afterburners accelerate you forward
         if action_state.pressed(&PlayerInput::AfterBurners) {
             let wish_dir = rotation.0 * Vec3::NEG_Z;
-            let current_speed = linear_velocity.dot(rotation.0 * Vec3::NEG_Z);
+            let current_speed = linear_velocity.0.dot(rotation.0 * Vec3::NEG_Z);
             linear_velocity.0 += accelerate(
                 wish_dir, 
                 data.base_speed,

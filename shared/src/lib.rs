@@ -41,7 +41,7 @@ impl Plugin for SharedPlugin {
         app.add_plugins(map::MapPlugin { headless: self.headless});
         app.add_plugins(physics::PhysicsPlugin);
         app.add_plugins(player::PlayerPlugin);
-        // app.add_plugins(moveable::ShapecastMoveablePlugin);
+        app.add_plugins(moveable::MoveablePlugin);
         app.add_plugins(weapons::WeaponsPlugin);
         app.add_plugins(utils::UtilsPlugin);
     }

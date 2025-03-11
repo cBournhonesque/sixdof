@@ -1,6 +1,7 @@
 use bevy::color::palettes::basic::RED;
 use bevy::prelude::*;
 use shared::bot::Bot;
+use shared::prelude::{Moveable, MoveableShape};
 use crate::VisibleFilter;
 
 pub(crate) struct BotPlugin;
@@ -24,7 +25,7 @@ fn spawn_visuals(
         // add visibility
         commands.entity(entity).insert((
             Visibility::default(),
-            Transform::from_xyz(0.0, 10.0, 0.0),
+            Transform::default(),
             Mesh3d(meshes.add(Mesh::from(Sphere {
                 radius: 0.5,
                 ..default()

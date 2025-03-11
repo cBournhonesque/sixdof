@@ -60,16 +60,18 @@ fn handle_predicted_spawn(
             .with(PlayerInput::AfterBurners, MouseButton::Right)
             .with_dual_axis(PlayerInput::Look, MouseMove::default());
 
+        // let spawn_position = Vec3::new(0.0, 2.0, 0.0);
+
         // Adds an InputMap to Predicted so that the user can control the predicted entity
         commands.entity(entity).insert((input_map,
-            RigidBody::Kinematic
-            // // We add a Moveable component so that we can predict velocity and angular velocity
+            // We add a Moveable component so that we can predict velocity and angular velocity
             // Moveable {
-            //     velocity: Vec3::ZERO,
-            //     angular_velocity: Vec3::ZERO,
+            //     // velocity: Vec3::ZERO,
+            //     // angular_velocity: Vec3::ZERO,
             //     collision_shape: MoveableShape::Sphere(0.5),
             //     collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
             // },
+            Transform::default(), // things will complain if we don't have a transform (since we have children)
         ));
     }
 }

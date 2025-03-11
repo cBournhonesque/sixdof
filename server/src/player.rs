@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use lightyear::prelude::server::*;
-use shared::{player::Player, prelude::{Damageable, GameLayer, Moveable, MoveableShape, UniqueIdentity}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
+use shared::{player::Player, prelude::{Damageable, GameLayer, KCCAngularVelocity, KCCLinearVelocity, KCCPosition, KCCRotation, Moveable, MoveableShape, UniqueIdentity}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
 use avian3d::prelude::*;
 use lightyear::prelude::{NetworkTarget, ReplicateHierarchy, ReplicationGroup};
 use lightyear::shared::replication::components::ReplicationGroupId;
@@ -20,6 +20,8 @@ fn spawn_player_on_connect(
 ) {
     for event in events.read() {
         info!("Received ConnectEvent: {:?}", event);
+
+        let spawn_position = Vec3::new(0.0, 2.0, 0.0);
 
         // TODO: use spawn-events so we can control spawn position, etc.
         commands.spawn(
@@ -53,15 +55,22 @@ fn spawn_player_on_connect(
                 // Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
                 CurrentWeaponIndex(0),
                 WeaponInventory::from_data(&weapons_data, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
-                Position::from_xyz(0.0, 2.0, 0.0),
-                CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
-                RigidBody::Kinematic,
-                // Moveable {
-                //     velocity: Vec3::ZERO,
-                //     angular_velocity: Vec3::ZERO,
-                //     collision_shape: MoveableShape::Sphere(0.5),
-                //     collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
-                // },
+                // CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
+                // RigidBody::Kinematic,
+                // Position::from(spawn_position),
+                // AngularVelocity::from(Vec3::ZERO),
+                // LinearVelocity::from(Vec3::ZERO),
+                KCCLinearVelocity(Vec3::ZERO),
+                KCCAngularVelocity(Vec3::ZERO),
+                KCCPosition(spawn_position),
+                KCCRotation(Quat::IDENTITY),
+                Transform::from_translation(spawn_position),
+                Moveable {
+                    // velocity: Vec3::ZERO,
+                    // angular_velocity: Vec3::ZERO,
+                    collision_shape: MoveableShape::Sphere(0.5),
+                    collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
+                },
             )
         );
     }
