@@ -496,6 +496,7 @@ dependencies = [
  "fxhash",
  "indexmap",
  "itertools 0.13.0",
+ "libm",
  "nalgebra 0.33.2",
  "parry3d",
  "parry3d-f64",
@@ -1241,6 +1242,7 @@ dependencies = [
  "derive_more 1.0.0",
  "glam",
  "itertools 0.13.0",
+ "libm",
  "rand 0.8.5",
  "rand_distr",
  "serde",
@@ -3309,6 +3311,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc46dd3ec48fdd8e693a98d2b8bafae273a2d54c1de02a2a7e3d57d501f39677"
 dependencies = [
  "bytemuck",
+ "libm",
  "mint",
  "rand 0.8.5",
  "serde",
@@ -3813,6 +3816,7 @@ checksum = "8c9c992b02b5b4c94ea26e32fe5bccb7aa7d9f390ab5c1221ff895bc7ea8b652"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.2",
+ "serde",
 ]
 
 [[package]]
@@ -5163,6 +5167,7 @@ dependencies = [
  "downcast-rs",
  "either",
  "ena",
+ "indexmap",
  "log",
  "nalgebra 0.33.2",
  "num-derive",
@@ -5191,6 +5196,7 @@ dependencies = [
  "downcast-rs",
  "either",
  "ena",
+ "indexmap",
  "log",
  "nalgebra 0.33.2",
  "num-derive",
@@ -6362,6 +6368,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3a386a501cd104797982c15ae17aafe8b9261315b5d07e3ec803f2ea26be0fa"
 dependencies = [
  "approx",
+ "libm",
  "num-complex",
  "num-traits",
  "paste",

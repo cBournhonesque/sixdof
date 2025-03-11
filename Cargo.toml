@@ -52,6 +52,7 @@ avian3d = { version = "0.2.0", default-features = false, features = [
     "bevy_scene",
     "parallel",
     "serialize",
+    "enhanced-determinism"
 ] }
 leafwing-input-manager = { version = "0.16", default-features = false, features = [
     "keyboard",

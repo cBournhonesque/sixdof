@@ -1,7 +1,7 @@
 (
     player_ship: 0,
     ships: {
-        0: ShipData (
+        0: ShipBehavior (
             name: "Player Ship",
             accel_speed: 0.2,
             afterburner_accel_speed: 0.5,
@@ -12,7 +12,7 @@
             rotation_damping: 0.1,
             drag: 4.00,
         ),
-        1: ShipData (
+        1: ShipBehavior (
             name: "Enemy Ship",
             accel_speed: 0.1,
             afterburner_accel_speed: 0.5,

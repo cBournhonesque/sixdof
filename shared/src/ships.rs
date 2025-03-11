@@ -24,11 +24,11 @@ impl Plugin for ShipPlugin {
 #[derive(Asset, Resource, Default, TypePath, Debug, Deserialize)]
 pub struct ShipsData {
     pub player_ship: ShipId,
-    pub ships: HashMap<ShipId, ShipData>,
+    pub ships: HashMap<ShipId, ShipBehavior>,
 }
 
 #[derive(Default, TypePath, Debug, Deserialize)]
-pub struct ShipData {
+pub struct ShipBehavior {
     pub name: String,
     pub accel_speed: f32,
     pub afterburner_accel_speed: f32,
@@ -42,24 +42,24 @@ pub struct ShipData {
 
 pub fn move_ship(
     fixed_time: &Time<Fixed>,
-    data: &ShipData,
+    behavior: &ShipBehavior,
     linear_velocity: &mut LinearVelocity,
     angular_velocity: &mut AngularVelocity,
     wish_dir: Vec3,
     // if we're using afterburners, we need to know the rotation of the ship to accelerate in the correct direction
     after_burners: Option<&Rotation>,
 ) {
-    angular_velocity.0 *= 1.0 - data.rotation_damping;
+    angular_velocity.0 *= 1.0 - behavior.rotation_damping;
             
-    if angular_velocity.length_squared() > data.max_rotation_speed * data.max_rotation_speed {
-        angular_velocity.0 = angular_velocity.normalize() * data.max_rotation_speed;
+    if angular_velocity.length_squared() > behavior.max_rotation_speed * behavior.max_rotation_speed {
+        angular_velocity.0 = angular_velocity.normalize() * behavior.max_rotation_speed;
     }
     
     // apply drag
     linear_velocity.0 = apply_drag(
         linear_velocity.0,
         linear_velocity.length(),
-        data.drag, 
+        behavior.drag, 
         fixed_time.delta_secs()
     );
 
@@ -67,9 +67,9 @@ pub fn move_ship(
     let current_speed = linear_velocity.dot(wish_dir);
     linear_velocity.0 += accelerate(
         wish_dir, 
-        data.base_speed,
+        behavior.base_speed,
         current_speed,
-        data.accel_speed,
+        behavior.accel_speed,
         fixed_time.delta_secs()
     );
 
@@ -79,9 +79,9 @@ pub fn move_ship(
         let current_speed = linear_velocity.dot(rotation.0 * Vec3::NEG_Z);
         linear_velocity.0 += accelerate(
             wish_dir, 
-            data.base_speed,
+            behavior.base_speed,
             current_speed,
-            data.afterburner_accel_speed,
+            behavior.afterburner_accel_speed,
             fixed_time.delta_secs()
         );
     }
