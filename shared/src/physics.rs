@@ -10,6 +10,7 @@ pub(crate) struct PhysicsPlugin;
 #[derive(PhysicsLayer, Default)]
 pub enum GameLayer {
     #[default]
+    Default,
     Wall,
     Projectile,
     Player,
@@ -50,6 +51,7 @@ impl Plugin for PhysicsPlugin {
         app.configure_sets(
             PostUpdate, SyncSet::PositionToTransform.in_set(PhysicsSet::Sync)
         );
+        app.add_systems(Update, log_collisions);
 
         // RESOURCES
         // disable sleeping
@@ -105,5 +107,17 @@ pub fn position_to_transform(
             transform.rotation = rot.f32();
             // info!(?transform, ?pos, ?rot, "PosToTransform");
         }
+    }
+}
+
+pub fn log_collisions(
+    mut event_reader: EventReader<Collision>,
+) {
+        for Collision(contacts) in event_reader.read() {
+        println!(
+            "Entities {} and {} are colliding",
+            contacts.entity1,
+            contacts.entity2,
+        );
     }
 }

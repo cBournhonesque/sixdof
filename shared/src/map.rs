@@ -94,18 +94,16 @@ fn load_map_system(
 fn add_map_colliders(
     mut commands: Commands,
     mut events: EventReader<PostBuildMapEvent>,
-    query: Query<&Children, With<qevy::components::Map>>
+    query: Query<&Children>
 ) {
     for event in events.read() {
-        if let Ok(children) = query.get(event.map) {
-            for child in children.iter() {
-                if let Some(mut child_commands) = commands.get_entity(*child) {
-                    child_commands.insert((
-                        RigidBody::Static,
-                        CollisionLayers::new([GameLayer::Wall], [GameLayer::Player, GameLayer::Projectile]),
-                    ));
-                }
+        query.iter_descendants(event.map).for_each(|child| {
+             if let Some(mut child_commands) = commands.get_entity(child) {
+                child_commands.insert((
+                    RigidBody::Static,
+                    CollisionLayers::new([GameLayer::Wall], [GameLayer::Player, GameLayer::Projectile]),
+                ));
             }
-        }
+        });
     }
 }
