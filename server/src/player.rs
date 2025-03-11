@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use lightyear::prelude::server::*;
-use shared::{player::Player, prelude::{Damageable, GameLayer, UniqueIdentity}, ships::shared_ship_components, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
+use shared::{player::Player, prelude::{Damageable, GameLayer, UniqueIdentity}, ships::{get_shared_ship_components, ShipIndex}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
 use avian3d::prelude::*;
 use lightyear::prelude::{NetworkTarget, ReplicateHierarchy, ReplicationGroup};
 use lightyear::shared::replication::components::ReplicationGroupId;
@@ -52,9 +52,10 @@ fn spawn_player_on_connect(
                 },
                 // Transform::from_translation(Vec3::new(0.0, 2.0, 0.0)),
                 CurrentWeaponIndex(0),
+                ShipIndex(0),
                 WeaponInventory::from_data(&weapons_data, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
                 Position::from_xyz(0.0, 2.0, 0.0),
-                shared_ship_components(Collider::sphere(0.5))
+                get_shared_ship_components(Collider::sphere(0.5))
             )
         );
     }

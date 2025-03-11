@@ -8,7 +8,7 @@ use lightyear::prelude::server::*;
 use lightyear_avian::prelude::LagCompensationHistory;
 use shared::bot::Bot;
 use shared::prelude::{Damageable, GameLayer, UniqueIdentity};
-use shared::ships::shared_ship_components;
+use shared::ships::{get_shared_ship_components, move_ship, ShipIndex, ShipsData};
 // TODO: should bots be handled similarly to players? i.e. they share most of the same code (visuals, collisions)
 //  but they are simply controlled by the server. The server could be sending fake inputs to the bots so that their movement
 //  is the same as players
@@ -19,7 +19,7 @@ impl Plugin for BotPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(BotManager { next_bot_id: 0 });
         app.add_systems(Startup, spawn_bot);
-        app.add_systems(FixedUpdate, move_bot);
+        app.add_systems(FixedUpdate, move_bot.run_if(resource_exists::<ShipsData>));
     }
 }
 
@@ -53,11 +53,12 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
             Damageable {
                 health: 50,
             },
+            ShipIndex(1),
             // TODO: UNDERSTAND WHY IT IS NECESSARY TO MANUALLY INSERT THE CORRECT POSITION/ROTATION
             //  ON THE ENTITY! I THOUGHT THE PREPARE_SET WOULD DO THIS AUTOMATICALLY
             position,
             rotation,
-            shared_ship_components(Collider::sphere(0.5))
+            get_shared_ship_components(Collider::sphere(0.5))
             //LagCompensationHistory::default(),
         )
     );
@@ -68,22 +69,31 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
 /// For some reason we cannot use the TimeManager.delta() here, maybe because we're running in FixedUpdate?
 fn move_bot(
     tick_manager: Res<TickManager>,
-    time: Res<Time>, mut query: Query<&mut LinearVelocity, With<Bot>>, mut timer: Local<(Stopwatch, bool)>)
+    fixed_time: Res<Time<Fixed>>, 
+    mut query: Query<(
+        &mut LinearVelocity, 
+        &mut AngularVelocity, 
+        &ShipIndex,
+    ), With<Bot>>, 
+    ships_data: Res<ShipsData>,
+    mut timer: Local<(Stopwatch, bool)>)
 {
     let tick = tick_manager.tick();
     let (stopwatch, go_up) = timer.deref_mut();
-    query.iter_mut().for_each(|mut velocity| {
-        stopwatch.tick(time.delta());
+    for (mut linear_velocity, mut angular_velocity, ship_index) in query.iter_mut() {
+        stopwatch.tick(fixed_time.delta());
         if stopwatch.elapsed() > Duration::from_secs_f32(4.0) {
             stopwatch.reset();
             *go_up = !*go_up;
         }
-        if *go_up {
-            velocity.0.y = 5.0;
+        let wish_dir = if *go_up {
+            Vec3::Y
         } else {
-            velocity.0.y = -5.0;
+            Vec3::NEG_Y
+        };
+        if let Some(data) = ships_data.ships.get(&ship_index.0) {
+            move_ship(&fixed_time, &data, &mut linear_velocity, &mut angular_velocity, wish_dir, None);
         }
-        trace!(?tick, ?velocity, "Bot velocity");
-    });
+        trace!(?tick, ?linear_velocity, ?angular_velocity, "Bot velocity");
+    }
 }
-

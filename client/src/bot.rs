@@ -6,7 +6,7 @@ use lightyear::prelude::client::InterpolateStatus;
 use lightyear::prelude::TickManager;
 use shared::bot::Bot;
 use shared::physics::GameLayer;
-use shared::ships::shared_ship_components;
+use shared::ships::get_shared_ship_components;
 
 pub(crate) struct BotPlugin;
 
@@ -40,7 +40,7 @@ fn add_bot_collider(
 ) {
     if query.get(trigger.entity()).is_ok() {
         commands.entity(trigger.entity()).insert(
-            shared_ship_components(Collider::sphere(0.5))
+            get_shared_ship_components(Collider::sphere(0.5))
         );
     }
 }
