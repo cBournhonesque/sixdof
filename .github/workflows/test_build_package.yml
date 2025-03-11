@@ -42,19 +42,16 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: sixdof-linux
+            artifact_name: launcher-linux
             asset_dest: assets
-            binary_path: target/release/sixdof*
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: sixdof-windows
+            artifact_name: launcher-windows
             asset_dest: assets
-            binary_path: target/release/*.exe target/release/*.dll
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: sixdof-macos
+            artifact_name: launcher-macos
             asset_dest: assets
-            binary_path: target/release/sixdof*
     
     runs-on: ${{ matrix.os }}
     
@@ -90,17 +87,25 @@ jobs:
     - name: Prepare release package
       run: |
         mkdir -p release-package
+        # List files to debug
+        echo "Files in target/release directory:"
+        ls -la target/release/
+        
         # Copy binaries based on OS
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
-          cp target/release/*.exe release-package/
-          cp target/release/*.dll release-package/ 2>/dev/null || true
+          # Copy the launcher executable and any DLLs
+          cp target/release/launcher.exe release-package/ 2>/dev/null || echo "launcher.exe not found"
+          cp target/release/*.dll release-package/ 2>/dev/null || echo "No .dll files found"
         elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-          cp target/release/sixdof release-package/
+          # Copy the launcher binary
+          cp target/release/launcher release-package/ 2>/dev/null || echo "launcher binary not found"
         else  # linux
-          cp target/release/sixdof release-package/
+          # Copy the launcher binary
+          cp target/release/launcher release-package/ 2>/dev/null || echo "launcher binary not found"
         fi
+        
         # Copy assets folder
-        cp -r target/release/${{ matrix.asset_dest }} release-package/
+        cp -r ./assets release-package/ 2>/dev/null || echo "No assets folder found"
       shell: bash
       
     - name: Create ${{ matrix.artifact_name }} Artifact
