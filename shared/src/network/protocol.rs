@@ -88,11 +88,6 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<ExternalImpulse>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full);
 
-        // app.register_component::<Moveable>(ChannelDirection::ServerToClient)
-        //     .add_prediction(ComponentSyncMode::Full)
-        //     .add_interpolation(ComponentSyncMode::Full)
-        //     .add_interpolation_fn(moveable::lerp);
-
         app.register_component::<WeaponInventory>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Once);
 

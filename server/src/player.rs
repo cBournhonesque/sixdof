@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use lightyear::prelude::server::*;
-use shared::{player::Player, prelude::{Damageable, GameLayer, Moveable, MoveableShape, UniqueIdentity}, ships::shared_ship_components, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
+use shared::{player::Player, prelude::{Damageable, GameLayer, UniqueIdentity}, ships::shared_ship_components, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
 use avian3d::prelude::*;
 use lightyear::prelude::{NetworkTarget, ReplicateHierarchy, ReplicationGroup};
 use lightyear::shared::replication::components::ReplicationGroupId;

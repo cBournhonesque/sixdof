@@ -1,13 +1,12 @@
 use std::time::Duration;
 
-use avian3d::{math::Vector, prelude::*};
+use avian3d::prelude::*;
 use bevy::{prelude::*, utils::HashMap};
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{data::weapons::*, physics::GameLayer, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
+use crate::{data::weapons::*, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
 
 pub type WeaponId = u32;
 

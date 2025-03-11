@@ -5,7 +5,7 @@ use leafwing_input_manager::prelude::*;
 use lightyear::shared::replication::components::Controlled;
 use lightyear::prelude::{client::*, ClientId};
 use shared::player::Player;
-use shared::prelude::{GameLayer, Moveable, PlayerInput, MoveableShape, UniqueIdentity};
+use shared::prelude::{GameLayer, PlayerInput, UniqueIdentity};
 use shared::ships::shared_ship_components;
 use shared::weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData};
 
