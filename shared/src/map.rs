@@ -1,5 +1,9 @@
+use avian3d::collision::CollisionLayers;
+use avian3d::prelude::RigidBody;
 use bevy::prelude::*;
+use qevy::PostBuildMapEvent;
 use serde::{Deserialize, Serialize};
+use crate::physics::GameLayer;
 use crate::states::AppState;
 
 #[derive(Default)]
@@ -52,6 +56,9 @@ impl Plugin for MapPlugin {
             Startup,
             (clear_map_system, load_map_system).chain(),
         );
+        app.add_systems(
+            Update, add_map_colliders
+        );
     }
 }
 
@@ -82,4 +89,23 @@ fn load_map_system(
         },
         Name::from("Map")
     ));
+}
+
+fn add_map_colliders(
+    mut commands: Commands,
+    mut events: EventReader<PostBuildMapEvent>,
+    query: Query<&Children, With<qevy::components::Map>>
+) {
+    for event in events.read() {
+        if let Ok(children) = query.get(event.map) {
+            for child in children.iter() {
+                if let Some(mut child_commands) = commands.get_entity(*child) {
+                    child_commands.insert((
+                        RigidBody::Static,
+                        CollisionLayers::new([GameLayer::Wall], [GameLayer::Player, GameLayer::Projectile]),
+                    ));
+                }
+            }
+        }
+    }
 }

@@ -62,7 +62,8 @@ fn handle_predicted_spawn(
 
         // Adds an InputMap to Predicted so that the user can control the predicted entity
         commands.entity(entity).insert((input_map,
-            RigidBody::Kinematic
+            RigidBody::Dynamic,
+            CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
             // // We add a Moveable component so that we can predict velocity and angular velocity
             // Moveable {
             //     velocity: Vec3::ZERO,
