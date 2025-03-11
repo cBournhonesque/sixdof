@@ -56,6 +56,7 @@ fn spawn_player_on_connect(
                 Position::from_xyz(0.0, 2.0, 0.0),
                 CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
                 RigidBody::Dynamic,
+                Collider::sphere(0.5),
                 // Moveable {
                 //     velocity: Vec3::ZERO,
                 //     angular_velocity: Vec3::ZERO,

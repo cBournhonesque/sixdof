@@ -51,7 +51,7 @@ impl Plugin for PhysicsPlugin {
         app.configure_sets(
             PostUpdate, SyncSet::PositionToTransform.in_set(PhysicsSet::Sync)
         );
-        app.add_systems(Update, log_collisions);
+        //app.add_systems(Update, log_collisions);
 
         // RESOURCES
         // disable sleeping
