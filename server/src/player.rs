@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use lightyear::prelude::server::*;
-use shared::{player::Player, prelude::{Damageable, GameLayer, KCCAngularVelocity, KCCLinearVelocity, KCCPosition, KCCRotation, Moveable, MoveableShape, UniqueIdentity}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
+use shared::{player::Player, prelude::{Damageable, GameLayer, MOVPosition, MOVRotation, Moveable, MoveableShape, UniqueIdentity}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
 use avian3d::prelude::*;
 use lightyear::prelude::{NetworkTarget, ReplicateHierarchy, ReplicationGroup};
 use lightyear::shared::replication::components::ReplicationGroupId;
@@ -56,14 +56,10 @@ fn spawn_player_on_connect(
                 CurrentWeaponIndex(0),
                 WeaponInventory::from_data(&weapons_data, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
                 // CollisionLayers::new([GameLayer::Player], [GameLayer::Wall, GameLayer::Projectile]),
-                // RigidBody::Kinematic,
-                // Position::from(spawn_position),
-                // AngularVelocity::from(Vec3::ZERO),
-                // LinearVelocity::from(Vec3::ZERO),
-                KCCLinearVelocity(Vec3::ZERO),
-                KCCAngularVelocity(Vec3::ZERO),
-                KCCPosition(spawn_position),
-                KCCRotation(Quat::IDENTITY),
+                LinearVelocity(Vec3::ZERO),
+                AngularVelocity(Vec3::ZERO),
+                MOVPosition(spawn_position),
+                MOVRotation(Quat::IDENTITY),
                 Transform::from_translation(spawn_position),
                 Moveable {
                     // velocity: Vec3::ZERO,
@@ -75,4 +71,3 @@ fn spawn_player_on_connect(
         );
     }
 }
-

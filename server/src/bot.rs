@@ -7,7 +7,7 @@ use lightyear::prelude::*;
 use lightyear::prelude::server::*;
 use lightyear_avian::prelude::LagCompensationHistory;
 use shared::bot::Bot;
-use shared::prelude::{Damageable, GameLayer, KCCPosition, KCCRotation, Moveable, MoveableShape, UniqueIdentity};
+use shared::prelude::{Damageable, GameLayer, MOVPosition, MOVRotation, Moveable, MoveableShape, UniqueIdentity};
 // TODO: should bots be handled similarly to players? i.e. they share most of the same code (visuals, collisions)
 //  but they are simply controlled by the server. The server could be sending fake inputs to the bots so that their movement
 //  is the same as players
@@ -54,8 +54,8 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
             Damageable {
                 health: 50,
             },
-            KCCPosition(spawn_position),
-            KCCRotation(Quat::IDENTITY),
+            MOVPosition(spawn_position),
+            MOVRotation(Quat::IDENTITY),
             Moveable {
                 collision_shape: MoveableShape::Sphere(0.5),
                 collision_mask: [GameLayer::Player, GameLayer::Wall].into(),
@@ -71,7 +71,7 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
 /// For some reason we cannot use the TimeManager.delta() here, maybe because we're running in FixedUpdate?
 fn move_bot(
     tick_manager: Res<TickManager>,
-    time: Res<Time>, mut query: Query<&mut KCCPosition, With<Bot>>, mut timer: Local<(Stopwatch, bool)>)
+    time: Res<Time>, mut query: Query<&mut MOVPosition, With<Bot>>, mut timer: Local<(Stopwatch, bool)>)
 {
     let tick = tick_manager.tick();
     let (stopwatch, go_up) = timer.deref_mut();

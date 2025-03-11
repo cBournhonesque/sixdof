@@ -9,10 +9,8 @@ pub struct MoveablePlugin;
 
 impl Plugin for MoveablePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<KCCLinearVelocity>();
-        app.register_type::<KCCAngularVelocity>();
-        app.register_type::<KCCPosition>();
-        app.register_type::<KCCRotation>();
+        app.register_type::<MOVPosition>();
+        app.register_type::<MOVRotation>();
         app.add_systems(FixedUpdate, (
             move_system,
             synch_transform_system,
@@ -21,16 +19,10 @@ impl Plugin for MoveablePlugin {
 }
 
 #[derive(Component, Serialize, Deserialize, PartialEq, Clone, Reflect, Debug)]
-pub struct KCCLinearVelocity(pub Vec3);
+pub struct MOVPosition(pub Vec3);
 
 #[derive(Component, Serialize, Deserialize, PartialEq, Clone, Reflect, Debug)]
-pub struct KCCAngularVelocity(pub Vec3);
-
-#[derive(Component, Serialize, Deserialize, PartialEq, Clone, Reflect, Debug)]
-pub struct KCCPosition(pub Vec3);
-
-#[derive(Component, Serialize, Deserialize, PartialEq, Clone, Reflect, Debug)]
-pub struct KCCRotation(pub Quat);
+pub struct MOVRotation(pub Quat);
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum MoveableShape {
@@ -97,7 +89,7 @@ fn move_system(
     mut commands: Commands,
     mut spatial_query: SpatialQuery,
     mut moveable_extras: Query<&mut MoveableExtras>,
-    mut simulations: Query<(Entity, &mut KCCLinearVelocity, &KCCAngularVelocity, &mut KCCPosition, &mut KCCRotation, &mut Moveable)>,
+    mut simulations: Query<(Entity, &mut LinearVelocity, &AngularVelocity, &mut MOVPosition, &mut MOVRotation, &mut Moveable)>,
 ) {
     let rolling_back = rollback.map_or(false, |r| r.is_rollback());
 
@@ -252,7 +244,7 @@ fn move_system(
 }
 
 fn synch_transform_system(
-    mut moveable: Query<(&mut Transform, &KCCPosition, &KCCRotation)>,
+    mut moveable: Query<(&mut Transform, &MOVPosition, &MOVRotation)>,
 ) {
     for (mut transform, kcc_position, kcc_rotation) in moveable.iter_mut() {
         transform.translation = kcc_position.0;
@@ -260,19 +252,19 @@ fn synch_transform_system(
     }
 }
 
-pub mod kcc_position {
-    use crate::prelude::KCCPosition;
+pub mod mov_position {
+    use crate::prelude::MOVPosition;
 
-    pub fn lerp(start: &KCCPosition, end: &KCCPosition, t: f32) -> KCCPosition {
-        KCCPosition(start.0.lerp(end.0, t))
+    pub fn lerp(start: &MOVPosition, end: &MOVPosition, t: f32) -> MOVPosition {
+        MOVPosition(start.0.lerp(end.0, t))
     }
 }
 
-pub mod kcc_rotation {
-    use crate::prelude::KCCRotation;
+pub mod mov_rotation {
+    use crate::prelude::MOVRotation;
 
-    pub fn lerp(start: &KCCRotation, end: &KCCRotation, t: f32) -> KCCRotation {
-        KCCRotation(start.0.slerp(end.0, t))
+    pub fn lerp(start: &MOVRotation, end: &MOVRotation, t: f32) -> MOVRotation {
+        MOVRotation(start.0.slerp(end.0, t))
     }
 }
     

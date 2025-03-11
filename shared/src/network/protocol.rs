@@ -6,7 +6,7 @@ use lightyear::prelude::client::{ComponentSyncMode, LerpFn};
 use lightyear::shared::replication::components::ReplicationGroupId;
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
-use crate::prelude::{kcc_position, kcc_rotation, Damageable, KCCAngularVelocity, KCCLinearVelocity, KCCPosition, KCCRotation, Moveable, UniqueIdentity};
+use crate::prelude::{mov_position, mov_rotation, Damageable, MOVPosition, MOVRotation, Moveable, UniqueIdentity};
 use crate::weapons::{CurrentWeaponIndex, WeaponInventory};
 use lightyear::utils::bevy::TransformLinearInterpolation;
 use crate::bot::Bot;
@@ -88,11 +88,6 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<ExternalImpulse>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full);
 
-        app.register_component::<Moveable>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full);
-            // .add_interpolation(ComponentSyncMode::Full)
-            // .add_interpolation_fn(moveable::lerp);
-
         app.register_component::<WeaponInventory>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Once);
 
@@ -108,26 +103,6 @@ impl Plugin for ProtocolPlugin {
             .add_interpolation(ComponentSyncMode::Full)
             .add_correction_fn(rotation::lerp);
 
-
-        // Custom Kinematic "Character Controller" stuff
-        app.register_component::<KCCLinearVelocity>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full);
-
-        app.register_component::<KCCAngularVelocity>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full);
-
-        app.register_component::<KCCPosition>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full)
-            .add_interpolation(ComponentSyncMode::Full)
-            .add_interpolation_fn(kcc_position::lerp)
-            .add_correction_fn(kcc_position::lerp);
-
-        app.register_component::<KCCRotation>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full)
-            .add_interpolation(ComponentSyncMode::Full)
-            .add_interpolation_fn(kcc_rotation::lerp)
-            .add_correction_fn(kcc_rotation::lerp);
-
         // do not replicate Transform but make sure to register an interpolation function
         // for it so that we can do visual interpolation
         // (another option would be to replicate transform and not use Position/Rotation at all)
@@ -141,5 +116,23 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<UniqueIdentity>(ChannelDirection::ServerToClient);        
         app.register_component::<Damageable>(ChannelDirection::ServerToClient);
         app.register_component::<CurrentWeaponIndex>(ChannelDirection::ServerToClient);
+
+        ///////////////////////////////////////////////////////////////////////////////
+        // Moveable Stuff
+        ///////////////////////////////////////////////////////////////////////////////
+        app.register_component::<Moveable>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Full);
+
+        app.register_component::<MOVPosition>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Full)
+            .add_interpolation(ComponentSyncMode::Full)
+            .add_interpolation_fn(mov_position::lerp)
+            .add_correction_fn(mov_position::lerp);
+
+        app.register_component::<MOVRotation>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Full)
+            .add_interpolation(ComponentSyncMode::Full)
+            .add_interpolation_fn(mov_rotation::lerp)
+            .add_correction_fn(mov_rotation::lerp);
     }
 }
