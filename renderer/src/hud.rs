@@ -29,8 +29,12 @@ impl Plugin for HudPlugin {
 #[derive(Asset, TypePath, Default, Deserialize, Debug, Resource)]
 struct HudConfig {
     pub head_recenter_speed: f32,
-    pub head_gforce_amount: f32,
-    pub head_angular_gforce_amount: f32,
+    pub head_pitch_amount: f32,
+    pub head_yaw_amount: f32,
+    pub head_roll_amount: f32,
+    pub head_x_amount: f32,
+    pub head_y_amount: f32,
+    pub head_z_amount: f32,
 }
 
 #[derive(Default, Component)]
@@ -207,9 +211,10 @@ fn camera_sway_system(
                     g_data.prev_linear_velocity = current_vel;
                     g_data.prev_angular_velocity = current_ang;
                     
-                    let pitch = -accel.z * config.head_gforce_amount;
-                    let roll = accel.x * config.head_gforce_amount + current_ang.y * config.head_angular_gforce_amount;
-                    let yaw = -accel.x * config.head_gforce_amount;
+                    // Calculate rotational g-forces
+                    let pitch = -accel.z * config.head_pitch_amount;
+                    let roll = accel.x * config.head_roll_amount + current_ang.y * config.head_roll_amount;
+                    let yaw = -accel.x * config.head_yaw_amount;
 
                     let target_rotation = Quat::from_euler(
                         EulerRot::XYZ,
@@ -218,8 +223,30 @@ fn camera_sway_system(
                         roll
                     );
                     
+                    // Calculate positional g-forces (physical movement)
+                    // Move camera backward when accelerating forward
+                    let translation_z = -accel.z * config.head_z_amount;
+                    // Move camera left when accelerating right
+                    let translation_x = -accel.x * config.head_x_amount;
+                    // Move camera down when accelerating up
+                    let translation_y = -accel.y * config.head_y_amount;
+                    
+                    // Apply translation target based on acceleration
+                    let target_translation = Vec3::new(
+                        translation_x,
+                        translation_y, 
+                        translation_z
+                    );
+                    
+                    // Smoothly interpolate rotation
                     camera_transform.rotation = camera_transform.rotation.slerp(
                         target_rotation, 
+                        config.head_recenter_speed * dt
+                    );
+                    
+                    // Smoothly interpolate position
+                    camera_transform.translation = camera_transform.translation.lerp(
+                        target_translation,
                         config.head_recenter_speed * dt
                     );
                 } else {
@@ -229,9 +256,8 @@ fn camera_sway_system(
                     });
                     
                     camera_transform.rotation = Quat::IDENTITY;
+                    camera_transform.translation = Vec3::ZERO;
                 }
-                
-                camera_transform.translation = Vec3::ZERO;
             }
         }
     }
