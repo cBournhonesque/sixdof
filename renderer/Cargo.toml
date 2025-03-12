@@ -37,6 +37,7 @@ bevy = { workspace = true, features = [
     "bevy_window",
 ]}
 bevy_config_stack.workspace = true
+bevy_rich_text3d.workspace = true
 serde.workspace = true
 rand.workspace = true
 sfx.workspace = true

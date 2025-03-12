@@ -1,0 +1,5 @@
+(
+    head_recenter_speed: 4.0,
+    head_gforce_amount: 0.001,
+    head_angular_gforce_amount: 0.075,
+)
