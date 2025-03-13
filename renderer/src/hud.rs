@@ -4,8 +4,8 @@ use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use bevy_rich_text3d::{Text3d, Text3dPlugin, Text3dStyling, TextAtlas};
 
 use lightyear::{client::prediction::diagnostics::PredictionMetrics, shared::replication::components::Controlled};
+use serde::Deserialize;
 use shared::weapons::{CurrentWeaponIndex, WeaponsData};
-use bevy::{diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, prelude::*};
 
 use shared::player::Player;
 
@@ -91,11 +91,11 @@ fn spawn_hud(
     weapons_data: Res<WeaponsData>,
 ) {
 
-    let crosshair = Crosshair {
-        textures: weapons_data.weapons.iter().map(|weapon| asset_server.load(&weapon.1.crosshair.image)).collect()
-    };
+    // let crosshair = Crosshair {
+    //     textures: weapons_data.weapons.iter().map(|weapon| asset_server.load(&weapon.1.crosshair.image)).collect()
+    // };
 
-    let default_crosshair = crosshair.textures.first().unwrap().clone();
+    // let default_crosshair = crosshair.textures.first().unwrap().clone();
 
     commands
         .spawn((
@@ -270,19 +270,21 @@ fn camera_sway_system(
                     camera_transform.translation = Vec3::ZERO;
                 }
             }
+        }
+    }
 }
 
 fn crosshair_system(
     mut commands: Commands,
     mut crosshair: Query<(&Crosshair, &mut ImageNode)>,
-    mut current_weapon_idx: Query<&CurrentWeaponIndex, With<Controlled>>,
+    mut current_weapon_idx: Query<&CurrentWeaponIndex, (With<Controlled>, Changed<CurrentWeaponIndex>)>,
 ) {
-    let Ok(current_weapon_idx) = current_weapon_idx.get_single() else { return };
+    // let Ok(current_weapon_idx) = current_weapon_idx.get_single() else { return };
 
-    let (crosshair, mut image) = crosshair.single_mut();
-    if let Some(current_weapon_handle) = crosshair.textures.get(current_weapon_idx.0 as usize) {
-        if image.image != *current_weapon_handle{
-            image.image = current_weapon_handle.clone();
-        }
-    }
+    // let (crosshair, mut image) = crosshair.single_mut();
+    // if let Some(current_weapon_handle) = crosshair.textures.get(current_weapon_idx.0 as usize) {
+    //     if image.image != *current_weapon_handle{
+    //         image.image = current_weapon_handle.clone();
+    //     }
+    // }
 }
