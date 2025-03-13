@@ -124,7 +124,7 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
 /// - Standard bots will move towards their target and attack when in range.
 /// - Bots will also avoid walls and other obstacles.
 /// - We compute a wish direction for the bot, this is quite simply the direction the bot wishes to move in at any given time.
-/// Bots will not wish to move if there is no target.
+/// - Bots will not wish to move if there is no target.
 fn move_system(
     spatial_query: SpatialQuery,
     fixed_time: Res<Time<Fixed>>,
