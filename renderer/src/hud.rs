@@ -2,8 +2,11 @@ use avian3d::prelude::{AngularVelocity, LinearVelocity};
 use bevy::{diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, pbr::NotShadowCaster, prelude::*};
 use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use bevy_rich_text3d::{Text3d, Text3dPlugin, Text3dStyling, TextAtlas};
-use lightyear::client::prediction::diagnostics::PredictionMetrics;
-use serde::Deserialize;
+
+use lightyear::{client::prediction::diagnostics::PredictionMetrics, shared::replication::components::Controlled};
+use shared::weapons::{CurrentWeaponIndex, WeaponsData};
+use bevy::{diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, prelude::*};
+
 use shared::player::Player;
 
 pub struct HudPlugin;
@@ -20,7 +23,8 @@ impl Plugin for HudPlugin {
         });
         app.add_plugins(FrameTimeDiagnosticsPlugin::default());
         app.add_systems(Update, (
-            prediction_metrics_system, 
+            prediction_metrics_system,
+            crosshair_system,
             camera_sway_system.run_if(resource_exists::<HudConfig>)
         ));
     }
@@ -84,8 +88,15 @@ fn spawn_hud(
     trigger: Trigger<OnAdd, Camera3d>,
     asset_server: Res<AssetServer>,
     mut commands: Commands,
+    weapons_data: Res<WeaponsData>,
 ) {
-    //let default_crosshair = asset_server.load("textures/hud/screen_center.png");
+
+    let crosshair = Crosshair {
+        textures: weapons_data.weapons.iter().map(|weapon| asset_server.load(&weapon.1.crosshair.image)).collect()
+    };
+
+    let default_crosshair = crosshair.textures.first().unwrap().clone();
+
     commands
         .spawn((
             Hud {
@@ -259,6 +270,19 @@ fn camera_sway_system(
                     camera_transform.translation = Vec3::ZERO;
                 }
             }
+}
+
+fn crosshair_system(
+    mut commands: Commands,
+    mut crosshair: Query<(&Crosshair, &mut ImageNode)>,
+    mut current_weapon_idx: Query<&CurrentWeaponIndex, With<Controlled>>,
+) {
+    let Ok(current_weapon_idx) = current_weapon_idx.get_single() else { return };
+
+    let (crosshair, mut image) = crosshair.single_mut();
+    if let Some(current_weapon_handle) = crosshair.textures.get(current_weapon_idx.0 as usize) {
+        if image.image != *current_weapon_handle{
+            image.image = current_weapon_handle.clone();
         }
     }
 }

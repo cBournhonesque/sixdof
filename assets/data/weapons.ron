@@ -20,7 +20,7 @@
                     blue: 1.0,
                     alpha: 1.0,
                 )),
-                image: "kenney_crosshair_pack/crosshair018.png",
+                image: "crosshairs/kenney_crosshair_pack/crosshair018.png",
             ),
             projectile: (
                 speed: 95.0,
@@ -102,7 +102,7 @@
                     blue: 1.0,
                     alpha: 1.0,
                 )),
-                image: "kenney_crosshair_pack/crosshair043.png",
+                image: "crosshairs/kenney_crosshair_pack/crosshair043.png",
             ),
             projectile: (
                 speed: 65.0,

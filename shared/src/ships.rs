@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 // NOTE: Everything inside this module is shared code between the player and the bot.
 // Since every moveable "character" in our game is a ship of some kind.
 
-use crate::physics::GameLayer;
-type ShipId = u32;
+use crate::{bot::BotBehavior, physics::GameLayer};
+pub type ShipId = u32;
 
-#[derive(Component, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Component, Serialize, Deserialize, PartialEq, Debug, Default,Eq, Hash, Clone, Copy)]
 pub struct ShipIndex(pub ShipId);
 
 pub struct ShipPlugin;
@@ -38,6 +38,7 @@ pub struct ShipBehavior {
     pub max_rotation_speed: f32,
     pub roll_rotation_force: f32,
     pub rotation_damping: f32,
+    pub bot_behavior: BotBehavior,
 }
 
 pub fn move_ship(

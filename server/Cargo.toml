@@ -10,3 +10,4 @@ lightyear_avian.workspace = true
 bevy.workspace = true
 avian3d.workspace = true
 leafwing-input-manager.workspace = true
+rand.workspace = true

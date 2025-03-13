@@ -6280,6 +6280,7 @@ dependencies = [
  "leafwing-input-manager",
  "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
  "lightyear_avian",
+ "rand 0.9.0",
  "shared",
 ]
 
