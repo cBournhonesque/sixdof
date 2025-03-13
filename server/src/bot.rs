@@ -62,12 +62,12 @@ impl BotTarget {
     fn update(&mut self, delta_time: f32, change_interval: f32) {
         self.orbit_timer += delta_time;
         if self.orbit_timer >= change_interval {
-            self.choose_new_orbit_kind();
+            self.choose_new_orbit_direction();
             self.orbit_timer = 0.0;
         }
     }
 
-    fn choose_new_orbit_kind(&mut self) {
+    fn choose_new_orbit_direction(&mut self) {
         self.orbit_kind = match rand::random::<u8>() % 4 {
             0 => OrbitKind::HorizontalClockwise,
             1 => OrbitKind::HorizontalCounterClockwise,
@@ -116,8 +116,15 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
     bot_manager.next_bot_id += 1;
 }
 
-/// Move bots up and down
-/// For some reason we cannot use the TimeManager.delta() here, maybe because we're running in FixedUpdate?
+/// The main bot movement system, this dictates how bots go after their target and navigate around the map. 
+/// This system will manipulate the bot's velocity directly. Actual movement & collision is handled by Avian3d's physics system.
+/// 
+/// Most of the bot's behavior is documented in the BotBehavior struct.
+/// - But for the most part, aggressive bots will orbit around their target and attack when in range.
+/// - Standard bots will move towards their target and attack when in range.
+/// - Bots will also avoid walls and other obstacles.
+/// - We compute a wish direction for the bot, this is quite simply the direction the bot wishes to move in at any given time.
+/// Bots will not wish to move if there is no target.
 fn move_system(
     spatial_query: SpatialQuery,
     fixed_time: Res<Time<Fixed>>,
@@ -209,11 +216,12 @@ fn move_system(
                     .with_mask([GameLayer::Wall])
                     .with_excluded_entities([bot_entity]),
             ) {
+                // wish to move along the wall
                 wish_dir = hit.normal;
 
-                // give it a new orbit kind
+                // try and change the orbit direction
                 if let Some(mut bot_target) = found_bot_target {
-                    bot_target.choose_new_orbit_kind();
+                    bot_target.choose_new_orbit_direction();
                 }
             }
 
