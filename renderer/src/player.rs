@@ -12,6 +12,7 @@ use lightyear::prelude::client::{Confirmed, Predicted, PredictionSet, VisualInte
 use lightyear::shared::replication::components::Controlled;
 use shared::player::Player;
 use shared::prelude::PlayerInput;
+use shared::weapons::WeaponsData;
 use crate::hud::spawn_3d_hud;
 use crate::VisibleFilter;
 
@@ -23,7 +24,7 @@ impl Plugin for PlayerPlugin {
         // cannot use an observer right now because we are not on lightyear-main where all components are synced at the same time
         // app.add_observer(spawn_visuals);
 
-        app.add_systems(PreUpdate, spawn_visuals.after(PredictionSet::Sync));
+        app.add_systems(PreUpdate, spawn_visuals.after(PredictionSet::Sync).run_if(resource_exists::<WeaponsData>));
         app.add_systems(Update, (
             toggle_mouse_pointer_system,
         ));
@@ -76,6 +77,7 @@ fn spawn_visuals(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     asset_server: Res<AssetServer>,
+    weapons_data: Res<WeaponsData>,
 ) {
     for (parent, is_controlled, is_predicted) in query.iter() {
         commands.entity(parent).insert(Visibility::default());
@@ -146,7 +148,7 @@ fn spawn_visuals(
                 ));
 
                 // 3d hud is attached to the ship, seperate from the camera so we can see the camera sway
-                spawn_3d_hud(&asset_server, &mut meshes, &mut materials, parent);
+                spawn_3d_hud(&asset_server, &mut meshes, &mut materials, parent, &weapons_data);
             });
         }
     }

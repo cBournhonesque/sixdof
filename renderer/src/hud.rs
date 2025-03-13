@@ -13,7 +13,7 @@ pub struct HudPlugin;
 
 impl Plugin for HudPlugin {
     fn build(&self, app: &mut App) {
-        app.add_observer(spawn_hud);
+        app.add_observer(spawn_2d_hud_system);
         app.add_plugins(ConfigAssetLoaderPlugin::<HudConfig>::new("data/hud.ron"));
         app.add_plugins(Text3dPlugin{
             default_atlas_dimension: (1024, 1024),
@@ -53,7 +53,9 @@ struct Hud {
 struct PredictionMetricsText;
 
 #[derive(Component, Debug)]
-struct Crosshair;
+struct Crosshair {
+    pub textures: Vec<Handle<Image>>,
+}
 
 #[derive(Component, Default, Clone)]
 struct GForceData {
@@ -84,19 +86,12 @@ fn prediction_metrics_system(
     }
 }
 
-fn spawn_hud(
+fn spawn_2d_hud_system(
     trigger: Trigger<OnAdd, Camera3d>,
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     weapons_data: Res<WeaponsData>,
 ) {
-
-    // let crosshair = Crosshair {
-    //     textures: weapons_data.weapons.iter().map(|weapon| asset_server.load(&weapon.1.crosshair.image)).collect()
-    // };
-
-    // let default_crosshair = crosshair.textures.first().unwrap().clone();
-
     commands
         .spawn((
             Hud {
@@ -123,37 +118,6 @@ fn spawn_hud(
                 },
                 Text::new("Prediction metrics..."),
             ));
-
-        //     // Crosshair
-        //     parent.spawn((
-        //         Crosshair {
-        //             textures: vec![
-        //                 default_crosshair.clone(),
-        //                 asset_server.load("textures/hud/crosshairs/kenney_crosshair_pack/crosshair188.png"),
-        //                 asset_server.load("textures/hud/crosshairs/kenney_crosshair_pack/crosshair030.png"),
-        //                 asset_server.load("textures/hud/crosshairs/kenney_crosshair_pack/crosshair043.png"),
-        //                 asset_server.load("textures/hud/crosshairs/kenney_crosshair_pack/crosshair018.png"),
-        //             ],
-        //         },
-        //         ImageNode {
-        //             color: Color::srgba(1.0, 1.0, 1.0, 0.15),
-        //             image: default_crosshair,
-        //             ..default()
-        //         },
-        //         Node {
-        //             position_type: PositionType::Absolute,
-        //             width: Val::Px(200.0),
-        //             height: Val::Px(200.0),
-        //             right: Val::Percent(50.0),
-        //             bottom: Val::Percent(50.0),
-        //             margin: UiRect {
-        //                 right: Val::Px(-100.0),
-        //                 bottom: Val::Px(-100.0),
-        //                 ..default()
-        //             },
-        //             ..default()
-        //         }
-        //     ));
         });
 }
 
@@ -162,9 +126,16 @@ pub fn spawn_3d_hud(
     mut meshes: &mut Assets<Mesh>,
     mut materials: &mut Assets<StandardMaterial>,
     ship: &mut ChildBuilder,
+    weapons_data: &WeaponsData,
 ) {
+    let crosshair = Crosshair {
+        textures: weapons_data.weapons.iter().map(|weapon| asset_server.load(&weapon.1.crosshair.image)).collect()
+    };
+
+    let default_crosshair = crosshair.textures.first().unwrap().clone();
+
     ship.spawn((
-        Crosshair,
+        crosshair,
         Mesh3d(meshes.add(Mesh::from(Rectangle::new(0.0375, 0.0375)))),
         MeshMaterial3d(materials.add(StandardMaterial {
             alpha_mode: AlphaMode::Blend,
@@ -276,15 +247,17 @@ fn camera_sway_system(
 
 fn crosshair_system(
     mut commands: Commands,
-    mut crosshair: Query<(&Crosshair, &mut ImageNode)>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut crosshair: Query<(&Crosshair, &MeshMaterial3d<StandardMaterial>)>,
     mut current_weapon_idx: Query<&CurrentWeaponIndex, (With<Controlled>, Changed<CurrentWeaponIndex>)>,
 ) {
-    // let Ok(current_weapon_idx) = current_weapon_idx.get_single() else { return };
+    let Ok(current_weapon_idx) = current_weapon_idx.get_single() else { return };
 
-    // let (crosshair, mut image) = crosshair.single_mut();
-    // if let Some(current_weapon_handle) = crosshair.textures.get(current_weapon_idx.0 as usize) {
-    //     if image.image != *current_weapon_handle{
-    //         image.image = current_weapon_handle.clone();
-    //     }
-    // }
+    let (crosshair, mut image) = crosshair.single_mut();
+    if let Some(current_weapon_handle) = crosshair.textures.get(current_weapon_idx.0 as usize) {
+        if let Some(material) = materials.get_mut(image.0.id()) {
+            material.base_color_texture = Some(current_weapon_handle.clone());
+        }
+    }
 }
