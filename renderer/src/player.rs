@@ -1,3 +1,6 @@
+use avian3d::prelude::{AngularVelocity, LinearVelocity};
+use bevy::core_pipeline::bloom::Bloom;
+use bevy::pbr::NotShadowCaster;
 use sfx::prelude::SfxListener;
 use bevy::color::palettes::basic::BLUE;
 use bevy::core_pipeline::prepass::DepthPrepass;
@@ -9,6 +12,7 @@ use lightyear::prelude::client::{Confirmed, Predicted, PredictionSet, VisualInte
 use lightyear::shared::replication::components::Controlled;
 use shared::player::Player;
 use shared::prelude::PlayerInput;
+use crate::hud::spawn_3d_hud;
 use crate::VisibleFilter;
 
 /// Responsible for render-related systems for Players
@@ -20,7 +24,9 @@ impl Plugin for PlayerPlugin {
         // app.add_observer(spawn_visuals);
 
         app.add_systems(PreUpdate, spawn_visuals.after(PredictionSet::Sync));
-        app.add_systems(Update, toggle_mouse_pointer_system);
+        app.add_systems(Update, (
+            toggle_mouse_pointer_system,
+        ));
     }
 }
 
@@ -69,9 +75,9 @@ fn spawn_visuals(
     // mut atomized_materials: ResMut<Assets<AtomizedMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    asset_server: Res<AssetServer>,
 ) {
-    query.iter().for_each(|(parent, is_controlled, is_predicted)| {
-        // add visibility
+    for (parent, is_controlled, is_predicted) in query.iter() {
         commands.entity(parent).insert(Visibility::default());
 
         // TODO: don't do this in host-server mode!
@@ -82,8 +88,8 @@ fn spawn_visuals(
 
         // Add headlights
         commands.entity(parent).with_children(|parent| {
-            let headlamp_1_pos = Vec3::new(0.45, 0.0, 0.0);
-            let headlamp_2_pos = Vec3::new(-0.45, 0.0, 0.0);
+            let headlamp_1_pos = Vec3::new(0.45, 0.0, -0.25);
+            let headlamp_2_pos = Vec3::new(-0.45, 0.0, -0.25);
             for headlamp_index in 0..2 {
                 let headlamp_pos = if headlamp_index == 0 {
                     headlamp_1_pos
@@ -92,6 +98,7 @@ fn spawn_visuals(
                 };
                 parent.spawn((
                     SpotLight {
+                        intensity: 2_000_000.0,
                         color: Color::srgb(1.0, 0.95, 0.9),
                         outer_angle: 0.75,
                         inner_angle: 0.1,
@@ -100,7 +107,7 @@ fn spawn_visuals(
                         ..default()
                     },
                     Transform::from_translation(headlamp_pos)
-                        .looking_at(Vec3::new(0.0, 0.0, -1.0), Vec3::Y),
+                        .looking_at(Vec3::new(0.0, 0.0, -1.25), Vec3::Y),
                 ));
             }
         });
@@ -122,19 +129,25 @@ fn spawn_visuals(
             mouse_pointer_off(&mut window);
 
             // spawn a camera for 1-st person view
-            commands.entity(parent).insert((
-                Camera3d::default(),
-                Camera {
-                    hdr: true,
-                    ..default()
-                },
-                Projection::Perspective(PerspectiveProjection {
-                    fov: 90.0_f32.to_radians(),
-                    ..default()
-                }),
-                SfxListener::new(),
-            ));
-        }
-    })
-}
+            commands.entity(parent).with_children(|parent| {
+                // spawn it as a child so we can sway the camera seperately from the ship
+                parent.spawn((
+                    Camera3d::default(),
+                    Camera {
+                        hdr: true,
+                        ..default()
+                    },
+                    Bloom::NATURAL,
+                    Projection::Perspective(PerspectiveProjection {
+                        fov: 90.0_f32.to_radians(),
+                        ..default()
+                    }),
+                    SfxListener::new(),
+                ));
 
+                // 3d hud is attached to the ship, seperate from the camera so we can see the camera sway
+                spawn_3d_hud(&asset_server, &mut meshes, &mut materials, parent);
+            });
+        }
+    }
+}
