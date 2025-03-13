@@ -1,10 +1,8 @@
 use bevy::prelude::*;
 use lightyear::prelude::server::*;
-use shared::{player::Player, prelude::{Damageable, GameLayer, UniqueIdentity}, ships::{get_shared_ship_components, ShipIndex}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
+use shared::{player::Player, prelude::{Damageable, UniqueIdentity, PREDICTION_REPLICATION_GROUP_ID}, ships::{get_shared_ship_components, ShipIndex}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
 use avian3d::prelude::*;
 use lightyear::prelude::{NetworkTarget, ReplicateHierarchy, ReplicationGroup};
-use lightyear::shared::replication::components::ReplicationGroupId;
-use shared::prelude::{PREDICTION_REPLICATION_GROUP_ID};
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {

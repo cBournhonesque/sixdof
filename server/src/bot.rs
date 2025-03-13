@@ -1,16 +1,11 @@
-use std::ops::DerefMut;
-use bevy::utils::{Duration, HashMap};
 use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy::time::Stopwatch;
 use lightyear::prelude::*;
 use lightyear::prelude::server::*;
-use lightyear_avian::prelude::LagCompensationHistory;
-use rand::Rng;
 use shared::bot::{Bot, BotAttackKind};
 use shared::player::Player;
 use shared::prelude::{Damageable, GameLayer, UniqueIdentity};
-use shared::ships::{get_shared_ship_components, move_ship, ShipId, ShipIndex, ShipsData};
+use shared::ships::{get_shared_ship_components, move_ship, ShipIndex, ShipsData};
 // TODO: should bots be handled similarly to players? i.e. they share most of the same code (visuals, collisions)
 //  but they are simply controlled by the server. The server could be sending fake inputs to the bots so that their movement
 //  is the same as players
@@ -67,14 +62,17 @@ impl BotTarget {
     fn update(&mut self, delta_time: f32, change_interval: f32) {
         self.orbit_timer += delta_time;
         if self.orbit_timer >= change_interval {
-            // Randomly choose new orbit kind
-            self.orbit_kind = match rand::random::<u8>() % 4 {
-                0 => OrbitKind::HorizontalClockwise,
-                1 => OrbitKind::HorizontalCounterClockwise,
-                2 => OrbitKind::VerticalClockwise,
-                _ => OrbitKind::VerticalCounterClockwise,
-            };
+            self.choose_new_orbit_kind();
             self.orbit_timer = 0.0;
+        }
+    }
+
+    fn choose_new_orbit_kind(&mut self) {
+        self.orbit_kind = match rand::random::<u8>() % 4 {
+            0 => OrbitKind::HorizontalClockwise,
+            1 => OrbitKind::HorizontalCounterClockwise,
+            2 => OrbitKind::VerticalClockwise,
+            _ => OrbitKind::VerticalCounterClockwise,
         }
     }
 }
@@ -100,7 +98,9 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
                 ..default()
             },
             UniqueIdentity::Bot(bot_manager.next_bot_id),
-            Bot,
+            Bot {
+                wish_dir: Vec3::ZERO,
+            },
             Damageable {
                 health: 50,
             },
@@ -119,18 +119,19 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
 /// Move bots up and down
 /// For some reason we cannot use the TimeManager.delta() here, maybe because we're running in FixedUpdate?
 fn move_system(
+    spatial_query: SpatialQuery,
     fixed_time: Res<Time<Fixed>>,
     mut targets: Query<&mut BotTarget>,
     transforms: Query<&Transform>,
-    mut bots: Query<(Entity, &mut LinearVelocity, &mut AngularVelocity, &ShipIndex), With<Bot>>, 
+    mut bots: Query<(Entity, &Transform, &mut LinearVelocity, &mut AngularVelocity, &ShipIndex, &mut Bot)>, 
     ships_data: Res<ShipsData>,
 ) {
     let delta = fixed_time.delta_secs();
     
-    for (bot_entity, mut linear_velocity, mut angular_velocity, ship_index) in bots.iter_mut() {
+    for (bot_entity, bot_transform, mut linear_velocity, mut angular_velocity, ship_index, mut bot) in bots.iter_mut() {
         if let Some(ship_behavior) = ships_data.ships.get(&ship_index.0) {
             let mut wish_dir = Vec3::ZERO;
-
+            let mut found_bot_target = None;
             if let Ok(mut bot_target) = targets.get_mut(bot_entity) {
                 if let (Ok(target_transform), Ok(bot_transform)) = (transforms.get(bot_target.entity), transforms.get(bot_entity)) {
                     let target_pos = target_transform.translation;
@@ -139,8 +140,8 @@ fn move_system(
                     let dir_to_target = (target_pos - bot_pos).normalize_or_zero();
 
                     match ship_behavior.bot_behavior.attack_kind {
-                        BotAttackKind::Aggressive { target_distance, change_attack_direction_interval, back_off_distance } => {
-                            bot_target.update(delta, change_attack_direction_interval);
+                        BotAttackKind::Aggressive { target_distance, change_orbit_dir_interval: change_attack_dir_interval, .. } => {
+                            bot_target.update(delta, change_attack_dir_interval);
 
                             let to_target = target_pos - bot_pos;
                             
@@ -164,35 +165,63 @@ fn move_system(
                             }.normalize();
 
                             // If too far, blend in some inward movement
-                            if distance > target_distance * 1.2 {
-                                wish_dir = (orbit_dir + dir_to_target).normalize();
+                            if distance > target_distance {
+                                wish_dir = ((orbit_dir * ship_behavior.bot_behavior.orbit_dir_back_off_blend_amount) + dir_to_target).normalize();
                             }
                             // If too close, blend in some outward movement
-                            else if distance < target_distance * 0.8 {
-                                wish_dir = (orbit_dir - dir_to_target).normalize();
+                            else if distance < ship_behavior.bot_behavior.back_off_distance {
+                                wish_dir = ((orbit_dir * ship_behavior.bot_behavior.orbit_dir_back_off_blend_amount) - dir_to_target).normalize();
                             }
-                            // Otherwise pure orbital motion
+                            // Otherwise pure orbital motion with a slight bias towards the target
                             else {
-                                wish_dir = orbit_dir;
+                                wish_dir = (orbit_dir + (dir_to_target * ship_behavior.bot_behavior.orbit_dir_target_blend_amount)).normalize();
                             }
+
+                            // add some slight random movement
+                            wish_dir += Vec3::new(
+                                (rand::random::<f32>() * 2.0 - 1.0) * ship_behavior.bot_behavior.wish_dir_random_factor,
+                                (rand::random::<f32>() * 2.0 - 1.0) * ship_behavior.bot_behavior.wish_dir_random_factor,
+                                (rand::random::<f32>() * 2.0 - 1.0) * ship_behavior.bot_behavior.wish_dir_random_factor,
+                            );
                         }
-                        BotAttackKind::Standard { target_distance } => {
+                        BotAttackKind::Standard { target_distance, .. } => {
                             if distance > target_distance {
                                 wish_dir = dir_to_target;
-                            } else {
+                            } else if distance < ship_behavior.bot_behavior.back_off_distance {
                                 wish_dir = -dir_to_target;
                             }
                         }
                     }
                 }
+
+                found_bot_target = Some(bot_target);
             }
             
-            // fallback
-            if wish_dir.length_squared() < 0.001 {
-                wish_dir = Vec3::new(0.0, 0.0, -1.0);
+            wish_dir = wish_dir.normalize_or_zero();
+
+            // deflect the ship if it's about to hit a wall
+            if let Some(hit) = spatial_query.cast_ray(
+                bot_transform.translation,
+                Dir3::new(wish_dir).unwrap_or(Dir3::NEG_Z),
+                ship_behavior.bot_behavior.wall_avoidance_distance,
+                true,
+                &SpatialQueryFilter::default()
+                    .with_mask([GameLayer::Wall])
+                    .with_excluded_entities([bot_entity]),
+            ) {
+                wish_dir = hit.normal;
+
+                // give it a new orbit kind
+                if let Some(mut bot_target) = found_bot_target {
+                    bot_target.choose_new_orbit_kind();
+                }
             }
-            
-            move_ship(&fixed_time, &ship_behavior, &mut linear_velocity, &mut angular_velocity, wish_dir, None);
+
+            // blend the wish direction over time so we're not changing it abruptly, 
+            // a lower wish_dir_change_speed will make the bot change direction slower
+            bot.wish_dir = bot.wish_dir.lerp(wish_dir, ship_behavior.bot_behavior.wish_dir_change_speed * delta);
+
+            move_ship(&fixed_time, &ship_behavior, &mut linear_velocity, &mut angular_velocity, bot.wish_dir, None);
         }
     }
 }

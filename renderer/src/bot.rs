@@ -17,7 +17,6 @@ fn spawn_visuals(
     query: Query<(), VisibleFilter>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    // mut atomized_materials: ResMut<Assets<AtomizedMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let entity = trigger.entity();

@@ -1,11 +1,8 @@
 use avian3d::prelude::{LinearVelocity, PhysicsStepSet, Position, SpatialQuery, SpatialQueryFilter};
-use bevy::math::NormedVectorSpace;
 use bevy::prelude::*;
-use lightyear::prelude::{Replicating, ServerConnectionManager, TickManager};
+use lightyear::prelude::{Replicating, TickManager};
 use shared::{prelude::{Damageable, PlayerInput, UniqueIdentity}, weapons::{handle_shooting, CurrentWeaponIndex, ProjectileHitEvent, WeaponInventory, WeaponsData}};
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::prelude::client::InterpolationDelay;
-use lightyear_avian::prelude::LagCompensationSpatialQuery;
 use shared::prelude::{GameLayer, Projectile, WeaponFiredEvent};
 
 /// Handles projectiles colliding with walls and enemies
