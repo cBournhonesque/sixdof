@@ -147,8 +147,15 @@ fn move_system(
                     let dir_to_target = (target_pos - bot_pos).normalize_or_zero();
 
                     match ship_behavior.bot_behavior.attack_kind {
-                        BotAttackKind::Aggressive { target_distance, change_orbit_dir_interval: change_attack_dir_interval, .. } => {
-                            bot_target.update(delta, change_attack_dir_interval);
+                        BotAttackKind::Aggressive { 
+                            target_distance, 
+                            change_orbit_dir_interval, 
+                            orbit_dir_back_off_blend_amount, 
+                            orbit_dir_blend_amount, 
+                            orbit_dir_target_blend_amount, 
+                            wish_dir_random_factor 
+                        } => {
+                            bot_target.update(delta, change_orbit_dir_interval);
 
                             let to_target = target_pos - bot_pos;
                             
@@ -173,22 +180,22 @@ fn move_system(
 
                             // If too far, blend in some inward movement
                             if distance > target_distance {
-                                wish_dir = ((orbit_dir * ship_behavior.bot_behavior.orbit_dir_back_off_blend_amount) + dir_to_target).normalize();
+                                wish_dir = ((orbit_dir * orbit_dir_back_off_blend_amount) + dir_to_target).normalize();
                             }
                             // If too close, blend in some outward movement
                             else if distance < ship_behavior.bot_behavior.back_off_distance {
-                                wish_dir = ((orbit_dir * ship_behavior.bot_behavior.orbit_dir_back_off_blend_amount) - dir_to_target).normalize();
+                                wish_dir = ((orbit_dir * orbit_dir_back_off_blend_amount) - dir_to_target).normalize();
                             }
                             // Otherwise pure orbital motion with a slight bias towards the target
                             else {
-                                wish_dir = (orbit_dir + (dir_to_target * ship_behavior.bot_behavior.orbit_dir_target_blend_amount)).normalize();
+                                wish_dir = (orbit_dir + (dir_to_target * orbit_dir_target_blend_amount)).normalize();
                             }
 
                             // add some slight random movement
                             wish_dir += Vec3::new(
-                                (rand::random::<f32>() * 2.0 - 1.0) * ship_behavior.bot_behavior.wish_dir_random_factor,
-                                (rand::random::<f32>() * 2.0 - 1.0) * ship_behavior.bot_behavior.wish_dir_random_factor,
-                                (rand::random::<f32>() * 2.0 - 1.0) * ship_behavior.bot_behavior.wish_dir_random_factor,
+                                (rand::random::<f32>() * 2.0 - 1.0) * wish_dir_random_factor,
+                                (rand::random::<f32>() * 2.0 - 1.0) * wish_dir_random_factor,
+                                (rand::random::<f32>() * 2.0 - 1.0) * wish_dir_random_factor,
                             );
                         }
                         BotAttackKind::Standard { target_distance, .. } => {
