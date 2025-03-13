@@ -16,11 +16,23 @@
                 back_off_distance: 4.0,
                 wish_dir_change_speed: 4.0,
                 attack_kind: Aggressive ( 
+                    /// the bot tries to maintain this distance from the target
                     target_distance: 8.0,
-                    change_attack_dir_interval: 5.0,
+
+                    /// the time it takes to change the direction it takes when orbiting around the target
+                    change_orbit_dir_interval: 5.0,
+
+                    /// the amount we blend the orbit direction with the direction to the target when further than target_distance
                     orbit_dir_blend_amount: 0.1,
+
+                    /// the amount we blend the orbit direction with the direction to the target when backing away from the target
                     orbit_dir_back_off_blend_amount: 0.1,
+
+                    /// the amount we blend the target direction with the orbit direction between the target_distance and back_off_distance
+                    /// this pulls the bot towards the target when orbiting the target, causing a swinging motion
                     orbit_dir_target_blend_amount: 0.5,
+
+                    /// we add some randomness to the wish direction to make the bot less predictable, should be a value between 0.0 and 1.0
                     wish_dir_random_factor: 0.1,
                 ),
             ),
@@ -41,7 +53,7 @@
                 back_off_distance: 4.0,
                 attack_kind: Aggressive (
                     target_distance: 8.0,
-                    change_attack_dir_interval: 5.0,
+                    change_orbit_dir_interval: 5.0,
                     orbit_dir_blend_amount: 0.1,
                     orbit_dir_back_off_blend_amount: 0.1,
                     orbit_dir_target_blend_amount: 0.5,

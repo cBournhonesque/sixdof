@@ -226,7 +226,7 @@ fn move_system(
                 // wish to move along the wall
                 wish_dir = hit.normal;
 
-                // try and change the orbit direction
+                // try and change the orbit direction if we have a target
                 if let Some(mut bot_target) = found_bot_target {
                     bot_target.choose_new_orbit_direction();
                 }
