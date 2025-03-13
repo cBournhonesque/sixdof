@@ -180,7 +180,7 @@ fn move_system(
 
                             // If too far, blend in some inward movement
                             if distance > target_distance {
-                                wish_dir = ((orbit_dir * orbit_dir_back_off_blend_amount) + dir_to_target).normalize();
+                                wish_dir = ((orbit_dir * orbit_dir_blend_amount) + dir_to_target).normalize();
                             }
                             // If too close, blend in some outward movement
                             else if distance < ship_behavior.bot_behavior.back_off_distance {
