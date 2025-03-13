@@ -10,9 +10,10 @@ pub(crate) struct PhysicsPlugin;
 #[derive(PhysicsLayer, Default)]
 pub enum GameLayer {
     #[default]
+    Default,
     Wall,
     Projectile,
-    Player,
+    Ship,
     /// Used for lag compensation: we will check the collision between the bullet and the AABB bounding box
     /// of the collider + it's history
     LagCompensatedBroadPhase,
@@ -32,6 +33,9 @@ impl Plugin for PhysicsPlugin {
         //    a RigidBody) so instead we roll out our own sync system
         // 3. We still need to run the SyncPlugin in FixedPostUpdate; if we run it in RunFixedMainLoop, the visual interpolation will have
         //    empty Transform values when updating VisualInterpolation. VisualInterpolationUpdate runs in FixedLast.
+        // 4. We also need to run the SyncPlugin in FixedUpdate, for example if you have multiple Updates in a row without FixedUpdates,
+        //    and the first one triggers a rollback with Correction. Then on the first frame we reset the Position to the original_prediction
+        //    and we need a sync to make sure that visually we also use this value!
 
         // SYSTEMS
         app.add_systems(
@@ -39,6 +43,15 @@ impl Plugin for PhysicsPlugin {
             position_to_transform
                 .in_set(SyncSet::PositionToTransform)
         );
+        app.add_systems(
+            PostUpdate,
+            position_to_transform
+                .in_set(SyncSet::PositionToTransform)
+        );
+        app.configure_sets(
+            PostUpdate, SyncSet::PositionToTransform.in_set(PhysicsSet::Sync)
+        );
+        //app.add_systems(Update, log_collisions);
 
         // RESOURCES
         // disable sleeping
@@ -94,5 +107,17 @@ pub fn position_to_transform(
             transform.rotation = rot.f32();
             // info!(?transform, ?pos, ?rot, "PosToTransform");
         }
+    }
+}
+
+pub fn log_collisions(
+    mut event_reader: EventReader<Collision>,
+) {
+        for Collision(contacts) in event_reader.read() {
+        println!(
+            "Entities {} and {} are colliding",
+            contacts.entity1,
+            contacts.entity2,
+        );
     }
 }

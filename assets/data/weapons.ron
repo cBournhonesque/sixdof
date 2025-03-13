@@ -1,8 +1,8 @@
 (
     weapons: {
         0: WeaponBehavior (
-            name: "Dual Lasers",
-            description: "A pair of lasers that fire in unison.",
+            name: "Dual Plasma Cannons",
+            description: "A pair of plasma cannons that fire in unison.",
             barrel_positions: [
                 // Right barrel
                 (0.25, -0.25, 0.0),
@@ -66,14 +66,26 @@
                     blue: 30.0,
                     alpha: 1.0,
                 )),
+                emissive_color: Some(LinearRgba((
+                    red: 0.0,
+                    green: 10.0,
+                    blue: 30.0,
+                    alpha: 1.0,
+                ))),
+                light_color: Some(LinearRgba((
+                    red: 0.0,
+                    green: 1.0,
+                    blue: 3.0,
+                    alpha: 1.0,
+                ))),
             ),
         ),
         1: WeaponBehavior (
             name: "Fusion Cannon",
-            description: "Big boom.",
+            description: "Triple-barrel energy weapon.",
             barrel_positions: [
                 // Center barrel
-                (0.0, -0.15, 0.0),
+                (0.0, -0.0, 0.0),
                 // Left barrel
                 (-0.25, -0.25, 0.0),
                 // Right barrel
@@ -136,6 +148,18 @@
                     blue: 10.0,
                     alpha: 1.0,
                 )),
+                emissive_color: Some(LinearRgba((
+                    red: 0.0,
+                    green: 30.0,
+                    blue: 10.0,
+                    alpha: 1.0,
+                ))),
+                light_color: Some(LinearRgba((
+                    red: 0.0,
+                    green: 30.0,
+                    blue: 10.0,
+                    alpha: 1.0,
+                ))),
             ),
         ),
     },
