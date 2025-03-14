@@ -90,8 +90,8 @@ fn spawn_visuals(
 
         // Add headlights
         commands.entity(parent).with_children(|parent| {
-            let headlamp_1_pos = Vec3::new(0.45, 0.0, -0.25);
-            let headlamp_2_pos = Vec3::new(-0.45, 0.0, -0.25);
+            let headlamp_1_pos = Vec3::new(0.25, 0.0, -0.25);
+            let headlamp_2_pos = Vec3::new(-0.25, 0.0, -0.25);
             for headlamp_index in 0..2 {
                 let headlamp_pos = if headlamp_index == 0 {
                     headlamp_1_pos
