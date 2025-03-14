@@ -292,6 +292,7 @@ pub fn handle_shooting(
                                     projectile_bundle,
                                     Replicate {
                                         sync: SyncTarget {
+                                            // TODO: actually don't even need to sync to client?
                                             // the bullet is predicted for the client who shot it
                                             prediction: NetworkTarget::Single(*client_id),
                                             // TODO: we don't want to interpolate bullet states because it's too expensive!
