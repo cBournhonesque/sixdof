@@ -92,75 +92,44 @@ fn projectile_hit_system(
 /// - narrow-phase: if there is a broadphase hit, check hits via raycast between bullet and the interlated history collider
 fn bullet_hit_detection(
     mut commands: Commands,
-    fixed_time: Res<Time<Fixed>>,
     tick_manager: Res<TickManager>,
-    projectiles: Query<(Entity, &Position, &LinearVelocity, &WeaponFiredEvent), With<Projectile>>,
+    nonraycast_bullets: Query<(Entity, &Position, &LinearVelocity, &WeaponFiredEvent), With<Projectile>>,
     mut hit_events: EventWriter<ProjectileHitEvent>,
-    // query: LagCompensationSpatialQuery,
-    // manager: Res<ServerConnectionManager>,
-    // client_query: Query<&InterpolationDelay>,
-    spatial_query: SpatialQuery,
+    query: LagCompensationSpatialQuery,
+    manager: Res<ServerConnectionManager>,
+    client_query: Query<&InterpolationDelay>,
 ) {
     let tick = tick_manager.tick();
-    for (bullet_entity, current_pos, current_velocity, fired_event) in projectiles.iter() {
-        // @comment-brian: This seemed to be causing problems, it's like it isn't hitting on the server at all.
-        // I'm not sure why, probably because lack of LagCompensationHistory on the bot? But even for walls it wasn't logging anything.
-        // So I just used a spatial query for now.
+    nonraycast_bullets.iter()
+        .for_each(|(bullet_entity, current_pos, current_velocity, fired_event)| {
 
-        // let delay = match fired_event.shooter_id {
-        //     UniqueIdentity::Player(client_id) => {
-        //         let Ok(delay) = manager
-        //             .client_entity(client_id)
-        //             .map(|client_entity| client_query.get(client_entity).unwrap())
-        //         else {
-        //             error!("Could not retrieve InterpolationDelay for client {client_id:?}");
-        //             return;
-        //         };
-        //         *delay
-        //     }
-        //     UniqueIdentity::Bot(_) => InterpolationDelay {
-        //         delay_ms: 0,
-        //     }
-        // };
-        // if let Some(hit) = query.cast_ray(
-        //     delay,
-        //     current_pos.0,
-        //     Dir3::from_xyz(current_velocity.x, current_velocity.y, current_velocity.z).unwrap_or(fired_event.fire_direction),
-        //     current_velocity.length() * fixed_time.delta_secs(),
-        //     true,
-        //     &mut SpatialQueryFilter {
-        //         mask: [GameLayer::Ship, GameLayer::Wall].into(),
-        //         ..default()
-        //     }.with_excluded_entities([fired_event.shooter_entity])
-        // ) {
-        //     let hit_event = ProjectileHitEvent {
-        //         shooter_id: fired_event.shooter_id,
-        //         weapon_index: fired_event.weapon_index,
-        //         projectile_entity: bullet_entity,
-        //         entity_hit: Some(hit.entity),
-        //     };
-        //     info!(?tick, "Sending bullet hit event: {:?}", hit_event);
-        //     hit_events.send(hit_event);
-
-        //     // if the bullet was a projectile, despawn it
-        //     // TODO: how to make sure that the bullet is visually despawned on the client?
-        //     //      @comment-brian: check out client/src/weapon.rs, I now predict the hit detection of projectiles for now. 
-        //     //                      And I think that's what you want probably? I'll have to think about it more.
-        //     commands.entity(bullet_entity).despawn_recursive();
-        // }
-
-        if let Some(hit) = spatial_query.cast_ray(
+        let delay = match fired_event.shooter_id {
+            UniqueIdentity::Player(client_id) => {
+                let Ok(delay) = manager
+                    .client_entity(client_id)
+                    .map(|client_entity| client_query.get(client_entity).unwrap())
+                else {
+                    error!("Could not retrieve InterpolationDelay for client {client_id:?}");
+                    return;
+                };
+                *delay
+            }
+            UniqueIdentity::Bot(_) => InterpolationDelay {
+                delay_ms: 0,
+            }
+        };
+        if let Some(hit) = query.cast_ray(
+            delay,
             current_pos.0,
-            Dir3::from_xyz(current_velocity.x, current_velocity.y, current_velocity.z).unwrap_or(fired_event.fire_direction),
-            current_velocity.length() * fixed_time.delta_secs(),
-            true,
+            // NOTE: we could also use the current LinearVelocity
+            fired_event.fire_direction,
+            current_velocity.norm(),
+            false,
             &mut SpatialQueryFilter {
                 mask: [GameLayer::Ship, GameLayer::Wall].into(),
                 ..default()
             }.with_excluded_entities([fired_event.shooter_entity])
         ) {
-            commands.entity(bullet_entity).despawn_recursive();
-            
             let hit_event = ProjectileHitEvent {
                 shooter_id: fired_event.shooter_id,
                 weapon_index: fired_event.weapon_index,
@@ -169,8 +138,14 @@ fn bullet_hit_detection(
             };
             info!(?tick, "Sending bullet hit event: {:?}", hit_event);
             hit_events.send(hit_event);
+
+            // if the bullet was a projectile, despawn it
+            // TODO: how to make sure that the bullet is visually despawned on the client?
+            //      @comment-brian: check out client/src/weapon.rs, I now predict the hit detection of projectiles for now.
+            //                      And I think that's what you want probably? I'll have to think about it more.
+            commands.entity(bullet_entity).despawn_recursive();
         }
-    }
+    });
 }
 
 fn shoot_system(

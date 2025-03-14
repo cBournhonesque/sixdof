@@ -7,7 +7,7 @@ members = [
     "server",
     "shared", 
     "sfx",
-    "vfx", "moveable",
+    "vfx",
 ]
 
 [workspace.package]
@@ -52,6 +52,7 @@ avian3d = { version = "0.2.0", default-features = false, features = [
     "bevy_scene",
     "parallel",
     "serialize",
+    "enhanced-determinism"
 ] }
 leafwing-input-manager = { version = "0.16", default-features = false, features = [
     "keyboard",
@@ -78,6 +79,7 @@ bevy-inspector-egui = { git = "https://github.com/blip-radar/bevy-inspector-egui
     "bevy_render",
     "egui_open_url",
 ] }
+bevy_rich_text3d = "0.2.0"
 rand = "0.9.0"
 
 

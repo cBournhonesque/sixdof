@@ -7,6 +7,7 @@ use lightyear::shared::replication::components::ReplicationGroupId;
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
 use crate::prelude::{Damageable, UniqueIdentity};
+use crate::ships::ShipIndex;
 use crate::weapons::{CurrentWeaponIndex, WeaponInventory};
 use lightyear::utils::bevy::TransformLinearInterpolation;
 use crate::bot::Bot;
@@ -116,5 +117,7 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<UniqueIdentity>(ChannelDirection::ServerToClient);        
         app.register_component::<Damageable>(ChannelDirection::ServerToClient);
         app.register_component::<CurrentWeaponIndex>(ChannelDirection::ServerToClient);
+        app.register_component::<ShipIndex>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Once);
     }
 }

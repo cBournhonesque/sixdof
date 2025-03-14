@@ -1,0 +1,9 @@
+(
+    head_recenter_speed: 4.0,
+    head_pitch_amount: 0.001,
+    head_yaw_amount: 0.000,
+    head_roll_amount: 0.003,
+    head_x_amount: 0.000,
+    head_y_amount: 0.000,
+    head_z_amount: 0.001,
+)

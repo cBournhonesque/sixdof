@@ -311,7 +311,7 @@ fn play_sfx_event_system(
                         Ok(handle) => {
                             emitter_handles.sound_handle = Some(handle);
                             commands.entity(emitter_entity).insert(emitter_handles);
-                            info!("Successfully started playing sfx");
+                            //info!("Successfully started playing sfx");
                         }
                         Err(e) => error!("Error playing sfx: {}", e),
                     }
@@ -362,7 +362,7 @@ fn add_listener_system(
     mut listener_query: Query<(Entity, &Transform, &mut SfxListener), Added<SfxListener>>,
 ) {
     for (listener, listener_transform, mut sfx_listener) in listener_query.iter_mut() {
-        info!("Adding listener at position: {:?}", listener_transform.translation);
+        //info!("Adding listener at position: {:?}", listener_transform.translation);
         if let Ok(kira_listener) = sfx_manager.audio_manager.add_listener(
             mint::Vector3 { 
                 x: listener_transform.translation.x, 
@@ -378,7 +378,7 @@ fn add_listener_system(
                 s: listener_transform.rotation.w 
             }
         ) {
-            info!("Successfully added Kira listener");
+            //info!("Successfully added Kira listener");
             sfx_listener.listener_handle = Some(kira_listener);
         } else {
             error!("Failed to add Kira listener");
@@ -446,7 +446,7 @@ fn cleanup_finished_sfx_system(
                     }
                 } else {
                     commands.entity(entity).remove::<SfxEmitter>();
-                    info!("Removed emitter component from entity {}", entity);
+                    //info!("Removed emitter component from entity {}", entity);
                 }
             }
         }
@@ -462,7 +462,7 @@ fn despawn_finished_sfx_system(
         timer.0.tick(time.delta());
         if timer.0.finished() {
             commands.entity(entity).despawn_recursive();
-            info!("Removed emitter component from entity {} after {} seconds", entity, timer.0.elapsed_secs());
+            //info!("Removed emitter component from entity {} after {} seconds", entity, timer.0.elapsed_secs());
         }
     }
 }

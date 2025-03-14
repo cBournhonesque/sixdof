@@ -1,5 +1,6 @@
 use bevy::color::palettes::basic::RED;
 use bevy::prelude::*;
+use lightyear::prelude::client::{InterpolateStatus, VisualInterpolateStatus};
 use shared::bot::Bot;
 use crate::VisibleFilter;
 
@@ -16,12 +17,10 @@ fn spawn_visuals(
     query: Query<(), VisibleFilter>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    // mut atomized_materials: ResMut<Assets<AtomizedMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let entity = trigger.entity();
     if query.get(entity).is_ok() {
-        // add visibility
         commands.entity(entity).insert((
             Visibility::default(),
             Transform::from_xyz(0.0, 10.0, 0.0),
