@@ -15,12 +15,12 @@
             ),
             crosshair: (
                 color: LinearRgba((
-                    red: 1.0,
+                    red: 0.0,
                     green: 1.0,
-                    blue: 1.0,
+                    blue: 3.0,
                     alpha: 1.0,
                 )),
-                image: "textures/hud/crosshairs/kenney_crosshair_pack/crosshair018.png",
+                image_path: "textures/hud/crosshairs/kenney_crosshair_pack/crosshair015.png",
             ),
             projectile: (
                 speed: 95.0,
@@ -97,12 +97,12 @@
             ),
             crosshair: (
                 color: LinearRgba((
-                    red: 1.0,
-                    green: 1.0,
+                    red: 0.0,
+                    green: 3.0,
                     blue: 1.0,
                     alpha: 1.0,
                 )),
-                image: "textures/hud/crosshairs/kenney_crosshair_pack/crosshair043.png",
+                image_path: "textures/hud/crosshairs/kenney_crosshair_pack/crosshair022.png",
             ),
             projectile: (
                 speed: 65.0,

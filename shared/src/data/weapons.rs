@@ -84,12 +84,12 @@ pub struct CrosshairConfiguration {
 
     /// The image to use for the crosshair. 
     /// Relative to assets/crosshairs/
-    pub image: String,
+    pub image_path: String,
 }
 
 impl Default for CrosshairConfiguration {
     fn default() -> Self {
-        Self { color: Color::WHITE, image: "kenney_crosshair_pack/crosshair018.png".to_string() }
+        Self { color: Color::WHITE, image_path: "kenney_crosshair_pack/crosshair018.png".to_string() }
     }
 }
 

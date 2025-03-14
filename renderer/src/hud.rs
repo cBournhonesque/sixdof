@@ -1,5 +1,5 @@
 use avian3d::prelude::{AngularVelocity, LinearVelocity};
-use bevy::{diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, pbr::NotShadowCaster, prelude::*};
+use bevy::{diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, pbr::NotShadowCaster, prelude::*, utils::HashMap};
 use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use bevy_rich_text3d::{Text3d, Text3dPlugin, Text3dStyling, TextAtlas};
 
@@ -14,8 +14,9 @@ pub struct HudPlugin;
 impl Plugin for HudPlugin {
     fn build(&self, app: &mut App) {
         app.add_observer(spawn_2d_hud_system);
+        app.init_resource::<CrosshairTextures>();
         app.add_plugins(ConfigAssetLoaderPlugin::<HudConfig>::new("data/hud.ron"));
-        app.add_plugins(Text3dPlugin{
+        app.add_plugins(Text3dPlugin {
             default_atlas_dimension: (1024, 1024),
             load_system_fonts: true,
             load_font_directories: vec!["../assets/fonts".to_owned()],
@@ -24,7 +25,7 @@ impl Plugin for HudPlugin {
         app.add_plugins(FrameTimeDiagnosticsPlugin::default());
         app.add_systems(Update, (
             prediction_metrics_system,
-            crosshair_system,
+            crosshair_system.run_if(resource_exists::<WeaponsData>),
             camera_sway_system.run_if(resource_exists::<HudConfig>)
         ));
     }
@@ -53,8 +54,18 @@ struct Hud {
 struct PredictionMetricsText;
 
 #[derive(Component, Debug)]
-struct Crosshair {
-    pub textures: Vec<Handle<Image>>,
+struct Crosshair;
+
+#[derive(Component, Debug)]
+struct HealthText;
+
+#[derive(Component, Debug)]
+struct AmmoText;
+
+
+#[derive(Resource, Debug, Default)]
+struct CrosshairTextures {
+    pub textures: HashMap<String, Handle<Image>>,
 }
 
 #[derive(Component, Default, Clone)]
@@ -128,20 +139,13 @@ pub fn spawn_3d_hud(
     ship: &mut ChildBuilder,
     weapons_data: &WeaponsData,
 ) {
-    let crosshair = Crosshair {
-        textures: weapons_data.weapons.iter().map(|weapon| asset_server.load(&weapon.1.crosshair.image)).collect()
-    };
-
-    let default_crosshair = crosshair.textures.first().unwrap().clone();
-
     ship.spawn((
-        crosshair,
+        Crosshair,
         Mesh3d(meshes.add(Mesh::from(Rectangle::new(0.0375, 0.0375)))),
         MeshMaterial3d(materials.add(StandardMaterial {
             alpha_mode: AlphaMode::Blend,
-            base_color: Color::srgba(10.0, 5.0, 1.0, 1.0),
-            emissive: LinearRgba::new(1.0, 0.5, 0.0, 1.0),
-            base_color_texture: Some(asset_server.load("textures/hud/crosshairs/kenney_crosshair_pack/crosshair018.png")),
+            //base_color: Color::srgba(10.0, 5.0, 1.0, 1.0),
+            //emissive: LinearRgba::new(1.0, 0.5, 0.0, 1.0),
             ..Default::default()
         })),
         Transform::from_translation(Vec3::new(0.0, 0.0, -0.25)),
@@ -149,6 +153,7 @@ pub fn spawn_3d_hud(
     ));
 
     ship.spawn((
+        HealthText,
         Text3d::new("100"),
         Text3dStyling {
             font: "Roboto".into(),
@@ -166,8 +171,32 @@ pub fn spawn_3d_hud(
             }
         )),
         Transform::from_translation(Vec3::new(-0.25, -0.15, -0.25))
-            .with_scale(Vec3::new(0.001, 0.001, 0.001))
+            .with_scale(Vec3::new(0.0005, 0.0005, 0.0005))
             .with_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, 0.45, 0.0)),
+        NotShadowCaster,
+    ));
+
+    ship.spawn((
+        AmmoText,
+        Text3d::new("100"),
+        Text3dStyling {
+            font: "Roboto".into(),
+            size: 64.0,
+            ..default()
+        },
+        Mesh3d::default(),
+        MeshMaterial3d(materials.add(
+            StandardMaterial {
+                base_color: Color::srgba(10.0, 5.0, 1.0, 1.0),
+                emissive: LinearRgba::new(1.0, 0.5, 0.0, 1.0),
+                base_color_texture: Some(TextAtlas::DEFAULT_IMAGE.clone()),
+                alpha_mode: AlphaMode::Blend,
+                ..Default::default()
+            }
+        )),
+        Transform::from_translation(Vec3::new(0.25, -0.15, -0.25))
+            .with_scale(Vec3::new(0.0005, 0.0005, 0.0005))
+            .with_rotation(Quat::from_euler(EulerRot::XYZ, 0.0, -0.45, 0.0)),
         NotShadowCaster,
     ));
 }
@@ -246,18 +275,32 @@ fn camera_sway_system(
 }
 
 fn crosshair_system(
+    asset_server: Res<AssetServer>,
     mut commands: Commands,
+    mut crosshair_textures: ResMut<CrosshairTextures>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut crosshair: Query<(&Crosshair, &MeshMaterial3d<StandardMaterial>)>,
-    mut current_weapon_idx: Query<&CurrentWeaponIndex, (With<Controlled>, Changed<CurrentWeaponIndex>)>,
+    mut current_weapon_idx: Query<&CurrentWeaponIndex, (With<Controlled>, Or<(Changed<CurrentWeaponIndex>, Added<CurrentWeaponIndex>)>)>,
+    weapons_data: Res<WeaponsData>,
 ) {
     let Ok(current_weapon_idx) = current_weapon_idx.get_single() else { return };
 
     let (crosshair, mut image) = crosshair.single_mut();
-    if let Some(current_weapon_handle) = crosshair.textures.get(current_weapon_idx.0 as usize) {
+    if let Some(weapon_behavior) = weapons_data.weapons.get(&current_weapon_idx.0) {
         if let Some(material) = materials.get_mut(image.0.id()) {
-            material.base_color_texture = Some(current_weapon_handle.clone());
+            material.base_color = weapon_behavior.crosshair.color;
+
+            let emissive: LinearRgba = weapon_behavior.crosshair.color.into();
+            material.emissive = LinearRgba::new(emissive.red, emissive.green, emissive.blue, 1.0);
+
+            if let Some(texture) = crosshair_textures.textures.get(&weapon_behavior.crosshair.image_path) {
+                material.base_color_texture = Some(texture.clone());
+            } else {
+                let texture = asset_server.load(&weapon_behavior.crosshair.image_path);
+                crosshair_textures.textures.insert(weapon_behavior.crosshair.image_path.clone(), texture.clone());
+                material.base_color_texture = Some(texture.clone());
+            }
         }
     }
 }
