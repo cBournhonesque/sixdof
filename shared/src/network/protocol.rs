@@ -72,7 +72,8 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<Projectile>(ChannelDirection::ServerToClient)
             .add_interpolation(ComponentSyncMode::Once);
         app.register_component::<WeaponFiredEvent>(ChannelDirection::ServerToClient)
-            .add_interpolation(ComponentSyncMode::Once);
+            .add_interpolation(ComponentSyncMode::Once)
+            .add_map_entities();
         app.register_component::<Player>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Simple)
             .add_interpolation(ComponentSyncMode::Simple);

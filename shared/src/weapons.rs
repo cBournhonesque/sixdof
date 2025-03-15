@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use avian3d::prelude::*;
 use bevy::{prelude::*, utils::HashMap};
+use bevy::ecs::entity::MapEntities;
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::client::prediction::Predicted;
@@ -70,6 +71,12 @@ pub struct WeaponFiredEvent {
     pub fire_direction: Dir3,
     /// The tick at which the bullet was fired
     pub fire_tick: Tick,
+}
+
+impl MapEntities for WeaponFiredEvent {
+    fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
+        self.shooter_entity = entity_mapper.map_entity(self.shooter_entity);
+    }
 }
 
 /// Event that is sent when a projectile hits an entity.
