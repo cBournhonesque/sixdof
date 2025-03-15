@@ -344,9 +344,9 @@ pub fn handle_shooting(
                                             target: NetworkTarget::Single(*client_id),
                                             ..default()
                                         },
-                                        // NOTE: all predicted entities need to have the same replication group
+                                        // NOTE: if using prediction, all predicted entities need to have the same replication group
                                         //  maybe the group should be set per replication_target? for non-predicted clients we could use a different group...
-                                        group: ReplicationGroup::new_id(PREDICTION_REPLICATION_GROUP_ID),
+                                        // group: ReplicationGroup::new_id(PREDICTION_REPLICATION_GROUP_ID),
                                         ..default()
                                     },
                                     // NOTE: see above, maybe predicting the projectile is not necessary
