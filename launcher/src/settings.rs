@@ -15,7 +15,7 @@ pub const TICK_RATE: f64 = 64.0;
 pub const REPLICATION_INTERVAL: Duration = Duration::from_millis(20);
 pub const ASSETS_HOTRELOAD: bool = true;
 
-pub const SERVER_ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 5001));
+pub const SERVER_ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(169, 63, 186, 25), 5001));
 pub const PROTOCOL_ID: u64 = 0;
 pub const PRIVATE_KEY: [u8; 32] = [0; 32];
 pub const LINK_CONDITIONER: Option<LinkConditionerConfig> = Some(LinkConditionerConfig {
@@ -56,7 +56,7 @@ pub(crate) fn client_config(client_id: u64) -> ClientConfig {
             ClientTransport::WebTransportClient {
                 // port of 0 means that the OS will find a random port
                 client_addr: SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), 0),
-                server_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(169, 63, 186, 25), 5001)),
+                server_addr: SERVER_ADDR,
                 #[cfg(target_family = "wasm")]
                 certificate_digest: include_str!("../../certificates/digest.txt").to_string(),
             },
@@ -71,7 +71,7 @@ pub(crate) fn server_config() -> ServerConfig {
         shared: shared_config(),
         net: vec![build_server_netcode_config(
             ServerTransport::WebTransportServer {
-                server_addr: SERVER_ADDR,
+                server_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 5001)),
                 certificate: (&WebTransportCertificateSettings::FromFile {
                     cert: "certificates/cert.pem".to_string(),
                     key: "certificates/key.pem".to_string(),
