@@ -8,7 +8,7 @@ use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::prelude::client::{Confirmed, Predicted, PredictionSet, VisualInterpolateStatus};
+use lightyear::prelude::client::{Confirmed, InterpolationSet, Predicted, PredictionSet, VisualInterpolateStatus};
 use lightyear::shared::replication::components::Controlled;
 use shared::player::Player;
 use shared::prelude::PlayerInput;
@@ -24,7 +24,8 @@ impl Plugin for PlayerPlugin {
         // cannot use an observer right now because we are not on lightyear-main where all components are synced at the same time
         // app.add_observer(spawn_visuals);
 
-        app.add_systems(PreUpdate, spawn_visuals.after(PredictionSet::Sync).run_if(resource_exists::<WeaponsData>));
+        app.add_systems(PreUpdate, spawn_visuals
+            .after(PredictionSet::Sync).run_if(resource_exists::<WeaponsData>));
         app.add_systems(Update, (
             toggle_mouse_pointer_system,
         ));
@@ -88,32 +89,6 @@ fn spawn_visuals(
             commands.entity(parent).insert(VisualInterpolateStatus::<Transform>::default());
         }
 
-        // Add headlights
-        commands.entity(parent).with_children(|parent| {
-            let headlamp_1_pos = Vec3::new(0.25, 0.0, -0.25);
-            let headlamp_2_pos = Vec3::new(-0.25, 0.0, -0.25);
-            for headlamp_index in 0..2 {
-                let headlamp_pos = if headlamp_index == 0 {
-                    headlamp_1_pos
-                } else {
-                    headlamp_2_pos
-                };
-                parent.spawn((
-                    SpotLight {
-                        intensity: 2_000_000.0,
-                        color: Color::srgb(1.0, 0.95, 0.9),
-                        outer_angle: 0.75,
-                        inner_angle: 0.1,
-                        range: 100.0,
-                        shadows_enabled: true,
-                        ..default()
-                    },
-                    Transform::from_translation(headlamp_pos)
-                        .looking_at(Vec3::new(0.0, 0.0, -1.25), Vec3::Y),
-                ));
-            }
-        });
-
         if !is_controlled {
             // add a mesh for other players
             commands.entity(parent).with_child((
@@ -132,6 +107,29 @@ fn spawn_visuals(
 
             // spawn a camera for 1-st person view
             commands.entity(parent).with_children(|parent| {
+                // Add headlights
+                let headlamp_1_pos = Vec3::new(0.25, 0.0, -0.25);
+                let headlamp_2_pos = Vec3::new(-0.25, 0.0, -0.25);
+                for headlamp_index in 0..2 {
+                    let headlamp_pos = if headlamp_index == 0 {
+                        headlamp_1_pos
+                    } else {
+                        headlamp_2_pos
+                    };
+                    parent.spawn((
+                        SpotLight {
+                            intensity: 2_000_000.0,
+                            color: Color::srgb(1.0, 0.95, 0.9),
+                            outer_angle: 0.75,
+                            inner_angle: 0.1,
+                            range: 100.0,
+                            shadows_enabled: true,
+                            ..default()
+                        },
+                        Transform::from_translation(headlamp_pos)
+                            .looking_at(Vec3::new(0.0, 0.0, -1.25), Vec3::Y),
+                    ));
+                }
                 // spawn it as a child so we can sway the camera seperately from the ship
                 parent.spawn((
                     Camera3d::default(),

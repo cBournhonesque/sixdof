@@ -1,5 +1,4 @@
 use avian3d::collision::CollisionLayers;
-use avian3d::prelude::{Friction, RigidBody};
 use bevy::prelude::*;
 use qevy::PostBuildMapEvent;
 use serde::{Deserialize, Serialize};

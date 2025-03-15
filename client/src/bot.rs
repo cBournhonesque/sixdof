@@ -1,11 +1,9 @@
-use avian3d::collision::CollisionLayers;
-use avian3d::prelude::{CoefficientCombine, Collider, Friction, Position, RigidBody};
+use avian3d::prelude::{Collider, Position};
 use bevy::prelude::*;
 use lightyear::client::interpolation::Interpolated;
 use lightyear::prelude::client::InterpolateStatus;
 use lightyear::prelude::TickManager;
 use shared::bot::Bot;
-use shared::physics::GameLayer;
 use shared::ships::get_shared_ship_components;
 
 pub(crate) struct BotPlugin;

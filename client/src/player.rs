@@ -1,13 +1,11 @@
 use avian3d::prelude::*;
-use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use lightyear::shared::replication::components::Controlled;
-use lightyear::prelude::{client::*, ClientId};
+use lightyear::prelude::{client::*};
 use shared::player::Player;
-use shared::prelude::{GameLayer, PlayerInput, UniqueIdentity};
+use shared::prelude::{PlayerInput};
 use shared::ships::get_shared_ship_components;
-use shared::weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData};
 
 pub(crate) struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -31,6 +29,8 @@ impl Plugin for PlayerPlugin {
         app.add_systems(Last, handle_predicted_spawn.run_if(is_synced));
     }
 }
+
+// TODO: maybe add RigidBody::Dynamic on remote players so that we can still collision VFXs for remote players?
 
 /// Handle a newly spawned Predicted player:
 fn handle_predicted_spawn(
