@@ -144,6 +144,8 @@ pub fn move_player(
 }
 
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
+// add a Transform for each player (otherwise interpolated players don't get a Transform)
+#[require(Transform)]
 pub struct Player {
     pub name: String,
     pub respawn_timer: Timer,

@@ -1,83 +1,6 @@
 (
     weapons: {
-         0: WeaponBehavior (
-            name: "Debug Gun",
-            description: "A pair of plasma cannons that fire in unison.",
-            barrel_positions: [
-                (0.0, 0.0, 0.0),
-            ],
-            barrel_mode: Simultaneous,
-            fire_mode: Auto(
-                delay_millis: 1000,
-            ),
-            crosshair: (
-                color: LinearRgba((
-                    red: 0.0,
-                    green: 1.0,
-                    blue: 3.0,
-                    alpha: 1.0,
-                )),
-                image_path: "textures/hud/crosshairs/kenney_crosshair_pack/crosshair015.png",
-            ),
-            projectile: (
-                speed: 95.0,
-                lifetime_millis: 500,
-                direct_damage: 10,
-                splash_damage_radius: 0.0,
-                splash_damage_max: 0,
-                splash_damage_min: 0,
-            ),
-            starting_ammo: 100,
-            firing_sound: SoundEmitterBehavior (
-                asset_path: "weapons/plasma_fire.wav",
-                volume_db: 1.0,
-                min_distance: 0.0,
-                max_distance: 100.0,
-                reverb: Some(ReverbBehavior (
-                    damping: 0.5,
-                    feedback: 0.95,
-                    mix: Wet,
-                )),
-                distance_muffle: Some(DistanceMuffleBehavior (
-                    min_distance: 0.0,
-                    max_distance: 100.0,
-                    cutoff_hz: 1000.0,
-                )),
-                speed_of_sound: 343.0,
-                despawn_delay: Some(4.0),
-                eq_variance: Some(EqVarianceBehavior (
-                    high_min_db: 0.0,
-                    high_max_db: 0.0,
-                    mid_min_db: 0.0,
-                    mid_max_db: 0.0,
-                    low_min_db: 0.0,
-                    low_max_db: 0.0,
-                )),
-            ),
-            projectile_visuals: Sprite (
-                texture_asset_path: "kenney_particle_pack/circle_05.png",
-                scale: 0.25,
-                base_color: LinearRgba((
-                    red: 0.0,
-                    green: 10.0,
-                    blue: 30.0,
-                    alpha: 1.0,
-                )),
-                emissive_color: Some(LinearRgba((
-                    red: 0.0,
-                    green: 10.0,
-                    blue: 30.0,
-                    alpha: 1.0,
-                ))),
-                light_color: Some(LinearRgba((
-                    red: 0.0,
-                    green: 1.0,
-                    blue: 3.0,
-                    alpha: 1.0,
-                ))),
-            ),
-        ),
-        1: WeaponBehavior (
+        0: WeaponBehavior (
             name: "Dual Plasma Cannons",
             description: "A pair of plasma cannons that fire in unison.",
             barrel_positions: [
@@ -157,7 +80,7 @@
                 ))),
             ),
         ),
-        2: WeaponBehavior (
+        1: WeaponBehavior (
             name: "Fusion Cannon",
             description: "Triple-barrel energy weapon.",
             barrel_positions: [
@@ -235,6 +158,83 @@
                     red: 0.0,
                     green: 30.0,
                     blue: 10.0,
+                    alpha: 1.0,
+                ))),
+            ),
+        ),
+        2: WeaponBehavior (
+            name: "Debug Gun",
+            description: "A pair of plasma cannons that fire in unison.",
+            barrel_positions: [
+                (0.0, 0.0, 0.0),
+            ],
+            barrel_mode: Simultaneous,
+            fire_mode: Auto(
+                delay_millis: 1000,
+            ),
+            crosshair: (
+                color: LinearRgba((
+                    red: 0.0,
+                    green: 1.0,
+                    blue: 3.0,
+                    alpha: 1.0,
+                )),
+                image_path: "textures/hud/crosshairs/kenney_crosshair_pack/crosshair015.png",
+            ),
+            projectile: (
+                speed: 95.0,
+                lifetime_millis: 500,
+                direct_damage: 10,
+                splash_damage_radius: 0.0,
+                splash_damage_max: 0,
+                splash_damage_min: 0,
+            ),
+            starting_ammo: 100,
+            firing_sound: SoundEmitterBehavior (
+                asset_path: "weapons/plasma_fire.wav",
+                volume_db: 1.0,
+                min_distance: 0.0,
+                max_distance: 100.0,
+                reverb: Some(ReverbBehavior (
+                    damping: 0.5,
+                    feedback: 0.95,
+                    mix: Wet,
+                )),
+                distance_muffle: Some(DistanceMuffleBehavior (
+                    min_distance: 0.0,
+                    max_distance: 100.0,
+                    cutoff_hz: 1000.0,
+                )),
+                speed_of_sound: 343.0,
+                despawn_delay: Some(4.0),
+                eq_variance: Some(EqVarianceBehavior (
+                    high_min_db: 0.0,
+                    high_max_db: 0.0,
+                    mid_min_db: 0.0,
+                    mid_max_db: 0.0,
+                    low_min_db: 0.0,
+                    low_max_db: 0.0,
+                )),
+            ),
+            projectile_visuals: Sprite (
+                texture_asset_path: "kenney_particle_pack/circle_05.png",
+                scale: 0.25,
+                base_color: LinearRgba((
+                    red: 0.0,
+                    green: 10.0,
+                    blue: 30.0,
+                    alpha: 1.0,
+                )),
+                emissive_color: Some(LinearRgba((
+                    red: 0.0,
+                    green: 10.0,
+                    blue: 30.0,
+                    alpha: 1.0,
+                ))),
+                light_color: Some(LinearRgba((
+                    red: 0.0,
+                    green: 1.0,
+                    blue: 3.0,
                     alpha: 1.0,
                 ))),
             ),

@@ -1,5 +1,6 @@
 use std::time::Duration;
-use avian3d::prelude::{LinearVelocity, Position, Rotation, SpatialQuery, SpatialQueryFilter};
+use avian3d::collision::CollisionLayers;
+use avian3d::prelude::{LinearVelocity, Position, RigidBody, Rotation, SpatialQuery, SpatialQueryFilter};
 use bevy::{prelude::*};
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::{shared::replication::components::Controlled};
@@ -18,13 +19,15 @@ impl Plugin for WeaponPlugin {
             .run_if(not(is_host_server)));
 
         // TODO: currently we run this in FixedUpdate to fire at the exact tick that the server fired the bullet.
+        //  this might not really make sense as the interpolation_tick is only updated outside of FixedUpdate.
+        //  Maybe run this in PostUpdate?
         app.add_systems(FixedUpdate, shoot_interpolated_bullets
             .in_set(WeaponsSet::Shoot)
             .run_if(not(is_host_server).and(not(is_in_rollback))));
-        // app.add_systems(FixedPostUpdate, (
-        //     projectile_predict_hit_detection_system,
-        // ));
 
+        app.add_systems(FixedPostUpdate, (
+            projectile_predict_hit_detection_system,
+        ));
     }
 }
 
@@ -83,7 +86,7 @@ fn shoot_interpolated_bullets(
     interpolated_bullet: Query<
         (Entity, &WeaponFiredEvent),
         // optimization trick to avoid using Added
-        (With<Interpolated>, Without<Position>)
+        (With<Interpolated>, Without<Projectile>)
     >
 ) {
     let interpolate_tick = connection.interpolation_tick(tick_manager.as_ref());
@@ -100,18 +103,23 @@ fn shoot_interpolated_bullets(
         //  to the firing tick. Maybe we can do visual adjustments.
         // assert_eq!(fired_event.fire_tick, interpolate_tick);
         if let Some(weapon_data) = weapons_data.weapons.get(&fired_event.weapon_index) {
-            info!(?fired_event, ?interpolate_tick, "Adding components for interpolated bullet!");
+            debug!(?fired_event, ?interpolate_tick, "Adding components for interpolated bullet!");
             commands.entity(entity)
                 .insert((
+                    // TODO: have a better way to do this 'spawn on the interpolation timeline' logic
+                    // TODO: avoid this repeated code
+                    Projectile,
                     Position(fired_event.fire_origin),
                     LinearVelocity(fired_event.fire_direction.as_vec3() * weapon_data.projectile.speed),
                     DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once)),
+                    RigidBody::Dynamic,
+                    CollisionLayers::new([GameLayer::Projectile], [GameLayer::Ship, GameLayer::Wall]),
                 ));
-            commands.send_event(fired_event.clone());
         }
     })
 }
 
+// TODO: instead of using spatial-query, we can directly use Collisions ?
 /// Clients just predict the hit detection of projectiles for now.
 #[allow(dead_code)]
 fn projectile_predict_hit_detection_system(

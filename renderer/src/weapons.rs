@@ -11,7 +11,7 @@ use bevy::utils::{Duration, HashMap};
 use bevy_config_stack::prelude::ConfigAssetLoadedEvent;
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::client::prediction::Predicted;
-use lightyear::prelude::client::{Interpolated, VisualInterpolateStatus};
+use lightyear::prelude::client::{Confirmed, Interpolated, VisualInterpolateStatus};
 use lightyear::prelude::{ClientId, Replicating};
 use lightyear::shared::replication::components::Controlled;
 use rand::Rng;
@@ -28,9 +28,9 @@ impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ProjectileVisualsCache>();
         app.add_observer(spawn_projectile_visuals_observer);
+        app.add_observer(weapon_fired_system);
         app.add_systems(Startup, setup_projectile_visuals_cache_system);
         app.add_systems(Update, load_weapon_sounds_system.run_if(resource_exists::<WeaponsData>));
-        app.add_systems(Update, weapon_fired_system.run_if(resource_exists::<WeaponsData>));
     }
 }
 
@@ -57,7 +57,6 @@ fn spawn_projectile_visuals_observer(
     trigger: Trigger<OnAdd, Projectile>,
     weapons_data: Option<Res<WeaponsData>>,
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut cache: ResMut<ProjectileVisualsCache>,
     mut projectile: Query<(&mut Transform, &WeaponFiredEvent), With<Projectile>>,
@@ -107,7 +106,7 @@ fn spawn_projectile_visuals_observer(
             }
 
             if let Some(texture) = cache.textures.get(texture_asset_path) {
-                info!(?entity, ?projectile.fire_origin, ?projectile.fire_tick, "Adding projectile visuals");
+                debug!(?entity, ?projectile.fire_origin, ?projectile.fire_tick, "Adding projectile visuals");
                 projectile_transform.scale = Vec3::splat(*scale);
                 commands.entity(entity).insert((
                     InheritedVisibility::default(),
@@ -155,7 +154,6 @@ fn spawn_projectile_visuals_observer(
 
 /// Whenever weapon data is loaded/reloaded we load/reload the weapon sounds
 fn load_weapon_sounds_system(
-    mut commands: Commands,
     mut sfx_manager: ResMut<SfxManager>,
     asset_server: Res<AssetServer>,
     weapons_data: Res<WeaponsData>,
@@ -171,15 +169,17 @@ fn load_weapon_sounds_system(
     }
 }
 
+
 /// When a weapon is fired, spawn the fire sound, muzzle flash and any vfx.
 fn weapon_fired_system(
+    trigger: Trigger<OnAdd, Projectile>,
     weapons_data: Res<WeaponsData>,
     mut commands: Commands,
-    mut events: EventReader<WeaponFiredEvent>,
+    fired_events: Query<&WeaponFiredEvent, Without<Confirmed>>,
     controlled: Query<(), With<Controlled>>,
 ) {
-    for event in events.read() {
-        if let Some(weapon) = weapons_data.weapons.get(&event.weapon_index) {
+    if let Ok(event) = fired_events.get(trigger.entity()) {
+         if let Some(weapon) = weapons_data.weapons.get(&event.weapon_index) {
 
             // If it's our own weapon we want to make sure we use a 2D (but still stereo) sound.
             let is_controlled = if controlled.get(event.shooter_entity).is_ok() {
@@ -278,6 +278,7 @@ fn weapon_fired_system(
                     speed_of_sound: weapon.firing_sound.speed_of_sound as f64,
                     volume: Value::Fixed(Decibels(weapon.firing_sound.volume_db)),
                     loop_region: None,
+                    // TODO: instead of this we probably should make this a child of the projectile itself?
                     despawn_entity_after_secs: weapon.firing_sound.despawn_delay,
                     // No follow for controlled weapons
                     follow: if is_controlled {

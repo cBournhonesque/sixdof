@@ -30,6 +30,8 @@ impl Plugin for PlayerPlugin {
     }
 }
 
+// TODO: maybe add RigidBody::Dynamic on remote players so that we can still collision VFXs for remote players?
+
 /// Handle a newly spawned Predicted player:
 fn handle_predicted_spawn(
     mut commands: Commands,

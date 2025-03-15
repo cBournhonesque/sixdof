@@ -27,6 +27,14 @@ can happen.
     That's because we only want to replicate the initial information. Then the remote client will spawn the bullet when their interpolation timeline reaches the correct tick
   - This means client-fired bullets live on the predicted timline but enemy bullets leave on the interpolated timeline, that could be weird?
 
+### Server panic
+
+- Panic 1
+```
+thread 'Compute Task Pool (1)' panicked at /Users/charles/.cargo/git/checkouts/lightyear-16a1ca81dacb5ed5/be14f3d/lightyear_avian/src/lag_compensation/query.rs:103:22:
+called `Option::unwrap()` on a `None` value
+```
+
 ## Performance
 
 - Firing bullets continuously causes a 2X FPS drop

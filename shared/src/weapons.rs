@@ -6,12 +6,12 @@ use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::client::prediction::Predicted;
 use lightyear::prelude::*;
-use lightyear::prelude::client::{Confirmed, PredictionSet, Rollback};
-use lightyear::prelude::server::{ControlledBy, Replicate, SyncTarget};
+use lightyear::prelude::client::{Confirmed, Rollback};
+use lightyear::prelude::server::{ControlledBy, Replicate, ReplicationTarget, SyncTarget};
 use serde::{Deserialize, Serialize};
 
 use crate::{data::weapons::*, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
-use crate::prelude::PREDICTION_REPLICATION_GROUP_ID;
+use crate::prelude::{GameLayer, PREDICTION_REPLICATION_GROUP_ID};
 
 pub type WeaponId = u32;
 
@@ -30,15 +30,16 @@ impl Plugin for WeaponsPlugin {
         // println!("{}", default_weapons_list_ron);
 
         app.add_event::<ProjectileHitEvent>();
-        app.add_event::<WeaponFiredEvent>();
         app.add_plugins(ConfigAssetLoaderPlugin::<WeaponsData>::new("data/weapons.ron"));
         app.add_systems(FixedUpdate, update_weapon_timers_system.run_if(resource_exists::<WeaponsData>));
+
+
+        // NOTE: keep around these debug systems for now
         // app.add_systems(PreUpdate, debug_projectiles_before_check_rollback
         //     .run_if(is_client)
         //     .after(MainSet::Receive)
         //     .after(PredictionSet::Sync)
         //     .before(PredictionSet::CheckRollback));
-
         // app.add_systems(PreUpdate, debug_projectiles_on_confirmed_added
         //     .run_if(is_client)
         //     .after(MainSet::Receive)
@@ -51,9 +52,11 @@ impl Plugin for WeaponsPlugin {
 }
 
 
-/// Event that is sent when a weapon is fired.
+/// Component added on the projectile entity when a weapon is fired.
+/// We use this as a component and not an event because we need it on the entity itself
+/// (for interpolation + lag compensation)
 /// Can be used to play a firing sound, etc.
-#[derive(Event, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WeaponFiredEvent {
     /// The identity of the shooter.
     pub shooter_id: UniqueIdentity,
@@ -179,6 +182,8 @@ impl Weapon {
 
 // TODO: maybe make this an enum with the type of projectile?
 #[derive(Component, Debug, Clone, PartialEq, Deserialize, Serialize)]
+// add a Transform for each Projectile. Otherwise projectiles that have a Position don't get a Transform..
+#[require(Transform)]
 pub struct Projectile;
 
 /// The resource that contains all the weapon configurations.
@@ -283,36 +288,38 @@ pub fn handle_shooting(
                         //info!("speed: {}", weapon_data.projectile.speed);
 
                         let projectile_bundle = (
-                            // TODO: careful, we use new_transform, but the fire_origin says shooter_transform!
                             WeaponFiredEvent {
                                 shooter_id: identity.clone(),
                                 weapon_index: current_weapon_idx,
                                 shooter_entity: shooting_entity,
-                                fire_origin: shooter_position.0,
+                                // we use the actual fire origin for this projectile, not the shooter's origin
+                                fire_origin: new_position.0,
                                 fire_direction: Dir3::new_unchecked(direction),
                                 fire_tick: tick,
                             },
                             Projectile,
-                            // TODO: should we make this Dynamic to support collisions with walls?
-                            RigidBody::Kinematic,
+                            RigidBody::Dynamic,
                             new_position,
                             // include the Transform because the renderer will modify Transform.scale
                             new_transform,
                             LinearVelocity(direction * weapon_data.projectile.speed),
                             DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once)),
-                            // TODO: should we not include collision layers to accelerate collision computation performance?
-                            // CollisionLayers::new([GameLayer::Projectile], [GameLayer::Player, GameLayer::Wall]),
+                            // NOTE: we include collisions with players so that we can play VFX on the client, independently
+                            //  from hit data received from the server
+                            CollisionLayers::new([GameLayer::Projectile], [GameLayer::Ship, GameLayer::Wall]),
                             DisabledComponents::default()
                                 .disable_all()
-                                .enable::<Projectile>()
                                 .enable::<WeaponFiredEvent>()
                         );
-                        info!(?tick, "Shooting projectile at pos: {:?}", new_position);
+                        debug!(?tick, "Shooting projectile at pos: {:?}", new_position);
                         if is_server {
                             if let UniqueIdentity::Player(client_id) = identity {
                                 commands.spawn((
                                     projectile_bundle,
                                     Replicate {
+                                        target: ReplicationTarget {
+                                            target: NetworkTarget::AllExceptSingle(*client_id),
+                                        },
                                         sync: SyncTarget {
                                             // NOTE: we could Prespawn the projectile on the client, but actually I think it's ok not too.
                                             //  there could be an off chance where the projectile doesn't get spawned correctly on the client,
@@ -359,19 +366,6 @@ pub fn handle_shooting(
                             ));
                         }
                     }
-
-                    // TODO: instead of events we should listen to Added<WeaponFiredEvent> component getting added on the entity
-                    //  otherwise we just have duplicated data
-                    // TODO(cb): maybe don't send event if renderer is not enabled?
-                    // send an event so that we can spawn vfx/sfx
-                    commands.send_event(WeaponFiredEvent {
-                        shooter_id: identity.clone(),
-                        weapon_index: current_weapon_idx,
-                        shooter_entity: shooting_entity,
-                        fire_origin: shooter_position.0,
-                        fire_direction: Dir3::new_unchecked(direction),
-                        fire_tick: tick,
-                    });
                 }
                 BarrelMode::Sequential => {
                     // @todo-brian: implement sequential mode

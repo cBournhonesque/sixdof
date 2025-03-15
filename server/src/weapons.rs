@@ -118,6 +118,7 @@ fn bullet_hit_detection(
                 delay_ms: 0,
             }
         };
+
         if let Some(hit) = query.cast_ray(
             delay,
             current_pos.0,
