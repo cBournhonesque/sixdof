@@ -1,11 +1,10 @@
 (
     weapons: {
          0: WeaponBehavior (
-            name: "Debug Cannon",
-            description: "Fires a single bullet slowly",
+            name: "Debug Gun",
+            description: "A pair of plasma cannons that fire in unison.",
             barrel_positions: [
-                // Right barrel
-                (0.0, -0.0, 0.0),
+                (0.0, 0.0, 0.0),
             ],
             barrel_mode: Simultaneous,
             fire_mode: Auto(
@@ -13,16 +12,16 @@
             ),
             crosshair: (
                 color: LinearRgba((
-                    red: 1.0,
+                    red: 0.0,
                     green: 1.0,
-                    blue: 1.0,
+                    blue: 3.0,
                     alpha: 1.0,
                 )),
-                image: "kenney_crosshair_pack/crosshair018.png",
+                image_path: "textures/hud/crosshairs/kenney_crosshair_pack/crosshair015.png",
             ),
             projectile: (
                 speed: 95.0,
-                lifetime_millis: 5000,
+                lifetime_millis: 500,
                 direct_damage: 10,
                 splash_damage_radius: 0.0,
                 splash_damage_max: 0,

@@ -2,6 +2,7 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 use lightyear::prelude::*;
 use lightyear::prelude::server::*;
+use lightyear_avian::prelude::LagCompensationHistory;
 use shared::bot::{Bot, BotAttackKind};
 use shared::player::Player;
 use shared::prelude::{Damageable, GameLayer, UniqueIdentity};

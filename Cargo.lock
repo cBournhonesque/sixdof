@@ -2140,7 +2140,7 @@ dependencies = [
  "bevy-inspector-egui 0.28.1",
  "bevy_egui 0.33.0",
  "leafwing-input-manager",
- "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof)",
  "shared",
 ]
 
@@ -4055,7 +4055,7 @@ dependencies = [
  "clap",
  "client",
  "crossbeam-channel",
- "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof)",
  "lightyear_examples_common",
  "renderer",
  "server",
@@ -4213,7 +4213,7 @@ dependencies = [
 [[package]]
 name = "lightyear"
 version = "0.19.0"
-source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#17f63d1943765775d2750680dcc1efc375e7f507"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof#164cd3a7022bd78fbd642cb6645b6dfb42695ebd"
 dependencies = [
  "async-channel",
  "async-compat",
@@ -4233,11 +4233,11 @@ dependencies = [
  "getrandom 0.3.1",
  "governor 0.8.1",
  "leafwing-input-manager",
- "lightyear_macros 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
+ "lightyear_macros 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof)",
  "nonzero_ext",
  "parking_lot",
  "paste",
- "rand 0.8.5",
+ "rand 0.9.0",
  "ringbuffer",
  "seahash",
  "self_cell",
@@ -4257,11 +4257,11 @@ dependencies = [
 [[package]]
 name = "lightyear_avian"
 version = "0.19.0"
-source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#17f63d1943765775d2750680dcc1efc375e7f507"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof#164cd3a7022bd78fbd642cb6645b6dfb42695ebd"
 dependencies = [
  "avian3d",
  "bevy",
- "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof)",
 ]
 
 [[package]]
@@ -4298,7 +4298,7 @@ dependencies = [
 [[package]]
 name = "lightyear_macros"
 version = "0.19.0"
-source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#17f63d1943765775d2750680dcc1efc375e7f507"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof#164cd3a7022bd78fbd642cb6645b6dfb42695ebd"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5926,7 +5926,7 @@ dependencies = [
  "bevy_config_stack",
  "bevy_rich_text3d",
  "leafwing-input-manager",
- "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof)",
  "rand 0.9.0",
  "serde",
  "server",
@@ -6297,7 +6297,7 @@ dependencies = [
  "avian3d",
  "bevy",
  "leafwing-input-manager",
- "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof)",
  "lightyear_avian",
  "rand 0.9.0",
  "shared",
@@ -6365,7 +6365,7 @@ dependencies = [
  "bevy_common_assets",
  "bevy_config_stack",
  "leafwing-input-manager",
- "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
+ "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof)",
  "lightyear_examples_common",
  "qevy",
  "serde",

@@ -1,8 +1,8 @@
-use avian3d::prelude::{LinearVelocity, Position, SpatialQuery, SpatialQueryFilter};
+use avian3d::prelude::{LinearVelocity, Position, Rotation, SpatialQuery, SpatialQueryFilter};
 use bevy::{math::NormedVectorSpace, prelude::*};
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::{prelude::client::{Predicted, Rollback}, shared::replication::components::Controlled};
-use lightyear::prelude::{is_host_server, NetworkIdentity};
+use lightyear::prelude::{is_host_server, NetworkIdentity, TickManager};
 use shared::{prelude::{CurrentWeaponIndex, GameLayer, PlayerInput, UniqueIdentity}, weapons::{handle_shooting, Projectile, ProjectileHitEvent, WeaponFiredEvent, WeaponInventory, WeaponsData}};
 use shared::prelude::WeaponsSet;
 
@@ -27,9 +27,11 @@ fn shoot_system(
     weapons_data: Res<WeaponsData>,
     rollback: Option<Res<Rollback>>,
     non_predicted_controlled_player: Query<(&UniqueIdentity, &CurrentWeaponIndex), (With<Controlled>, Without<Predicted>)>,
+    tick_manager: Res<TickManager>,
     mut predicted_player: Query<(
         Entity,
-        &Transform,
+        &Position,
+        &Rotation,
         &mut WeaponInventory,
         &ActionState<PlayerInput>,
     ), With<Predicted>>,
@@ -41,14 +43,17 @@ fn shoot_system(
         return;
     }
 
-    for (shooting_entity, transform, mut inventory, action) in predicted_player.iter_mut() {
+    let tick = tick_manager.tick();
+    for (shooting_entity, position, rotation, mut inventory, action) in predicted_player.iter_mut() {
         if let Some((identity, current_weapon_idx)) = non_predicted_controlled_player.iter().next() {
             handle_shooting(
                 shooting_entity, 
                 identity,
+                tick,
                 false,
-                transform, 
-                current_weapon_idx.0, 
+                position,
+                rotation,
+                current_weapon_idx.0,
                 &mut inventory, 
                 action, 
                 &fixed_time, 

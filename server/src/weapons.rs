@@ -1,4 +1,4 @@
-use avian3d::prelude::{LinearVelocity, PhysicsStepSet, Position, SpatialQuery, SpatialQueryFilter};
+use avian3d::prelude::{LinearVelocity, PhysicsStepSet, Position, Rotation, SpatialQuery, SpatialQueryFilter};
 use bevy::math::NormedVectorSpace;
 use bevy::prelude::*;
 use lightyear::prelude::{NetworkIdentity, Replicating, ServerConnectionManager, TickManager};
@@ -152,21 +152,26 @@ fn shoot_system(
     fixed_time: Res<Time<Fixed>>,
     mut commands: Commands,
     weapons_data: Res<WeaponsData>,
+    tick_manager: Res<TickManager>,
     mut replicated_player: Query<(
         Entity,
-        &Transform,
+        &Position,
+        &Rotation,
         &UniqueIdentity,
         &CurrentWeaponIndex,
         &mut WeaponInventory,
         &ActionState<PlayerInput>,
     ), With<Replicating>>,
 ) {
-    for (shooting_entity, transform, identity, current_weapon_idx, mut inventory, action) in replicated_player.iter_mut() {
+    let tick = tick_manager.tick();
+    for (shooting_entity, position, rotation, identity, current_weapon_idx, mut inventory, action) in replicated_player.iter_mut() {
         handle_shooting(
             shooting_entity, 
             identity,
+            tick,
             true,
-            transform,
+            position,
+            rotation,
             current_weapon_idx.0, 
             &mut inventory, 
             action, 
