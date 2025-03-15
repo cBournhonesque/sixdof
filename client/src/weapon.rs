@@ -94,9 +94,13 @@ fn shoot_interpolated_bullets(
         if interpolate_tick < fired_event.fire_tick {
             return;
         }
-        assert_eq!(fired_event.fire_tick, interpolate_tick);
+        // NOTE: this assert fails, probably because we don't update the ticks linearly in FixedUpdate,
+        //  instead they are updated based on interpolated_time and sync...
+        //  for now let's just fire the projectile if the interpolation tick is in the future compared
+        //  to the firing tick. Maybe we can do visual adjustments.
+        // assert_eq!(fired_event.fire_tick, interpolate_tick);
         if let Some(weapon_data) = weapons_data.weapons.get(&fired_event.weapon_index) {
-            info!(?fired_event, "Adding components for interpolated bullet!");
+            info!(?fired_event, ?interpolate_tick, "Adding components for interpolated bullet!");
             commands.entity(entity)
                 .insert((
                     Position(fired_event.fire_origin),

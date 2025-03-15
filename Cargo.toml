@@ -22,11 +22,11 @@ vfx = { path = "vfx" }
 sfx = { path = "sfx" }
 
 lightyear_examples_common = { version = "0.19", default-features = false }
-lightyear_avian = { git = "https://github.com/cBournhonesque/lightyear.git", branch = "cb/debug-sixdof", features = [
+lightyear_avian = { git = "https://github.com/cBournhonesque/lightyear.git", branch = "main", features = [
     "lag_compensation",
     "3d"
 ] }
-lightyear = { git = "https://github.com/cBournhonesque/lightyear.git", branch = "cb/debug-sixdof", default-features = false, features = [
+lightyear = { git = "https://github.com/cBournhonesque/lightyear.git", branch = "main", default-features = false, features = [
     "leafwing",
     "avian3d",
     "webtransport",

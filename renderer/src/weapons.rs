@@ -51,6 +51,7 @@ fn setup_projectile_visuals_cache_system(
     cache.quad = Some(quad);
 }
 
+// TODO: spawn weapons based on WeaponFiredEvent, not Added<Projectile>? or add another component called ProjectileVisual?
 /// When a projectile is spawn, add visuals to it
 fn spawn_projectile_visuals_observer(
     trigger: Trigger<OnAdd, Projectile>,
@@ -106,6 +107,7 @@ fn spawn_projectile_visuals_observer(
             }
 
             if let Some(texture) = cache.textures.get(texture_asset_path) {
+                info!(?entity, ?projectile.fire_origin, ?projectile.fire_tick, "Adding projectile visuals");
                 projectile_transform.scale = Vec3::splat(*scale);
                 commands.entity(entity).insert((
                     InheritedVisibility::default(),

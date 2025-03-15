@@ -39,14 +39,14 @@ impl Plugin for WeaponsPlugin {
         //     .after(PredictionSet::Sync)
         //     .before(PredictionSet::CheckRollback));
 
-        app.add_systems(PreUpdate, debug_projectiles_on_confirmed_added
-            .run_if(is_client)
-            .after(MainSet::Receive)
-            .after(PredictionSet::SpawnPrediction)
-            .before(PredictionSet::CheckRollback));
-        app.add_systems(FixedPostUpdate, debug_projectiles
-            .after(PhysicsSet::StepSimulation)
-            .after(PredictionSet::UpdateHistory));
+        // app.add_systems(PreUpdate, debug_projectiles_on_confirmed_added
+        //     .run_if(is_client)
+        //     .after(MainSet::Receive)
+        //     .after(PredictionSet::SpawnPrediction)
+        //     .before(PredictionSet::CheckRollback));
+        // app.add_systems(FixedPostUpdate, debug_projectiles
+        //     .after(PhysicsSet::StepSimulation)
+        //     .after(PredictionSet::UpdateHistory));
     }
 }
 
@@ -308,7 +308,6 @@ pub fn handle_shooting(
                                 .enable::<WeaponFiredEvent>()
                         );
                         info!(?tick, "Shooting projectile at pos: {:?}", new_position);
-
                         if is_server {
                             if let UniqueIdentity::Player(client_id) = identity {
                                 commands.spawn((
