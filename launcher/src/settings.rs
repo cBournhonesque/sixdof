@@ -56,7 +56,7 @@ pub(crate) fn client_config(client_id: u64) -> ClientConfig {
             ClientTransport::WebTransportClient {
                 // port of 0 means that the OS will find a random port
                 client_addr: SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), 0),
-                server_addr: SERVER_ADDR,
+                server_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(169, 63, 186, 25), 5001)),
                 #[cfg(target_family = "wasm")]
                 certificate_digest: include_str!("../../certificates/digest.txt").to_string(),
             },
