@@ -1,6 +1,5 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use leafwing_input_manager::prelude::*;
 use lightyear::prelude::{*, client::*};
 use serde::{Deserialize, Serialize};

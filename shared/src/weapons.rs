@@ -53,7 +53,7 @@ impl Plugin for WeaponsPlugin {
 
 /// Event that is sent when a weapon is fired.
 /// Can be used to play a firing sound, etc.
-#[derive(Event, Clone, Debug)]
+#[derive(Event, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WeaponFiredEvent {
     /// The identity of the shooter.
     pub shooter_id: UniqueIdentity,
@@ -65,6 +65,8 @@ pub struct WeaponFiredEvent {
     pub fire_origin: Vec3,
     /// The direction of the shooter at the time of firing. Used for knowing which direction to spawn VFX.
     pub fire_direction: Dir3,
+    /// The tick at which the bullet was fired
+    pub fire_tick: Tick,
 }
 
 /// Event that is sent when a projectile hits an entity.
@@ -81,12 +83,13 @@ pub struct ProjectileHitEvent {
 pub struct CurrentWeaponIndex(pub WeaponId);
 
 impl CurrentWeaponIndex {
+    // TODO: this is inefficient, just make sure that weapons ids are sequential
+    //  and select the next one with wrapping
     /// Cycle to the next weapon in the provided weapon list. Wraps around.
     pub fn next_weapon(&mut self, weapons: &HashMap<WeaponId, Weapon>) {
         let max_id = weapons.keys().max().unwrap_or(&0);
-        let mut new_idx = self.0;
         for i in 0..=*max_id {
-            new_idx = (self.0 + i + 1) % (max_id + 1);
+            let new_idx = (self.0 + i + 1) % (max_id + 1);
             if weapons.contains_key(&new_idx) {
                 self.0 = new_idx;
                 break;
@@ -94,12 +97,13 @@ impl CurrentWeaponIndex {
         }
     }
 
+    // TODO: this is inefficient, just make sure that weapons ids are sequential
+    //  and select the next one with wrapping
     /// Cycle to the previous weapon in the provided weapon list. Wraps around.
     pub fn previous_weapon(&mut self, weapons: &HashMap<WeaponId, Weapon>) {
         let max_id = weapons.keys().max().unwrap_or(&0);
-        let mut new_idx = self.0;
         for i in 0..=*max_id {
-            new_idx = self.0.checked_sub(i + 1).unwrap_or(*max_id);
+            let new_idx = self.0.checked_sub(i + 1).unwrap_or(*max_id);
             if weapons.contains_key(&new_idx) {
                 self.0 = new_idx;
                 break;
@@ -174,7 +178,7 @@ impl Weapon {
 }
 
 // TODO: maybe make this an enum with the type of projectile?
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Projectile;
 
 /// The resource that contains all the weapon configurations.
@@ -253,7 +257,7 @@ pub fn handle_shooting(
                     weapon_state.fire_timer_auto.reset();
                 }
             }
-            FireMode::Burst { shots, delay_millis, delay_after_burst_millis } => {
+            FireMode::Burst { .. } => {
                 // @todo-brian: implement burst mode
             }
         }
@@ -262,10 +266,10 @@ pub fn handle_shooting(
             match weapon_data.barrel_mode {
                 BarrelMode::Simultaneous => {
                     let direction = shooter_rotation.0 * Vec3::NEG_Z;
-                    for (i, barrel_position) in weapon_data.barrel_positions.iter().enumerate() {
+                    for (_i, barrel_position) in weapon_data.barrel_positions.iter().enumerate() {
                         let rotated_barrel_pos = shooter_rotation * *barrel_position;
-                        let mut new_position = Position(shooter_position.0 + rotated_barrel_pos);
-                        let mut new_transform = Transform::from_translation(new_position.0)
+                        let new_position = Position(shooter_position.0 + rotated_barrel_pos);
+                        let new_transform = Transform::from_translation(new_position.0)
                             .with_rotation(Quat::from(*shooter_rotation));
 
                         // TODO: spawn an initial-replicated bullet, with
@@ -286,6 +290,7 @@ pub fn handle_shooting(
                                 shooter_entity: shooting_entity,
                                 fire_origin: shooter_position.0,
                                 fire_direction: Dir3::new_unchecked(direction),
+                                fire_tick: tick,
                             },
                             Projectile,
                             // TODO: should we make this Dynamic to support collisions with walls?
@@ -297,6 +302,10 @@ pub fn handle_shooting(
                             DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once)),
                             // TODO: should we not include collision layers to accelerate collision computation performance?
                             // CollisionLayers::new([GameLayer::Projectile], [GameLayer::Player, GameLayer::Wall]),
+                            DisabledComponents::default()
+                                .disable_all()
+                                .enable::<Projectile>()
+                                .enable::<WeaponFiredEvent>()
                         );
                         info!(?tick, "Shooting projectile at pos: {:?}", new_position);
 
@@ -306,12 +315,17 @@ pub fn handle_shooting(
                                     projectile_bundle,
                                     Replicate {
                                         sync: SyncTarget {
-                                            // TODO: actually don't even need to sync to client?
+                                            // NOTE: we could Prespawn the projectile on the client, but actually I think it's ok not too.
+                                            //  there could be an off chance where the projectile doesn't get spawned correctly on the client,
+                                            //  in which case the bullet will exist on the server but the visuals won't appear on the client.
+                                            //  If it's rare enough it should be fine. We can comment-this out to re-enable prediction
+                                            //
                                             // the bullet is predicted for the client who shot it
-                                            prediction: NetworkTarget::Single(*client_id),
+                                            // prediction: NetworkTarget::Single(*client_id),
                                             // TODO: we don't want to interpolate bullet states because it's too expensive!
                                             // the bullet is interpolated for other clients
                                             interpolation: NetworkTarget::AllExceptSingle(*client_id),
+                                            ..default()
                                         },
                                         controlled_by: ControlledBy {
                                             target: NetworkTarget::Single(*client_id),
@@ -322,8 +336,9 @@ pub fn handle_shooting(
                                         group: ReplicationGroup::new_id(PREDICTION_REPLICATION_GROUP_ID),
                                         ..default()
                                     },
-                                    PreSpawnedPlayerObject::default_with_salt(i as u64),
-                                    OverrideTargetComponent::<PreSpawnedPlayerObject>::new(NetworkTarget::Single(*client_id)),
+                                    // NOTE: see above, maybe predicting the projectile is not necessary
+                                    // PreSpawnedPlayerObject::default_with_salt(i as u64),
+                                    // OverrideTargetComponent::<PreSpawnedPlayerObject>::new(NetworkTarget::Single(*client_id)),
                                 ));
                             } else {
                                 commands.spawn((
@@ -340,11 +355,14 @@ pub fn handle_shooting(
                         } else {
                             commands.spawn((
                                 projectile_bundle,
-                                PreSpawnedPlayerObject::default_with_salt(i as u64),
+                                // NOTE: see above, maybe predicting the projectile is not necessary
+                                // PreSpawnedPlayerObject::default_with_salt(i as u64),
                             ));
                         }
                     }
 
+                    // TODO: instead of events we should listen to Added<WeaponFiredEvent> component getting added on the entity
+                    //  otherwise we just have duplicated data
                     // TODO(cb): maybe don't send event if renderer is not enabled?
                     // send an event so that we can spawn vfx/sfx
                     commands.send_event(WeaponFiredEvent {
@@ -353,6 +371,7 @@ pub fn handle_shooting(
                         shooter_entity: shooting_entity,
                         fire_origin: shooter_position.0,
                         fire_direction: Dir3::new_unchecked(direction),
+                        fire_tick: tick,
                     });
                 }
                 BarrelMode::Sequential => {

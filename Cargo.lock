@@ -4213,7 +4213,7 @@ dependencies = [
 [[package]]
 name = "lightyear"
 version = "0.19.0"
-source = "git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof#164cd3a7022bd78fbd642cb6645b6dfb42695ebd"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof#474557639e712446d503011885285915d4173874"
 dependencies = [
  "async-channel",
  "async-compat",
@@ -4257,7 +4257,7 @@ dependencies = [
 [[package]]
 name = "lightyear_avian"
 version = "0.19.0"
-source = "git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof#164cd3a7022bd78fbd642cb6645b6dfb42695ebd"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof#474557639e712446d503011885285915d4173874"
 dependencies = [
  "avian3d",
  "bevy",
@@ -4298,7 +4298,7 @@ dependencies = [
 [[package]]
 name = "lightyear_macros"
 version = "0.19.0"
-source = "git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof#164cd3a7022bd78fbd642cb6645b6dfb42695ebd"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=cb%2Fdebug-sixdof#474557639e712446d503011885285915d4173874"
 dependencies = [
  "proc-macro2",
  "quote",
