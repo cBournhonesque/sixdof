@@ -5,7 +5,7 @@ use bevy_rich_text3d::{Text3d, Text3dPlugin, Text3dStyling, TextAtlas};
 
 use lightyear::{client::prediction::diagnostics::PredictionMetrics, shared::replication::components::Controlled};
 use serde::Deserialize;
-use shared::weapons::{CurrentWeaponIndex, WeaponsData};
+use shared::weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData};
 
 use shared::player::Player;
 
@@ -26,7 +26,8 @@ impl Plugin for HudPlugin {
         app.add_systems(Update, (
             prediction_metrics_system,
             crosshair_system.run_if(resource_exists::<WeaponsData>),
-            camera_sway_system.run_if(resource_exists::<HudConfig>)
+            camera_sway_system.run_if(resource_exists::<HudConfig>),
+            update_stats_system.run_if(resource_exists::<WeaponsData>)
         ));
     }
 }
@@ -301,6 +302,19 @@ fn crosshair_system(
                 crosshair_textures.textures.insert(weapon_behavior.crosshair.image_path.clone(), texture.clone());
                 material.base_color_texture = Some(texture.clone());
             }
+        }
+    }
+}
+
+fn update_stats_system(
+    mut controlled_player: Query<(&WeaponInventory, &CurrentWeaponIndex), (With<Player>, With<Controlled>)>,
+    mut ammo_text: Query<&mut Text3d, With<AmmoText>>,
+) {
+    let Ok((weapon_inventory, current_weapon_idx)) = controlled_player.get_single() else { return };
+
+    if let Some(weapon) = weapon_inventory.weapons.get(&current_weapon_idx.0) {
+        if let Ok(mut ammo_text) = ammo_text.get_single_mut() {
+            *ammo_text = Text3d::new(weapon.ammo_left.to_string());
         }
     }
 }

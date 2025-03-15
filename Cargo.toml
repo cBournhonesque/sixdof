@@ -42,7 +42,6 @@ bevy = { version = "0.15.2", default-features = false, features = [
     "sysinfo_plugin",
     "file_watcher",
 ] }
-qevy = { git = "https://github.com/BrianWiz/qevy.git", branch = "master", features = ["avian"] }
 bevy_config_stack = { git = "https://github.com/BrianWiz/bevy_config_stack.git", branch = "main", package = "bevy_config_stack" }
 avian3d = { version = "0.2.0", default-features = false, features = [
     "3d",
@@ -80,8 +79,8 @@ bevy-inspector-egui = { git = "https://github.com/blip-radar/bevy-inspector-egui
     "egui_open_url",
 ] }
 bevy_rich_text3d = "0.2.0"
+bevy_trenchbroom = { version = "0.6.4", features = ["avian"] }
 rand = "0.9.0"
-
 
 # Idiomatic Bevy code often triggers these lints, and the CI workflow treats them as errors.
 # In some cases they may still signal poor code quality however, so consider commenting out these lines.

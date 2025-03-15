@@ -19,7 +19,11 @@ impl ClientApp {
                     ..default()
                 })
                 .set(settings::log_plugin())
-                .set(settings::window_plugin()),
+                .set(settings::window_plugin())
+                // for bevy_trenchbroom
+                .set(ImagePlugin {
+                    default_sampler: bevy_trenchbroom::util::repeating_image_sampler(true),
+                })
         );
         app.add_plugins(ClientPlugins {
             config: settings::client_config(client_id),
