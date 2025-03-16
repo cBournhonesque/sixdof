@@ -20,7 +20,7 @@ pub mod prelude {
     pub use crate::weapons::*;
     pub use crate::map::*;
     pub use crate::states::*;
-    pub use crate::player::Player;
+    pub use crate::player::PlayerShip;
     pub use crate::identity::*;
     pub use crate::utils::DespawnAfter;
     pub use crate::damageable::*;

@@ -7,7 +7,7 @@ use lightyear::{client::prediction::diagnostics::PredictionMetrics, prelude::cli
 use serde::Deserialize;
 use shared::weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData};
 
-use shared::player::Player;
+use shared::player::PlayerShip;
 
 pub struct HudPlugin;
 
@@ -206,8 +206,8 @@ pub fn spawn_3d_hud(
 fn camera_sway_system(
     time: Res<Time>,
     config: Res<HudConfig>,
-    mut player_ship_query: Query<(&LinearVelocity, &AngularVelocity, &Children, &Transform), With<Player>>,
-    mut camera_query: Query<(&mut Transform, Option<&mut GForceData>), (With<Camera3d>, Without<Player>)>,
+    mut player_ship_query: Query<(&LinearVelocity, &AngularVelocity, &Children, &Transform), With<PlayerShip>>,
+    mut camera_query: Query<(&mut Transform, Option<&mut GForceData>), (With<Camera3d>, Without<PlayerShip>)>,
     mut commands: Commands,
 ) {
     if let Ok((ship_linear_velocity, ship_angular_velocity, children, ship_transform)) = player_ship_query.get_single() {
@@ -307,7 +307,7 @@ fn crosshair_system(
 }
 
 fn update_stats_system(
-    mut controlled_player: Query<(&WeaponInventory, &CurrentWeaponIndex), (With<Player>, With<Predicted>)>,
+    mut controlled_player: Query<(&WeaponInventory, &CurrentWeaponIndex), (With<PlayerShip>, With<Predicted>)>,
     mut ammo_text: Query<&mut Text3d, With<AmmoText>>,
 ) {
     let Ok((weapon_inventory, current_weapon_idx)) = controlled_player.get_single() else { return };

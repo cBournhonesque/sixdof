@@ -15,9 +15,9 @@ use lightyear::prelude::client::{Confirmed, Interpolated, VisualInterpolateStatu
 use lightyear::prelude::{ClientId, Replicating};
 use lightyear::shared::replication::components::Controlled;
 use rand::Rng;
-use shared::bot::Bot;
+use shared::bot::BotShip;
 use shared::physics::GameLayer;
-use shared::player::{self, Player};
+use shared::player::{self, PlayerShip};
 use shared::prelude::{DespawnAfter, PlayerInput, ProjectileVisuals, ReverbMix, UniqueIdentity};
 use shared::weapons::*;
 use vfx::VfxBillboard;

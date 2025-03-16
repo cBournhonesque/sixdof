@@ -12,7 +12,7 @@ use crate::{bot::BotBehavior, physics::GameLayer};
 pub type ShipId = u32;
 
 #[derive(Component, Serialize, Deserialize, PartialEq, Debug, Default,Eq, Hash, Clone, Copy)]
-pub struct ShipIndex(pub ShipId);
+pub struct Ship(pub ShipId);
 
 pub struct ShipPlugin;
 impl Plugin for ShipPlugin {
@@ -30,6 +30,7 @@ pub struct ShipsData {
 #[derive(Default, TypePath, Debug, Deserialize)]
 pub struct ShipBehavior {
     pub name: String,
+    pub starting_health: u16,
     pub accel_speed: f32,
     pub afterburner_accel_speed: f32,
     pub base_speed: f32,

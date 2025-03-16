@@ -3,6 +3,7 @@
     ships: {
         0: ShipBehavior (
             name: "Player Ship",
+            starting_health: 200,
             accel_speed: 0.2,
             afterburner_accel_speed: 0.5,
             base_speed: 300.0,
@@ -39,6 +40,7 @@
         ),
         1: ShipBehavior (
             name: "Drone",
+            starting_health: 50,
             accel_speed: 0.1,
             afterburner_accel_speed: 0.5,
             base_speed: 150.0,
@@ -63,6 +65,7 @@
         ),
         2: ShipBehavior (
             name: "Sniper Drone",
+            starting_health: 50,
             accel_speed: 0.1,
             afterburner_accel_speed: 0.5,
             base_speed: 150.0,

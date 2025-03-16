@@ -3,10 +3,10 @@ use bevy::prelude::*;
 use lightyear::prelude::*;
 use lightyear::prelude::server::*;
 use lightyear_avian::prelude::LagCompensationHistory;
-use shared::bot::{Bot, BotAttackKind};
-use shared::player::Player;
+use shared::bot::{BotShip, BotAttackKind};
+use shared::player::PlayerShip;
 use shared::prelude::{Damageable, GameLayer, UniqueIdentity};
-use shared::ships::{get_shared_ship_components, move_ship, ShipIndex, ShipsData};
+use shared::ships::{get_shared_ship_components, move_ship, Ship, ShipsData};
 // TODO: should bots be handled similarly to players? i.e. they share most of the same code (visuals, collisions)
 //  but they are simply controlled by the server. The server could be sending fake inputs to the bots so that their movement
 //  is the same as players
@@ -99,13 +99,13 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
                 ..default()
             },
             UniqueIdentity::Bot(bot_manager.next_bot_id),
-            Bot {
+            BotShip {
                 wish_dir: Vec3::ZERO,
             },
             Damageable {
                 health: 50,
             },
-            ShipIndex(1),
+            Ship(1),
             // TODO: UNDERSTAND WHY IT IS NECESSARY TO MANUALLY INSERT THE CORRECT POSITION/ROTATION
             //  ON THE ENTITY! I THOUGHT THE PREPARE_SET WOULD DO THIS AUTOMATICALLY
             position,
@@ -131,7 +131,7 @@ fn move_system(
     fixed_time: Res<Time<Fixed>>,
     mut targets: Query<&mut BotTarget>,
     positions: Query<&Position>,
-    mut bots: Query<(Entity, &Position, &mut LinearVelocity, &mut AngularVelocity, &ShipIndex, &mut Bot)>,
+    mut bots: Query<(Entity, &Position, &mut LinearVelocity, &mut AngularVelocity, &Ship, &mut BotShip)>,
     ships_data: Res<ShipsData>,
 ) {
     let delta = fixed_time.delta_secs();
@@ -247,8 +247,8 @@ fn target_tracking_system(
     spatial_query: SpatialQuery,
     mut commands: Commands,
     targets: Query<&BotTarget>,
-    bots: Query<(Entity, &Position, &Children), With<Bot>>,
-    players: Query<(Entity, &Position), With<Player>>,
+    bots: Query<(Entity, &Position, &Children), With<BotShip>>,
+    players: Query<(Entity, &Position), With<PlayerShip>>,
 ) {
     for (bot_entity, bot_position, children) in bots.iter() {
         let mut nearest_player = None;

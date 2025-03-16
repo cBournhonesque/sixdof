@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use lightyear::prelude::{*, client::*};
 use serde::{Deserialize, Serialize};
-use crate::{prelude::PlayerInput, ships::{move_ship, ShipIndex, ShipsData}};
+use crate::{prelude::PlayerInput, ships::{move_ship, Ship, ShipsData}};
 
 pub struct PlayerPlugin;
 
@@ -46,7 +46,7 @@ pub fn debug_after_sync(
     rollback: Option<Res<Rollback>>,
     query: Query<
         (Entity, &ActionState<PlayerInput>, (&Transform, &Position, &Rotation, &LinearVelocity, &AngularVelocity)),
-        (With<Player>, Or<(With<Predicted>, With<Replicating>)>)
+        (With<PlayerShip>, Or<(With<Predicted>, With<Replicating>)>)
     >
 ) {
     let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
@@ -71,11 +71,11 @@ pub fn debug_after_sync(
 pub fn move_player(
     fixed_time: Res<Time<Fixed>>,
     mut query: Query<(
-        &Player,
+        &PlayerShip,
         &Rotation,
         &mut LinearVelocity,
         &mut AngularVelocity,
-        &ShipIndex,
+        &Ship,
         &ActionState<PlayerInput>,
     ),
     Or<(With<Predicted>, With<Replicating>)>>,
@@ -146,7 +146,12 @@ pub fn move_player(
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
 // add a Transform for each player (otherwise interpolated players don't get a Transform)
 #[require(Transform)]
+pub struct PlayerShip;
+
+
+#[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Player {
     pub name: String,
     pub respawn_timer: Timer,
 }
+
