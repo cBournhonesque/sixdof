@@ -1,6 +1,5 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
-use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use leafwing_input_manager::prelude::*;
 use lightyear::prelude::{*, client::*};
 use serde::{Deserialize, Serialize};
@@ -145,6 +144,8 @@ pub fn move_player(
 }
 
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
+// add a Transform for each player (otherwise interpolated players don't get a Transform)
+#[require(Transform)]
 pub struct Player {
     pub name: String,
     pub respawn_timer: Timer,

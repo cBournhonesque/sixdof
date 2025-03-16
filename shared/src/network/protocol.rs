@@ -3,10 +3,9 @@ use leafwing_input_manager::Actionlike;
 use lightyear::prelude::*;
 use avian3d::prelude::*;
 use lightyear::prelude::client::{ComponentSyncMode, LerpFn};
-use lightyear::shared::replication::components::ReplicationGroupId;
 use lightyear::utils::avian3d::{position, rotation};
 use crate::player::Player;
-use crate::prelude::{Damageable, UniqueIdentity};
+use crate::prelude::{Damageable, Projectile, UniqueIdentity, WeaponFiredEvent};
 use crate::ships::ShipIndex;
 use crate::weapons::{CurrentWeaponIndex, WeaponInventory};
 use lightyear::utils::bevy::TransformLinearInterpolation;
@@ -70,6 +69,10 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<Name>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Once)
             .add_interpolation(ComponentSyncMode::Once);
+        app.register_component::<Projectile>(ChannelDirection::ServerToClient)
+            .add_interpolation(ComponentSyncMode::Once);
+        app.register_component::<WeaponFiredEvent>(ChannelDirection::ServerToClient)
+            .add_interpolation(ComponentSyncMode::Once);
         app.register_component::<Player>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Simple)
             .add_interpolation(ComponentSyncMode::Simple);
@@ -116,7 +119,8 @@ impl Plugin for ProtocolPlugin {
 
         app.register_component::<UniqueIdentity>(ChannelDirection::ServerToClient);        
         app.register_component::<Damageable>(ChannelDirection::ServerToClient);
-        app.register_component::<CurrentWeaponIndex>(ChannelDirection::ServerToClient);
+        app.register_component::<CurrentWeaponIndex>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Full);
         app.register_component::<ShipIndex>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Once);
     }

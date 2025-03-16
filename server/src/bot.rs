@@ -2,6 +2,7 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 use lightyear::prelude::*;
 use lightyear::prelude::server::*;
+use lightyear_avian::prelude::LagCompensationHistory;
 use shared::bot::{Bot, BotAttackKind};
 use shared::player::Player;
 use shared::prelude::{Damageable, GameLayer, UniqueIdentity};
@@ -51,14 +52,14 @@ impl BotTarget {
             2 => OrbitKind::VerticalClockwise,
             _ => OrbitKind::VerticalCounterClockwise,
         };
-        
-        Self { 
+
+        Self {
             entity,
             orbit_kind,
             orbit_timer: 0.0,
         }
     }
-    
+
     fn update(&mut self, delta_time: f32, change_interval: f32) {
         self.orbit_timer += delta_time;
         if self.orbit_timer >= change_interval {
@@ -109,16 +110,16 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
             //  ON THE ENTITY! I THOUGHT THE PREPARE_SET WOULD DO THIS AUTOMATICALLY
             position,
             rotation,
-            get_shared_ship_components(Collider::sphere(0.5))
-            //LagCompensationHistory::default(),
+            get_shared_ship_components(Collider::sphere(0.5)),
+            LagCompensationHistory::default(),
         )
     );
     bot_manager.next_bot_id += 1;
 }
 
-/// The main bot movement system, this dictates how bots go after their target and navigate around the map. 
+/// The main bot movement system, this dictates how bots go after their target and navigate around the map.
 /// This system will manipulate the bot's velocity directly. Actual movement & collision is handled by Avian3d's physics system.
-/// 
+///
 /// Most of the bot's behavior is documented in the BotBehavior struct.
 /// - But for the most part, aggressive bots will orbit around their target and attack when in range.
 /// - Standard bots will move towards their target and attack when in range.
@@ -130,11 +131,11 @@ fn move_system(
     fixed_time: Res<Time<Fixed>>,
     mut targets: Query<&mut BotTarget>,
     transforms: Query<&Transform>,
-    mut bots: Query<(Entity, &Transform, &mut LinearVelocity, &mut AngularVelocity, &ShipIndex, &mut Bot)>, 
+    mut bots: Query<(Entity, &Transform, &mut LinearVelocity, &mut AngularVelocity, &ShipIndex, &mut Bot)>,
     ships_data: Res<ShipsData>,
 ) {
     let delta = fixed_time.delta_secs();
-    
+
     for (bot_entity, bot_transform, mut linear_velocity, mut angular_velocity, ship_index, mut bot) in bots.iter_mut() {
         if let Some(ship_behavior) = ships_data.ships.get(&ship_index.0) {
             let mut wish_dir = Vec3::ZERO;
@@ -147,18 +148,18 @@ fn move_system(
                     let dir_to_target = (target_pos - bot_pos).normalize_or_zero();
 
                     match ship_behavior.bot_behavior.attack_kind {
-                        BotAttackKind::Aggressive { 
-                            target_distance, 
-                            change_orbit_dir_interval, 
-                            orbit_dir_back_off_blend_amount, 
-                            orbit_dir_blend_amount, 
-                            orbit_dir_target_blend_amount, 
-                            wish_dir_random_factor 
+                        BotAttackKind::Aggressive {
+                            target_distance,
+                            change_orbit_dir_interval,
+                            orbit_dir_back_off_blend_amount,
+                            orbit_dir_blend_amount,
+                            orbit_dir_target_blend_amount,
+                            wish_dir_random_factor
                         } => {
                             bot_target.update(delta, change_orbit_dir_interval);
 
                             let to_target = target_pos - bot_pos;
-                            
+
                             let orbit_dir = match bot_target.orbit_kind {
                                 OrbitKind::HorizontalClockwise => {
                                     let to_target_flat = Vec3::new(to_target.x, 0.0, to_target.z);
@@ -210,7 +211,7 @@ fn move_system(
 
                 found_bot_target = Some(bot_target);
             }
-            
+
             wish_dir = wish_dir.normalize_or_zero();
 
             // deflect the ship if it's about to hit a wall
@@ -232,7 +233,7 @@ fn move_system(
                 }
             }
 
-            // blend the wish direction over time so we're not changing it abruptly, 
+            // blend the wish direction over time so we're not changing it abruptly,
             // a lower wish_dir_change_speed will make the bot change direction slower
             bot.wish_dir = bot.wish_dir.lerp(wish_dir, ship_behavior.bot_behavior.wish_dir_change_speed * delta);
 
@@ -255,7 +256,7 @@ fn target_tracking_system(
         for (player_entity, player_transform) in players.iter() {
             let distance = bot_transform.translation.distance(player_transform.translation);
             let direction = (player_transform.translation - bot_transform.translation).normalize();
-            
+
             // check if the player is visible from the bot's perspective
             if let Some(hit) = spatial_query.cast_ray(
                 bot_transform.translation,

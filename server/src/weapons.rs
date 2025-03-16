@@ -1,12 +1,17 @@
-use avian3d::prelude::{LinearVelocity, PhysicsStepSet, Position, SpatialQuery, SpatialQueryFilter};
+use avian3d::prelude::{LinearVelocity, PhysicsStepSet, Position, Rotation, SpatialQueryFilter};
+use bevy::math::NormedVectorSpace;
 use bevy::prelude::*;
-use lightyear::prelude::{Replicating, TickManager};
+use lightyear::prelude::{Replicating, ServerConnectionManager, TickManager};
 use shared::{prelude::{Damageable, PlayerInput, UniqueIdentity}, weapons::{handle_shooting, CurrentWeaponIndex, ProjectileHitEvent, WeaponInventory, WeaponsData}};
 use leafwing_input_manager::prelude::ActionState;
-use shared::prelude::{GameLayer, Projectile, WeaponFiredEvent};
+use lightyear::prelude::client::InterpolationDelay;
+use lightyear_avian::prelude::LagCompensationSpatialQuery;
+use shared::prelude::{GameLayer, Projectile, WeaponFiredEvent, WeaponsSet};
 
 /// Handles projectiles colliding with walls and enemies
 pub(crate) struct WeaponsPlugin;
+
+
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ProjectileHitEvent>();
@@ -14,7 +19,10 @@ impl Plugin for WeaponsPlugin {
         app.add_systems(FixedPostUpdate, projectile_hit_system.run_if(resource_exists::<WeaponsData>));
         // lag compensation collisions must run after the SpatialQuery has been updated
         app.add_systems(FixedPostUpdate, bullet_hit_detection.after(PhysicsStepSet::SpatialQuery));
-        app.add_systems(FixedUpdate, shoot_system.run_if(resource_exists::<WeaponsData>));
+        app.add_systems(FixedUpdate, shoot_system
+            .in_set(WeaponsSet::Shoot)
+            .run_if(resource_exists::<WeaponsData>)
+        );
     }
 }
 
@@ -84,75 +92,45 @@ fn projectile_hit_system(
 /// - narrow-phase: if there is a broadphase hit, check hits via raycast between bullet and the interlated history collider
 fn bullet_hit_detection(
     mut commands: Commands,
-    fixed_time: Res<Time<Fixed>>,
     tick_manager: Res<TickManager>,
-    projectiles: Query<(Entity, &Position, &LinearVelocity, &WeaponFiredEvent), With<Projectile>>,
+    nonraycast_bullets: Query<(Entity, &Position, &LinearVelocity, &WeaponFiredEvent), With<Projectile>>,
     mut hit_events: EventWriter<ProjectileHitEvent>,
-    // query: LagCompensationSpatialQuery,
-    // manager: Res<ServerConnectionManager>,
-    // client_query: Query<&InterpolationDelay>,
-    spatial_query: SpatialQuery,
+    query: LagCompensationSpatialQuery,
+    manager: Res<ServerConnectionManager>,
+    client_query: Query<&InterpolationDelay>,
 ) {
     let tick = tick_manager.tick();
-    for (bullet_entity, current_pos, current_velocity, fired_event) in projectiles.iter() {
-        // @comment-brian: This seemed to be causing problems, it's like it isn't hitting on the server at all.
-        // I'm not sure why, probably because lack of LagCompensationHistory on the bot? But even for walls it wasn't logging anything.
-        // So I just used a spatial query for now.
+    nonraycast_bullets.iter()
+        .for_each(|(bullet_entity, current_pos, current_velocity, fired_event)| {
 
-        // let delay = match fired_event.shooter_id {
-        //     UniqueIdentity::Player(client_id) => {
-        //         let Ok(delay) = manager
-        //             .client_entity(client_id)
-        //             .map(|client_entity| client_query.get(client_entity).unwrap())
-        //         else {
-        //             error!("Could not retrieve InterpolationDelay for client {client_id:?}");
-        //             return;
-        //         };
-        //         *delay
-        //     }
-        //     UniqueIdentity::Bot(_) => InterpolationDelay {
-        //         delay_ms: 0,
-        //     }
-        // };
-        // if let Some(hit) = query.cast_ray(
-        //     delay,
-        //     current_pos.0,
-        //     Dir3::from_xyz(current_velocity.x, current_velocity.y, current_velocity.z).unwrap_or(fired_event.fire_direction),
-        //     current_velocity.length() * fixed_time.delta_secs(),
-        //     true,
-        //     &mut SpatialQueryFilter {
-        //         mask: [GameLayer::Ship, GameLayer::Wall].into(),
-        //         ..default()
-        //     }.with_excluded_entities([fired_event.shooter_entity])
-        // ) {
-        //     let hit_event = ProjectileHitEvent {
-        //         shooter_id: fired_event.shooter_id,
-        //         weapon_index: fired_event.weapon_index,
-        //         projectile_entity: bullet_entity,
-        //         entity_hit: Some(hit.entity),
-        //     };
-        //     info!(?tick, "Sending bullet hit event: {:?}", hit_event);
-        //     hit_events.send(hit_event);
+        let delay = match fired_event.shooter_id {
+            UniqueIdentity::Player(client_id) => {
+                let Ok(delay) = manager
+                    .client_entity(client_id)
+                    .map(|client_entity| client_query.get(client_entity).unwrap())
+                else {
+                    error!("Could not retrieve InterpolationDelay for client {client_id:?}");
+                    return;
+                };
+                *delay
+            }
+            UniqueIdentity::Bot(_) => InterpolationDelay {
+                delay_ms: 0,
+            }
+        };
 
-        //     // if the bullet was a projectile, despawn it
-        //     // TODO: how to make sure that the bullet is visually despawned on the client?
-        //     //      @comment-brian: check out client/src/weapon.rs, I now predict the hit detection of projectiles for now. 
-        //     //                      And I think that's what you want probably? I'll have to think about it more.
-        //     commands.entity(bullet_entity).despawn_recursive();
-        // }
-
-        if let Some(hit) = spatial_query.cast_ray(
+        if let Some(hit) = query.cast_ray(
+            delay,
             current_pos.0,
-            Dir3::from_xyz(current_velocity.x, current_velocity.y, current_velocity.z).unwrap_or(fired_event.fire_direction),
-            current_velocity.length() * fixed_time.delta_secs(),
-            true,
+            // NOTE: we could also use the current LinearVelocity
+            fired_event.fire_direction,
+            current_velocity.norm(),
+            false,
             &mut SpatialQueryFilter {
                 mask: [GameLayer::Ship, GameLayer::Wall].into(),
                 ..default()
             }.with_excluded_entities([fired_event.shooter_entity])
         ) {
-            commands.entity(bullet_entity).despawn_recursive();
-            
             let hit_event = ProjectileHitEvent {
                 shooter_id: fired_event.shooter_id,
                 weapon_index: fired_event.weapon_index,
@@ -161,28 +139,40 @@ fn bullet_hit_detection(
             };
             info!(?tick, "Sending bullet hit event: {:?}", hit_event);
             hit_events.send(hit_event);
+
+            // if the bullet was a projectile, despawn it
+            // TODO: how to make sure that the bullet is visually despawned on the client?
+            //      @comment-brian: check out client/src/weapon.rs, I now predict the hit detection of projectiles for now.
+            //                      And I think that's what you want probably? I'll have to think about it more.
+            commands.entity(bullet_entity).despawn_recursive();
         }
-    }
+    });
 }
 
 fn shoot_system(
     fixed_time: Res<Time<Fixed>>,
     mut commands: Commands,
     weapons_data: Res<WeaponsData>,
+    tick_manager: Res<TickManager>,
     mut replicated_player: Query<(
         Entity,
-        &Transform,
+        &Position,
+        &Rotation,
         &UniqueIdentity,
         &CurrentWeaponIndex,
         &mut WeaponInventory,
         &ActionState<PlayerInput>,
     ), With<Replicating>>,
 ) {
-    for (shooting_entity, transform, identity, current_weapon_idx, mut inventory, action) in replicated_player.iter_mut() {
+    let tick = tick_manager.tick();
+    for (shooting_entity, position, rotation, identity, current_weapon_idx, mut inventory, action) in replicated_player.iter_mut() {
         handle_shooting(
             shooting_entity, 
-            identity, 
-            transform, 
+            identity,
+            tick,
+            true,
+            position,
+            rotation,
             current_weapon_idx.0, 
             &mut inventory, 
             action, 

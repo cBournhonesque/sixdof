@@ -109,15 +109,3 @@ pub fn position_to_transform(
         }
     }
 }
-
-pub fn log_collisions(
-    mut event_reader: EventReader<Collision>,
-) {
-        for Collision(contacts) in event_reader.read() {
-        println!(
-            "Entities {} and {} are colliding",
-            contacts.entity1,
-            contacts.entity2,
-        );
-    }
-}
