@@ -262,7 +262,6 @@ fn target_tracking_system(
         for (player_entity, player_position) in players.iter() {
             let distance = bot_position.0.distance(player_position.0);
             let direction = (player_position.0 - bot_position.0).normalize();
-            info!("Checking player distance and direction: {:?}, {:?}", distance, direction);
 
             // check if the player is visible from the bot's perspective
             if let Some(hit) = spatial_query.cast_ray(
@@ -275,7 +274,6 @@ fn target_tracking_system(
             ) {
                 info!("Hit: {:?}", hit.entity);
                 if hit.entity == player_entity && distance < nearest_distance {
-                    info!("Player hit");
                     nearest_player = Some(player_entity);
                     nearest_distance = distance;
                 }
