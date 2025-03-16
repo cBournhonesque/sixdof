@@ -272,7 +272,6 @@ fn target_tracking_system(
                 &SpatialQueryFilter::default()
                     .with_excluded_entities(excluded_entities.clone()),
             ) {
-                info!("Hit: {:?}", hit.entity);
                 if hit.entity == player_entity && distance < nearest_distance {
                     nearest_player = Some(player_entity);
                     nearest_distance = distance;
