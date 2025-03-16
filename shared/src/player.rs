@@ -148,10 +148,6 @@ pub fn move_player(
 #[require(Transform)]
 pub struct PlayerShip;
 
-
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Player {
-    pub name: String,
-    pub respawn_timer: Timer,
-}
+pub struct PlayerRespawnTimer(pub Timer);
 

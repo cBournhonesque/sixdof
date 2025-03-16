@@ -4,7 +4,7 @@ use lightyear::prelude::*;
 use avian3d::prelude::*;
 use lightyear::prelude::client::{ComponentSyncMode, LerpFn};
 use lightyear::utils::avian3d::{position, rotation};
-use crate::player::PlayerShip;
+use crate::player::{PlayerRespawnTimer, PlayerShip};
 use crate::prelude::{Damageable, Projectile, UniqueIdentity, WeaponFiredEvent};
 use crate::ships::Ship;
 use crate::weapons::{CurrentWeaponIndex, WeaponInventory};
@@ -87,6 +87,8 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<BotShip>(ChannelDirection::ServerToClient)
             .add_interpolation(ComponentSyncMode::Once);
 
+        app.register_component::<PlayerRespawnTimer>(ChannelDirection::ServerToClient);
+        
         // Fully replicated, but not visual, so no need for lerp/corrections:
         app.register_component::<LinearVelocity>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full);

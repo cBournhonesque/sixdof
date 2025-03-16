@@ -1,6 +1,8 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use lightyear::prelude::{server::*, *};
-use shared::{player::PlayerShip, prelude::{Damageable, UniqueIdentity, PREDICTION_REPLICATION_GROUP_ID}, ships::{get_shared_ship_components, Ship, ShipId, ShipsData}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
+use shared::{player::{PlayerRespawnTimer, PlayerShip}, prelude::{Damageable, UniqueIdentity, PREDICTION_REPLICATION_GROUP_ID}, ships::{get_shared_ship_components, Ship, ShipId, ShipsData}, weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData}};
 use avian3d::prelude::*;
 use lightyear::prelude::{NetworkTarget, ReplicateHierarchy, ReplicationGroup};
 
@@ -10,7 +12,7 @@ impl Plugin for PlayerPlugin {
         app.add_event::<SpawnPlayerShipEvent>();
         app.add_systems(Update, 
             (
-                spawn_player_on_connect,
+                player_connect_system,
                 spawn_player_ship_system
                     .run_if(resource_exists::<WeaponsData>)
                     .run_if(resource_exists::<ShipsData>)
@@ -27,18 +29,30 @@ pub struct SpawnPlayerShipEvent {
     pub rotation: Quat,
 }
 
-fn spawn_player_on_connect(
+fn player_connect_system(
+    mut commands: Commands,
     mut connect_events: EventReader<ConnectEvent>,
+    mut disconnect_events: EventReader<DisconnectEvent>,
     mut spawn_player_ship_events: EventWriter<SpawnPlayerShipEvent>,
 ) {
     for event in connect_events.read() {
         info!("Received ConnectEvent: {:?}", event);
+        commands.entity(event.entity).insert((
+            Name::from(format!("Player ({})", event.client_id)),
+            UniqueIdentity::Player(event.client_id),
+            PlayerRespawnTimer(Timer::new(Duration::from_secs(3), TimerMode::Once)),
+        ));
+        
         spawn_player_ship_events.send(SpawnPlayerShipEvent {
             client_id: event.client_id,
             ship_id: 0,
             position: Vec3::new(0.0, 2.0, 0.0),
             rotation: Quat::from_rotation_arc(Vec3::Y, Vec3::Z),
         });
+    }
+
+    for event in disconnect_events.read() {
+        info!("Received DisconnectEvent: {:?}", event);
     }
 }
 
