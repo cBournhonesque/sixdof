@@ -19,9 +19,9 @@ pub const SERVER_ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::L
 pub const PROTOCOL_ID: u64 = 0;
 pub const PRIVATE_KEY: [u8; 32] = [0; 32];
 pub const LINK_CONDITIONER: Option<LinkConditionerConfig> = Some(LinkConditionerConfig {
-    incoming_latency: Duration::from_millis(100),
-    incoming_jitter: Duration::from_millis(10),
-    incoming_loss: 0.0,
+    incoming_latency: Duration::from_millis(50),
+    incoming_jitter: Duration::from_millis(5),
+    incoming_loss: 0.05,
 });
 
 pub(crate) fn get_assets_path() -> String {
@@ -119,8 +119,7 @@ pub(crate) fn build_server_netcode_config(transport: ServerTransport) -> server:
             .with_key(PRIVATE_KEY),
         io: server::IoConfig {
             transport,
-            // TODO: add conditioner here?
-            conditioner: None,
+            conditioner: LINK_CONDITIONER,
             ..default()
         },
     }
