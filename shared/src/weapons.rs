@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use avian3d::prelude::*;
 use bevy::{prelude::*, utils::HashMap};
+use bevy::ecs::entity::MapEntities;
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::client::prediction::Predicted;
@@ -70,6 +71,12 @@ pub struct WeaponFiredEvent {
     pub fire_direction: Dir3,
     /// The tick at which the bullet was fired
     pub fire_tick: Tick,
+}
+
+impl MapEntities for WeaponFiredEvent {
+    fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
+        self.shooter_entity = entity_mapper.map_entity(self.shooter_entity);
+    }
 }
 
 /// Event that is sent when a projectile hits an entity.
@@ -337,9 +344,9 @@ pub fn handle_shooting(
                                             target: NetworkTarget::Single(*client_id),
                                             ..default()
                                         },
-                                        // NOTE: all predicted entities need to have the same replication group
+                                        // NOTE: if using prediction, all predicted entities need to have the same replication group
                                         //  maybe the group should be set per replication_target? for non-predicted clients we could use a different group...
-                                        group: ReplicationGroup::new_id(PREDICTION_REPLICATION_GROUP_ID),
+                                        // group: ReplicationGroup::new_id(PREDICTION_REPLICATION_GROUP_ID),
                                         ..default()
                                     },
                                     // NOTE: see above, maybe predicting the projectile is not necessary

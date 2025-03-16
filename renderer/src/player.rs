@@ -1,18 +1,13 @@
-use avian3d::prelude::{AngularVelocity, LinearVelocity};
 use bevy::core_pipeline::bloom::Bloom;
-use bevy::pbr::NotShadowCaster;
 use sfx::prelude::SfxListener;
 use bevy::color::palettes::basic::BLUE;
-use bevy::core_pipeline::prepass::DepthPrepass;
-use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
-use leafwing_input_manager::prelude::ActionState;
-use lightyear::prelude::client::{Confirmed, InterpolationSet, Predicted, PredictionSet, VisualInterpolateStatus};
+use lightyear::prelude::client::{Predicted, PredictionSet, VisualInterpolateStatus};
 use lightyear::shared::replication::components::Controlled;
 use shared::player::Player;
-use shared::prelude::PlayerInput;
 use shared::weapons::WeaponsData;
+#[cfg(feature = "client")]
 use crate::hud::spawn_3d_hud;
 use crate::VisibleFilter;
 
@@ -146,6 +141,7 @@ fn spawn_visuals(
                 ));
 
                 // 3d hud is attached to the ship, seperate from the camera so we can see the camera sway
+                #[cfg(feature = "client")]
                 spawn_3d_hud(&asset_server, &mut meshes, &mut materials, parent, &weapons_data);
             });
         }
