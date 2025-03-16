@@ -247,12 +247,18 @@ fn target_tracking_system(
     spatial_query: SpatialQuery,
     mut commands: Commands,
     targets: Query<&BotTarget>,
-    bots: Query<(Entity, &Position), With<Bot>>,
+    bots: Query<(Entity, &Position, &Children), With<Bot>>,
     players: Query<(Entity, &Position), With<Player>>,
 ) {
-    for (bot_entity, bot_position) in bots.iter() {
+    for (bot_entity, bot_position, children) in bots.iter() {
         let mut nearest_player = None;
         let mut nearest_distance = f32::MAX;
+
+        // We also exclude children of the bot, because we don't want to target the bot itself at all.
+        // And LagCompensationHistory is a child of the bot too.
+        let mut excluded_entities = children.iter().map(|child| *child).collect::<Vec<Entity>>();
+        excluded_entities.push(bot_entity);
+
         for (player_entity, player_position) in players.iter() {
             let distance = bot_position.0.distance(player_position.0);
             let direction = (player_position.0 - bot_position.0).normalize();
@@ -265,7 +271,7 @@ fn target_tracking_system(
                 distance,
                 true,
                 &SpatialQueryFilter::default()
-                    .with_excluded_entities([bot_entity]),
+                    .with_excluded_entities(excluded_entities.clone()),
             ) {
                 info!("Hit: {:?}", hit.entity);
                 if hit.entity == player_entity && distance < nearest_distance {
