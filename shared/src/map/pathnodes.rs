@@ -18,6 +18,7 @@ impl Default for PathfindingGraph {
     }
 }
 
+/// @todo-brian: SLOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOW
 pub fn generate_pathfinding_nodes_system(
     mut commands: Commands,
     spatial_query: SpatialQuery,

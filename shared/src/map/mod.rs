@@ -27,8 +27,8 @@ impl Plugin for MapPlugin {
         ));
         app.add_systems(Startup, load_map_system);
         app.add_systems(Update, add_map_colliders);
-        app.add_systems(Update, generate_pathfinding_nodes_system);
-        app.add_systems(Update, draw_pathfinding_graph_system);
+        //app.add_systems(Update, generate_pathfinding_nodes_system);
+        //app.add_systems(Update, draw_pathfinding_graph_system);
     }
 }
 

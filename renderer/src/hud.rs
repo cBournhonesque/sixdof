@@ -3,7 +3,7 @@ use bevy::{diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, pbr::NotS
 use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use bevy_rich_text3d::{Text3d, Text3dPlugin, Text3dStyling, TextAtlas};
 
-use lightyear::{client::prediction::diagnostics::PredictionMetrics, shared::replication::components::Controlled};
+use lightyear::{client::prediction::diagnostics::PredictionMetrics, prelude::client::Predicted, shared::replication::components::Controlled};
 use serde::Deserialize;
 use shared::weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData};
 
@@ -282,7 +282,7 @@ fn crosshair_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut crosshair: Query<(&Crosshair, &MeshMaterial3d<StandardMaterial>)>,
-    mut current_weapon_idx: Query<&CurrentWeaponIndex, (With<Controlled>, Or<(Changed<CurrentWeaponIndex>, Added<CurrentWeaponIndex>)>)>,
+    mut current_weapon_idx: Query<&CurrentWeaponIndex, (With<Predicted>, Or<(Changed<CurrentWeaponIndex>, Added<CurrentWeaponIndex>)>)>,
     weapons_data: Res<WeaponsData>,
 ) {
     let Ok(current_weapon_idx) = current_weapon_idx.get_single() else { return };
@@ -307,7 +307,7 @@ fn crosshair_system(
 }
 
 fn update_stats_system(
-    mut controlled_player: Query<(&WeaponInventory, &CurrentWeaponIndex), (With<Player>, With<Controlled>)>,
+    mut controlled_player: Query<(&WeaponInventory, &CurrentWeaponIndex), (With<Player>, With<Predicted>)>,
     mut ammo_text: Query<&mut Text3d, With<AmmoText>>,
 ) {
     let Ok((weapon_inventory, current_weapon_idx)) = controlled_player.get_single() else { return };
