@@ -130,20 +130,20 @@ fn move_system(
     spatial_query: SpatialQuery,
     fixed_time: Res<Time<Fixed>>,
     mut targets: Query<&mut BotTarget>,
-    transforms: Query<&Transform>,
-    mut bots: Query<(Entity, &Transform, &mut LinearVelocity, &mut AngularVelocity, &ShipIndex, &mut Bot)>,
+    positions: Query<&Position>,
+    mut bots: Query<(Entity, &Position, &mut LinearVelocity, &mut AngularVelocity, &ShipIndex, &mut Bot)>,
     ships_data: Res<ShipsData>,
 ) {
     let delta = fixed_time.delta_secs();
 
-    for (bot_entity, bot_transform, mut linear_velocity, mut angular_velocity, ship_index, mut bot) in bots.iter_mut() {
+    for (bot_entity, bot_position, mut linear_velocity, mut angular_velocity, ship_index, mut bot) in bots.iter_mut() {
         if let Some(ship_behavior) = ships_data.ships.get(&ship_index.0) {
             let mut wish_dir = Vec3::ZERO;
             let mut found_bot_target = None;
             if let Ok(mut bot_target) = targets.get_mut(bot_entity) {
-                if let (Ok(target_transform), Ok(bot_transform)) = (transforms.get(bot_target.entity), transforms.get(bot_entity)) {
-                    let target_pos = target_transform.translation;
-                    let bot_pos = bot_transform.translation;
+                if let (Ok(target_position), Ok(bot_position)) = (positions.get(bot_target.entity), positions.get(bot_entity)) {
+                    let target_pos = target_position.0;
+                    let bot_pos = bot_position.0;
                     let distance = target_pos.distance(bot_pos);
                     let dir_to_target = (target_pos - bot_pos).normalize_or_zero();
 
@@ -216,7 +216,7 @@ fn move_system(
 
             // deflect the ship if it's about to hit a wall
             if let Some(hit) = spatial_query.cast_ray(
-                bot_transform.translation,
+                bot_position.0,
                 Dir3::new(wish_dir).unwrap_or(Dir3::NEG_Z),
                 ship_behavior.bot_behavior.wall_avoidance_distance,
                 true,
@@ -247,26 +247,29 @@ fn target_tracking_system(
     spatial_query: SpatialQuery,
     mut commands: Commands,
     targets: Query<&BotTarget>,
-    bots: Query<(Entity, &Transform), With<Bot>>,
-    players: Query<(Entity, &Transform), With<Player>>,
+    bots: Query<(Entity, &Position), With<Bot>>,
+    players: Query<(Entity, &Position), With<Player>>,
 ) {
-    for (bot_entity, bot_transform) in bots.iter() {
+    for (bot_entity, bot_position) in bots.iter() {
         let mut nearest_player = None;
         let mut nearest_distance = f32::MAX;
-        for (player_entity, player_transform) in players.iter() {
-            let distance = bot_transform.translation.distance(player_transform.translation);
-            let direction = (player_transform.translation - bot_transform.translation).normalize();
+        for (player_entity, player_position) in players.iter() {
+            let distance = bot_position.0.distance(player_position.0);
+            let direction = (player_position.0 - bot_position.0).normalize();
+            info!("Checking player distance and direction: {:?}, {:?}", distance, direction);
 
             // check if the player is visible from the bot's perspective
             if let Some(hit) = spatial_query.cast_ray(
-                bot_transform.translation,
+                bot_position.0,
                 Dir3::new(direction).unwrap_or(Dir3::NEG_Z),
                 distance,
                 true,
                 &SpatialQueryFilter::default()
                     .with_excluded_entities([bot_entity]),
             ) {
+                info!("Hit: {:?}", hit.entity);
                 if hit.entity == player_entity && distance < nearest_distance {
+                    info!("Player hit");
                     nearest_player = Some(player_entity);
                     nearest_distance = distance;
                 }
