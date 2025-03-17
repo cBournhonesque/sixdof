@@ -1,12 +1,12 @@
 use avian3d::prelude::{LinearVelocity, PhysicsStepSet, Position, Rotation, SpatialQueryFilter};
 use bevy::math::NormedVectorSpace;
 use bevy::prelude::*;
-use lightyear::prelude::{Replicating, ServerConnectionManager, TickManager};
+use lightyear::prelude::{Replicating, ServerConnectionManager, TickManager, ToClients};
 use shared::{prelude::{Damageable, PlayerInput, UniqueIdentity}, weapons::{handle_shooting, CurrentWeaponIndex, ProjectileHitEvent, WeaponInventory, WeaponsData}};
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::prelude::client::InterpolationDelay;
 use lightyear_avian::prelude::LagCompensationSpatialQuery;
-use shared::prelude::{GameLayer, Projectile, WeaponFiredEvent, WeaponsSet};
+use shared::prelude::{GameLayer, Projectile, ProjectileInfo, WeaponFiredEvent, WeaponsSet};
 
 /// Handles projectiles colliding with walls and enemies
 pub(crate) struct WeaponsPlugin;
@@ -93,7 +93,7 @@ fn projectile_hit_system(
 fn bullet_hit_detection(
     mut commands: Commands,
     tick_manager: Res<TickManager>,
-    nonraycast_bullets: Query<(Entity, &Position, &LinearVelocity, &WeaponFiredEvent), With<Projectile>>,
+    nonraycast_bullets: Query<(Entity, &Position, &LinearVelocity, &ProjectileInfo), With<Projectile>>,
     mut hit_events: EventWriter<ProjectileHitEvent>,
     query: LagCompensationSpatialQuery,
     manager: Res<ServerConnectionManager>,
@@ -101,9 +101,9 @@ fn bullet_hit_detection(
 ) {
     let tick = tick_manager.tick();
     nonraycast_bullets.iter()
-        .for_each(|(bullet_entity, current_pos, current_velocity, fired_event)| {
+        .for_each(|(bullet_entity, current_pos, current_velocity, projectile_info)| {
 
-        let delay = match fired_event.shooter_id {
+        let delay = match projectile_info.shooter_id {
             UniqueIdentity::Player(client_id) => {
                 let Ok(delay) = manager
                     .client_entity(client_id)
@@ -122,18 +122,17 @@ fn bullet_hit_detection(
         if let Some(hit) = query.cast_ray(
             delay,
             current_pos.0,
-            // NOTE: we could also use the current LinearVelocity
-            fired_event.fire_direction,
+            Dir3::new_unchecked(current_velocity.0.normalize()),
             current_velocity.norm(),
             false,
             &mut SpatialQueryFilter {
                 mask: [GameLayer::Ship, GameLayer::Wall].into(),
                 ..default()
-            }.with_excluded_entities([fired_event.shooter_entity])
+            }.with_excluded_entities([projectile_info.shooter_entity])
         ) {
             let hit_event = ProjectileHitEvent {
-                shooter_id: fired_event.shooter_id,
-                weapon_index: fired_event.weapon_index,
+                shooter_id: projectile_info.shooter_id,
+                weapon_index: projectile_info.weapon_index,
                 projectile_entity: bullet_entity,
                 entity_hit: Some(hit.entity),
             };
@@ -154,6 +153,7 @@ fn shoot_system(
     mut commands: Commands,
     weapons_data: Res<WeaponsData>,
     tick_manager: Res<TickManager>,
+    mut to_clients: ResMut<Events<ToClients<WeaponFiredEvent>>>,
     mut replicated_player: Query<(
         Entity,
         &Position,
@@ -171,6 +171,7 @@ fn shoot_system(
             identity,
             tick,
             true,
+            Some(to_clients.as_mut()),
             position,
             rotation,
             current_weapon_idx.0, 

@@ -12,8 +12,9 @@ use bevy_config_stack::prelude::ConfigAssetLoadedEvent;
 use leafwing_input_manager::prelude::ActionState;
 use lightyear::client::prediction::Predicted;
 use lightyear::prelude::client::{Confirmed, Interpolated, VisualInterpolateStatus};
-use lightyear::prelude::{ClientId, Replicating};
+use lightyear::prelude::{ClientId, Replicating, Tick};
 use lightyear::shared::replication::components::Controlled;
+use lightyear::utils::ready_buffer::ReadyBuffer;
 use rand::Rng;
 use shared::bot::BotShip;
 use shared::physics::GameLayer;
@@ -33,6 +34,7 @@ impl Plugin for WeaponsPlugin {
         app.add_systems(Update, load_weapon_sounds_system.run_if(resource_exists::<WeaponsData>));
     }
 }
+
 
 #[derive(Resource, Default)]
 struct ProjectileVisualsCache {
@@ -59,7 +61,7 @@ fn spawn_projectile_visuals_observer(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut cache: ResMut<ProjectileVisualsCache>,
-    mut projectile: Query<(&mut Transform, &WeaponFiredEvent), With<Projectile>>,
+    mut projectile: Query<(&mut Transform, &ProjectileInfo), With<Projectile>>,
     mut asset_server: ResMut<AssetServer>,
 ) {
     let entity = trigger.entity();
@@ -106,7 +108,7 @@ fn spawn_projectile_visuals_observer(
             }
 
             if let Some(texture) = cache.textures.get(texture_asset_path) {
-                debug!(?entity, ?projectile.fire_origin, ?projectile.fire_tick, "Adding projectile visuals");
+                debug!(?entity, "Adding projectile visuals");
                 projectile_transform.scale = Vec3::splat(*scale);
                 commands.entity(entity).insert((
                     InheritedVisibility::default(),
@@ -172,127 +174,124 @@ fn load_weapon_sounds_system(
 
 /// When a weapon is fired, spawn the fire sound, muzzle flash and any vfx.
 fn weapon_fired_system(
-    trigger: Trigger<OnAdd, Projectile>,
+    trigger: Trigger<WeaponFiredEvent>,
     weapons_data: Res<WeaponsData>,
     mut commands: Commands,
-    fired_events: Query<&WeaponFiredEvent, Without<Confirmed>>,
     controlled: Query<(), With<Controlled>>,
 ) {
-    if let Ok(event) = fired_events.get(trigger.entity()) {
-         if let Some(weapon) = weapons_data.weapons.get(&event.weapon_index) {
+    let event = trigger.event();
+    if let Some(weapon) = weapons_data.weapons.get(&event.weapon_index) {
+        // If it's our own weapon we want to make sure we use a 2D (but still stereo) sound.
+        let is_controlled = if controlled.get(event.shooter_entity).is_ok() {
+            true
+        } else {
+            false
+        };
 
-            // If it's our own weapon we want to make sure we use a 2D (but still stereo) sound.
-            let is_controlled = if controlled.get(event.shooter_entity).is_ok() {
-                true
-            } else {
-                false
-            };
-
-            // Spawn the fire sound
-            // @todo-brian: We probably want to tweak things based on if the shooter is the local player or not.
-            commands.spawn((
-                SfxEmitter {
-                    // The unique id is the asset path of the fire sound
-                    asset_unique_id: weapon.firing_sound.compute_asset_path(),
-                    spatial: if is_controlled {
-                        None
-                    } else {
-                        Some(SpatialTrackDistances {
-                            min_distance: weapon.firing_sound.min_distance,
-                            max_distance: weapon.firing_sound.max_distance,
-                        })
-                    },
-                    reverb: {
-                        if let Some(reverb) = &weapon.firing_sound.reverb {
-                            Some(ReverbSettings {
-                                damping: reverb.damping as f64,
-                                feedback: reverb.feedback as f64,
-                                mix: {
-                                    if reverb.mix == ReverbMix::Wet {
-                                        Mix::WET
-                                    } else {
-                                        Mix::DRY
-                                    }
-                                },
-                                volume: Value::Fixed(Decibels(1.0)),
-                            })
-                        } else {
-                            None
-                        }
-                    },
-                    low_pass: {
-                        // Do not distance muffle for controlled weapons
-                        if is_controlled {
-                            None
-                        } else {
-                            if let Some(distance_muffle) = &weapon.firing_sound.distance_muffle {
-                                Some(LowPassSettings {
-                                    cutoff_hz: Value::FromListenerDistance(Mapping {
-                                        input_range: (distance_muffle.min_distance as f64, distance_muffle.max_distance as f64),
-                                        output_range: (20000.0, distance_muffle.cutoff_hz as f64),
-                                        easing: Easing::Linear,
-                                    })
-                                })
-                            } else {
-                                None
-                            }
-                        }
-                    },
-                    eq: {
-                        if let Some(eq_variance) = &weapon.firing_sound.eq_variance {
-
-                            let mut rng = rand::rng();
-
-                            let low_gain = if eq_variance.low_min_db >= eq_variance.low_max_db {
-                                eq_variance.low_min_db
-                            } else {
-                                rng.random_range(eq_variance.low_min_db..eq_variance.low_max_db)
-                            };
-
-                            let mid_gain = if eq_variance.mid_min_db >= eq_variance.mid_max_db {
-                                eq_variance.mid_min_db
-                            } else {
-                                rng.random_range(eq_variance.mid_min_db..eq_variance.mid_max_db)
-                            };
-
-                            let high_gain = if eq_variance.high_min_db >= eq_variance.high_max_db {
-                                eq_variance.high_min_db
-                            } else {
-                                rng.random_range(eq_variance.high_min_db..eq_variance.high_max_db)
-                            };
-
-                            Some(EqSettings {
-                                frequencies: vec![
-                                    EqFrequency { kind: EqFilterKind::Bell, frequency: 200.0, gain: Value::Fixed(Decibels(low_gain)), q: 1.0 },
-                                    EqFrequency { kind: EqFilterKind::Bell, frequency: 2000.0, gain: Value::Fixed(Decibels(mid_gain)), q: 1.0 },
-                                    EqFrequency { kind: EqFilterKind::Bell, frequency: 20000.0, gain: Value::Fixed(Decibels(high_gain)), q: 1.0 },
-                                ],
-                            })
-                        } else {
-                            None
-                        }
-                    },
-                    delay: None,
-                    // No doppler for controlled weapons
-                    doppler_enabled: is_controlled,
-                    speed_of_sound: weapon.firing_sound.speed_of_sound as f64,
-                    volume: Value::Fixed(Decibels(weapon.firing_sound.volume_db)),
-                    loop_region: None,
-                    // TODO: instead of this we probably should make this a child of the projectile itself?
-                    despawn_entity_after_secs: weapon.firing_sound.despawn_delay,
-                    // No follow for controlled weapons
-                    follow: if is_controlled {
-                        None
-                    } else {
-                        Some(SfxFollowTarget {
-                            target: event.shooter_entity,
-                            local_offset: Vec3::ZERO,
-                        })
-                    },
-                    ..default()
+        // Spawn the fire sound
+        // @todo-brian: We probably want to tweak things based on if the shooter is the local player or not.
+        commands.spawn((
+            SfxEmitter {
+                // The unique id is the asset path of the fire sound
+                asset_unique_id: weapon.firing_sound.compute_asset_path(),
+                spatial: if is_controlled {
+                    None
+                } else {
+                    Some(SpatialTrackDistances {
+                        min_distance: weapon.firing_sound.min_distance,
+                        max_distance: weapon.firing_sound.max_distance,
+                    })
                 },
-                Transform::from_translation(event.fire_origin),
-            ));
-        }
+                reverb: {
+                    if let Some(reverb) = &weapon.firing_sound.reverb {
+                        Some(ReverbSettings {
+                            damping: reverb.damping as f64,
+                            feedback: reverb.feedback as f64,
+                            mix: {
+                                if reverb.mix == ReverbMix::Wet {
+                                    Mix::WET
+                                } else {
+                                    Mix::DRY
+                                }
+                            },
+                            volume: Value::Fixed(Decibels(1.0)),
+                        })
+                    } else {
+                        None
+                    }
+                },
+                low_pass: {
+                    // Do not distance muffle for controlled weapons
+                    if is_controlled {
+                        None
+                    } else {
+                        if let Some(distance_muffle) = &weapon.firing_sound.distance_muffle {
+                            Some(LowPassSettings {
+                                cutoff_hz: Value::FromListenerDistance(Mapping {
+                                    input_range: (distance_muffle.min_distance as f64, distance_muffle.max_distance as f64),
+                                    output_range: (20000.0, distance_muffle.cutoff_hz as f64),
+                                    easing: Easing::Linear,
+                                })
+                            })
+                        } else {
+                            None
+                        }
+                    }
+                },
+                eq: {
+                    if let Some(eq_variance) = &weapon.firing_sound.eq_variance {
+
+                        let mut rng = rand::rng();
+
+                        let low_gain = if eq_variance.low_min_db >= eq_variance.low_max_db {
+                            eq_variance.low_min_db
+                        } else {
+                            rng.random_range(eq_variance.low_min_db..eq_variance.low_max_db)
+                        };
+
+                        let mid_gain = if eq_variance.mid_min_db >= eq_variance.mid_max_db {
+                            eq_variance.mid_min_db
+                        } else {
+                            rng.random_range(eq_variance.mid_min_db..eq_variance.mid_max_db)
+                        };
+
+                        let high_gain = if eq_variance.high_min_db >= eq_variance.high_max_db {
+                            eq_variance.high_min_db
+                        } else {
+                            rng.random_range(eq_variance.high_min_db..eq_variance.high_max_db)
+                        };
+
+                        Some(EqSettings {
+                            frequencies: vec![
+                                EqFrequency { kind: EqFilterKind::Bell, frequency: 200.0, gain: Value::Fixed(Decibels(low_gain)), q: 1.0 },
+                                EqFrequency { kind: EqFilterKind::Bell, frequency: 2000.0, gain: Value::Fixed(Decibels(mid_gain)), q: 1.0 },
+                                EqFrequency { kind: EqFilterKind::Bell, frequency: 20000.0, gain: Value::Fixed(Decibels(high_gain)), q: 1.0 },
+                            ],
+                        })
+                    } else {
+                        None
+                    }
+                },
+                delay: None,
+                // No doppler for controlled weapons
+                doppler_enabled: is_controlled,
+                speed_of_sound: weapon.firing_sound.speed_of_sound as f64,
+                volume: Value::Fixed(Decibels(weapon.firing_sound.volume_db)),
+                loop_region: None,
+                // TODO: instead of this we probably should make this a child of the projectile itself?
+                despawn_entity_after_secs: weapon.firing_sound.despawn_delay,
+                // No follow for controlled weapons
+                follow: if is_controlled {
+                    None
+                } else {
+                    Some(SfxFollowTarget {
+                        target: event.shooter_entity,
+                        local_offset: Vec3::ZERO,
+                    })
+                },
+                ..default()
+            },
+            Transform::from_translation(event.fire_origin),
+        ));
     }
 }
