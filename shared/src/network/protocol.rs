@@ -23,7 +23,7 @@ pub struct ProtocolPlugin;
 
 
 #[derive(Channel)]
-pub struct Channel1;
+pub struct WeaponFiredChannel;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy, Hash, Reflect, Actionlike)]
 pub enum PlayerInput {
@@ -52,8 +52,8 @@ pub enum PlayerInput {
 impl Plugin for ProtocolPlugin {
     fn build(&self, app: &mut App) {
         // Channels
-        app.add_channel::<Channel1>(ChannelSettings {
-            mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
+        app.add_channel::<WeaponFiredChannel>(ChannelSettings {
+            mode: ChannelMode::UnorderedReliable(ReliableSettings::default()),
             ..default()
         });
 
@@ -66,6 +66,11 @@ impl Plugin for ProtocolPlugin {
             }
         });
 
+        // Messages
+        app.register_message::<WeaponFiredEvent>(ChannelDirection::ServerToClient)
+            .add_map_entities();
+
+        // Components
         app.register_component::<Name>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Once)
             .add_interpolation(ComponentSyncMode::Once);
@@ -73,10 +78,6 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<Projectile>(ChannelDirection::ServerToClient)
             .add_interpolation(ComponentSyncMode::Once);
         
-        app.register_component::<WeaponFiredEvent>(ChannelDirection::ServerToClient)
-            .add_interpolation(ComponentSyncMode::Once)
-            .add_map_entities();
-
         app.register_component::<PlayerShip>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Simple)
             .add_interpolation(ComponentSyncMode::Simple);
@@ -117,11 +118,6 @@ impl Plugin for ProtocolPlugin {
 
         // do not replicate Transform but make sure to register an interpolation function
         // for it so that we can do visual interpolation
-        // (another option would be to replicate transform and not use Position/Rotation at all)
-        // app.register_component::<Transform>(ChannelDirection::ServerToClient)
-        //     .add_prediction(ComponentSyncMode::Full)
-        //     .add_interpolation(ComponentSyncMode::Full)
-        //     .add_interpolation_fn(TransformLinearInterpolation::lerp);
         app.add_interpolation::<Transform>(ComponentSyncMode::None);
         app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
 

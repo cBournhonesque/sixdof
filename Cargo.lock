@@ -1234,9 +1234,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_materialize"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "911eaa27cd446a9e95f18c7c234b6a8c036ae47b4632e09bbdf5326c3f1f0bc5"
+checksum = "20040879c95d5f3210eafd7fc00d64e9e75b5cc7eddbedfc752bd9c73b8b12e2"
 dependencies = [
  "bevy",
  "serde",
@@ -1620,9 +1620,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_trenchbroom"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f34467f8088d997444e0cfdd7f17a3c929894eb3557b5ca62ddbbd86c7a97260"
+checksum = "00ed5bb471e9b65df4c4b6313de1578577f6bab75466e73af66e8d145d7bf49c"
 dependencies = [
  "anyhow",
  "avian3d",
@@ -1649,9 +1649,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_trenchbroom_macros"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "025a890d6eaec92b4ee7105660a73319054b6fe97d5a925e3691cfebd800bd9f"
+checksum = "d705a6b59b24c75bb34f71b84249fb5625a53298e0737870613fa1a799e67993"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -3072,9 +3072,9 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "foldhash"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0d2fde1f7b3d48b8395d5f2de76c18a528bd6a9cdde438df747bfcba3e05d6f"
+checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
 name = "font-types"
@@ -4302,7 +4302,7 @@ dependencies = [
 [[package]]
 name = "lightyear"
 version = "0.19.0"
-source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#9f3f3c02d2377662e645d6719217b9763d539af0"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#2037d468f513569deee79ca24e0eb06c2a4c35ea"
 dependencies = [
  "async-channel",
  "async-compat",
@@ -4346,7 +4346,7 @@ dependencies = [
 [[package]]
 name = "lightyear_avian"
 version = "0.19.0"
-source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#9f3f3c02d2377662e645d6719217b9763d539af0"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#2037d468f513569deee79ca24e0eb06c2a4c35ea"
 dependencies = [
  "avian3d",
  "bevy",
@@ -4387,7 +4387,7 @@ dependencies = [
 [[package]]
 name = "lightyear_macros"
 version = "0.19.0"
-source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#9f3f3c02d2377662e645d6719217b9763d539af0"
+source = "git+https://github.com/cBournhonesque/lightyear.git?branch=main#2037d468f513569deee79ca24e0eb06c2a4c35ea"
 dependencies = [
  "proc-macro2",
  "quote",
