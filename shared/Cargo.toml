@@ -14,3 +14,7 @@ avian3d.workspace = true
 bevy_common_assets.workspace = true
 serde.workspace = true
 vfx.workspace = true
+
+[features]
+default = ["bevy_trenchbroom/bevy_pbr", "bevy_trenchbroom/auto_register", "bevy_trenchbroom/avian"]
+headless = ["bevy_trenchbroom/auto_register", "bevy_trenchbroom/avian"]
