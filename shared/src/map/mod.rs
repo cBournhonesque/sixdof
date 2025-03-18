@@ -15,16 +15,21 @@ use crate::physics::GameLayer;
 pub struct Worldspawn;
 
 #[derive(Default)]
-pub struct MapPlugin;
+pub struct MapPlugin {
+    pub(crate) headless: bool
+}
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(AmbientLight::NONE);
         app.insert_resource(PathfindingGraph::default());
-        app.add_plugins(TrenchBroomPlugin(
-            TrenchBroomConfig::new("sixdof")
-                .register_class::<Worldspawn>()
-        ));
+        let mut config = TrenchBroomConfig::new("sixdof")
+                .register_class::<Worldspawn>();
+        if self.headless {
+            config.is_server = true;
+        } else {
+            app.insert_resource(AmbientLight::NONE);
+        }
+        app.add_plugins(TrenchBroomPlugin(config));
         app.add_systems(Startup, load_map_system);
         app.add_systems(Update, add_map_colliders);
         //app.add_systems(Update, generate_pathfinding_nodes_system);

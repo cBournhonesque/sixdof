@@ -798,19 +798,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_common_assets"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3521990269672c442f2bf0fbed0fce9db719e3dd136dd4012a97809464a4389d"
-dependencies = [
- "anyhow",
- "bevy",
- "ron",
- "serde",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "bevy_config_stack"
 version = "0.1.0"
 source = "git+https://github.com/BrianWiz/bevy_config_stack.git?branch=main#1d710f25015bf5366b6ba5aab7728880011b5fed"
@@ -6399,14 +6386,11 @@ version = "0.1.0"
 dependencies = [
  "avian3d",
  "bevy",
- "bevy_common_assets",
  "bevy_config_stack",
  "bevy_trenchbroom",
  "leafwing-input-manager",
  "lightyear 0.19.0 (git+https://github.com/cBournhonesque/lightyear.git?branch=main)",
- "lightyear_examples_common",
  "serde",
- "vfx",
 ]
 
 [[package]]
