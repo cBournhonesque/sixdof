@@ -22,7 +22,9 @@ impl ClientApp {
                 .set(settings::window_plugin())
                 // for bevy_trenchbroom
                 .set(ImagePlugin {
+                    #[cfg(not(feature = "server"))]
                     default_sampler: bevy_trenchbroom::util::repeating_image_sampler(true),
+                    ..default()
                 })
         );
         app.add_plugins(ClientPlugins {

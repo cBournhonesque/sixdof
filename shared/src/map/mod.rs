@@ -1,13 +1,19 @@
-mod pathnodes;
-
 use avian3d::collision::CollisionLayers;
 use avian3d::prelude::Collider;
 use bevy::prelude::*;
 use bevy_trenchbroom::prelude::*;
-use pathnodes::{draw_pathfinding_graph_system, generate_pathfinding_nodes_system, PathfindingGraph};
+// use pathnodes::{draw_pathfinding_graph_system, generate_pathfinding_nodes_system, PathfindingGraph};
 
 use crate::physics::GameLayer;
 
+#[cfg(feature = "headless")]
+#[derive(SolidClass, Component, Reflect)]
+#[no_register]
+#[reflect(Component)]
+#[geometry(GeometryProvider::new().smooth_by_default_angle().convex_collider())]
+pub struct Worldspawn;
+
+#[cfg(not(feature = "headless"))]
 #[derive(SolidClass, Component, Reflect)]
 #[no_register]
 #[reflect(Component)]
@@ -20,7 +26,7 @@ pub struct MapPlugin;
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(AmbientLight::NONE);
-        app.insert_resource(PathfindingGraph::default());
+        //app.insert_resource(PathfindingGraph::default());
         app.add_plugins(TrenchBroomPlugin(
             TrenchBroomConfig::new("sixdof")
                 .register_class::<Worldspawn>()

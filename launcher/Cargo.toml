@@ -5,14 +5,27 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["client", "server"]
-client = ["gui", "dep:client", "renderer?/client", "lightyear_examples_common/client"]
-server = ["dep:server", "dep:lightyear_examples_common", "renderer?/server", "lightyear_examples_common/server"]
+default = ["client", "server", "shared/default", "bevy_trenchbroom?/default"]
+client = [
+    "gui", 
+    "dep:client", 
+    "renderer?/client", 
+    "lightyear_examples_common/client",
+    "shared/default",
+    "bevy_trenchbroom?/default"
+]
+server = [
+    "dep:server", 
+    "dep:lightyear_examples_common", 
+    "renderer?/server", 
+    "lightyear_examples_common/server", 
+    "shared/headless"
+]
 gui = ["dep:renderer"]
 
 
 [dependencies]
-shared = { path = "../shared", default-features = false }
+shared = { path = "../shared", default-features = false, optional = true }
 renderer = { path = "../renderer", default-features = false, optional = true }
 client = { path = "../client", default-features = false, optional = true }
 server = { path = "../server", default-features = false, optional = true }
@@ -21,7 +34,7 @@ lightyear.workspace = true
 lightyear_examples_common = { workspace = true, default-features = false, optional = true}
 clap = "4.5"
 crossbeam-channel = "0.5.14"
-bevy_trenchbroom.workspace = true
+bevy_trenchbroom = { workspace = true, default-features = false, optional = true }
 
 [lints]
 workspace = true
