@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_trenchbroom = { workspace = true, default-features = false }
+bevy_trenchbroom.workspace = true
 bevy_config_stack.workspace = true
 lightyear_examples_common.workspace = true
 lightyear.workspace = true

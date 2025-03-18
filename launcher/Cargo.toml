@@ -5,14 +5,13 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = ["client", "server", "shared/default", "bevy_trenchbroom?/default"]
+default = ["client", "server", "shared/default"]
 client = [
     "gui", 
     "dep:client", 
     "renderer?/client", 
     "lightyear_examples_common/client",
     "shared/default",
-    "bevy_trenchbroom?/default"
 ]
 server = [
     "dep:server", 
@@ -34,7 +33,6 @@ lightyear.workspace = true
 lightyear_examples_common = { workspace = true, default-features = false, optional = true}
 clap = "4.5"
 crossbeam-channel = "0.5.14"
-bevy_trenchbroom = { workspace = true, default-features = false, optional = true }
 
 [lints]
 workspace = true

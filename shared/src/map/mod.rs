@@ -10,7 +10,7 @@ use crate::physics::GameLayer;
 #[derive(SolidClass, Component, Reflect)]
 #[no_register]
 #[reflect(Component)]
-#[geometry(GeometryProvider::new().smooth_by_default_angle().convex_collider())]
+#[geometry(GeometryProvider::new().convex_collider())]
 pub struct Worldspawn;
 
 #[cfg(not(feature = "headless"))]
@@ -26,6 +26,10 @@ pub struct MapPlugin;
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(AmbientLight::NONE);
+        #[cfg(feature = "headless")]
+        app.register_type::<ViewVisibility>();
+        #[cfg(feature = "headless")]
+        app.register_type::<InheritedVisibility>();
         //app.insert_resource(PathfindingGraph::default());
         app.add_plugins(TrenchBroomPlugin(
             TrenchBroomConfig::new("sixdof")
