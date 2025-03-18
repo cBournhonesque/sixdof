@@ -21,6 +21,7 @@ lightyear.workspace = true
 lightyear_examples_common = { workspace = true, default-features = false, optional = true}
 clap = "4.5"
 crossbeam-channel = "0.5.14"
+bevy_trenchbroom.workspace = true
 
 [lints]
 workspace = true

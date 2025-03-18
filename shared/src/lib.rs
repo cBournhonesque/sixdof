@@ -20,7 +20,7 @@ pub mod prelude {
     pub use crate::weapons::*;
     pub use crate::map::*;
     pub use crate::states::*;
-    pub use crate::player::Player;
+    pub use crate::player::PlayerShip;
     pub use crate::identity::*;
     pub use crate::utils::DespawnAfter;
     pub use crate::damageable::*;
@@ -38,7 +38,7 @@ impl Plugin for SharedPlugin {
     fn build(&self, app: &mut App) {
         // PLUGINS
         app.add_plugins(network::protocol::ProtocolPlugin);
-        app.add_plugins(map::MapPlugin { headless: self.headless});
+        app.add_plugins(map::MapPlugin);
         app.add_plugins(physics::PhysicsPlugin);
         app.add_plugins(ships::ShipPlugin);
         app.add_plugins(player::PlayerPlugin);

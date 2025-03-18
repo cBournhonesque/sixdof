@@ -4,12 +4,12 @@ use lightyear::prelude::*;
 use avian3d::prelude::*;
 use lightyear::prelude::client::{ComponentSyncMode, LerpFn};
 use lightyear::utils::avian3d::{position, rotation};
-use crate::player::Player;
+use crate::player::{PlayerRespawnTimer, PlayerShip};
 use crate::prelude::{Damageable, Projectile, UniqueIdentity, WeaponFiredEvent};
-use crate::ships::ShipIndex;
+use crate::ships::Ship;
 use crate::weapons::{CurrentWeaponIndex, WeaponInventory};
 use lightyear::utils::bevy::TransformLinearInterpolation;
-use crate::bot::Bot;
+use crate::bot::BotShip;
 
 /// Networking model:
 /// - client is predicted
@@ -23,7 +23,7 @@ pub struct ProtocolPlugin;
 
 
 #[derive(Channel)]
-pub struct Channel1;
+pub struct WeaponFiredChannel;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy, Hash, Reflect, Actionlike)]
 pub enum PlayerInput {
@@ -52,8 +52,8 @@ pub enum PlayerInput {
 impl Plugin for ProtocolPlugin {
     fn build(&self, app: &mut App) {
         // Channels
-        app.add_channel::<Channel1>(ChannelSettings {
-            mode: ChannelMode::OrderedReliable(ReliableSettings::default()),
+        app.add_channel::<WeaponFiredChannel>(ChannelSettings {
+            mode: ChannelMode::UnorderedReliable(ReliableSettings::default()),
             ..default()
         });
 
@@ -66,20 +66,30 @@ impl Plugin for ProtocolPlugin {
             }
         });
 
+        // Messages
+        app.register_message::<WeaponFiredEvent>(ChannelDirection::ServerToClient)
+            .add_map_entities();
+
+        // Components
         app.register_component::<Name>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Once)
             .add_interpolation(ComponentSyncMode::Once);
+
         app.register_component::<Projectile>(ChannelDirection::ServerToClient)
             .add_interpolation(ComponentSyncMode::Once);
-        app.register_component::<WeaponFiredEvent>(ChannelDirection::ServerToClient)
-            .add_interpolation(ComponentSyncMode::Once)
-            .add_map_entities();
-        app.register_component::<Player>(ChannelDirection::ServerToClient)
+        
+        app.register_component::<PlayerShip>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Simple)
             .add_interpolation(ComponentSyncMode::Simple);
-        app.register_component::<Bot>(ChannelDirection::ServerToClient)
+        
+        app.register_component::<Ship>(ChannelDirection::ServerToClient)
+            .add_prediction(ComponentSyncMode::Once);
+
+        app.register_component::<BotShip>(ChannelDirection::ServerToClient)
             .add_interpolation(ComponentSyncMode::Once);
 
+        app.register_component::<PlayerRespawnTimer>(ChannelDirection::ServerToClient);
+        
         // Fully replicated, but not visual, so no need for lerp/corrections:
         app.register_component::<LinearVelocity>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full);
@@ -110,11 +120,6 @@ impl Plugin for ProtocolPlugin {
 
         // do not replicate Transform but make sure to register an interpolation function
         // for it so that we can do visual interpolation
-        // (another option would be to replicate transform and not use Position/Rotation at all)
-        // app.register_component::<Transform>(ChannelDirection::ServerToClient)
-        //     .add_prediction(ComponentSyncMode::Full)
-        //     .add_interpolation(ComponentSyncMode::Full)
-        //     .add_interpolation_fn(TransformLinearInterpolation::lerp);
         app.add_interpolation::<Transform>(ComponentSyncMode::None);
         app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
 
@@ -122,7 +127,5 @@ impl Plugin for ProtocolPlugin {
         app.register_component::<Damageable>(ChannelDirection::ServerToClient);
         app.register_component::<CurrentWeaponIndex>(ChannelDirection::ServerToClient)
             .add_prediction(ComponentSyncMode::Full);
-        app.register_component::<ShipIndex>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Once);
     }
 }

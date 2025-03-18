@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
 use lightyear::shared::replication::components::Controlled;
 use lightyear::prelude::{client::*};
-use shared::player::Player;
+use shared::player::PlayerShip;
 use shared::prelude::{PlayerInput};
 use shared::ships::get_shared_ship_components;
 
@@ -35,7 +35,7 @@ impl Plugin for PlayerPlugin {
 /// Handle a newly spawned Predicted player:
 fn handle_predicted_spawn(
     mut commands: Commands,
-    predicted_player: Query<Entity, (With<Controlled>, With<Player>, With<Predicted>, Without<InputMap<PlayerInput>>)>
+    predicted_player: Query<Entity, (With<Controlled>, With<PlayerShip>, With<Predicted>, Without<InputMap<PlayerInput>>)>
 ) {
     for entity in predicted_player.iter() {
         let input_map = InputMap::<PlayerInput>::default()

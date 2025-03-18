@@ -1,7 +1,7 @@
 use bevy::color::palettes::basic::RED;
 use bevy::prelude::*;
 use lightyear::prelude::client::{InterpolateStatus, VisualInterpolateStatus};
-use shared::bot::Bot;
+use shared::bot::BotShip;
 use crate::VisibleFilter;
 
 pub(crate) struct BotPlugin;
@@ -13,7 +13,7 @@ impl Plugin for BotPlugin {
 
 /// Add visuals to newly spawned bots
 fn spawn_visuals(
-    trigger: Trigger<OnAdd, Bot>,
+    trigger: Trigger<OnAdd, BotShip>,
     query: Query<(), VisibleFilter>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

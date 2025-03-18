@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use lightyear::client::interpolation::Interpolated;
 use lightyear::prelude::client::InterpolateStatus;
 use lightyear::prelude::TickManager;
-use shared::bot::Bot;
+use shared::bot::BotShip;
 use shared::ships::get_shared_ship_components;
 
 pub(crate) struct BotPlugin;
@@ -21,7 +21,7 @@ impl Plugin for BotPlugin {
 #[allow(dead_code)]
 fn debug_bot_position(
     tick_manager: Res<TickManager>,
-    query: Query<(&Position, &InterpolateStatus<Position>), (With<Interpolated>, With<Bot>)>,
+    query: Query<(&Position, &InterpolateStatus<Position>), (With<Interpolated>, With<BotShip>)>,
 ) {
     let tick = tick_manager.tick();
     query.iter().for_each(|(pos, interpolate_status)| {
@@ -32,7 +32,7 @@ fn debug_bot_position(
 /// When an interpolated bot is spawned, we add a collider to it so we can visually
 /// find collisions between bullets and bots
 fn add_bot_collider(
-    trigger: Trigger<OnAdd, Bot>,
+    trigger: Trigger<OnAdd, BotShip>,
     mut commands: Commands,
     query: Query<(), With<Interpolated>>,
 ) {

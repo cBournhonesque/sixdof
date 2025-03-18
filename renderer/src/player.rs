@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
 use lightyear::prelude::client::{Predicted, PredictionSet, VisualInterpolateStatus};
 use lightyear::shared::replication::components::Controlled;
-use shared::player::Player;
+use shared::player::PlayerShip;
 use shared::weapons::WeaponsData;
 #[cfg(feature = "client")]
 use crate::hud::spawn_3d_hud;
@@ -66,7 +66,7 @@ fn mouse_pointer_on(
 /// Add meshes/visuals for spawned players
 fn spawn_visuals(
     // we do not want to add visuals to confirmed entities on the client
-    query: Query<(Entity, Has<Controlled>, Has<Predicted>), (VisibleFilter, Added<Player>)>,
+    query: Query<(Entity, Has<Controlled>, Has<Predicted>), (VisibleFilter, Added<PlayerShip>)>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     // mut atomized_materials: ResMut<Assets<AtomizedMaterial>>,

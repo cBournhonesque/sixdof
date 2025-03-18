@@ -5,6 +5,7 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy::ecs::entity::MapEntities;
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
+use lightyear::channel::builder::EntityActionsChannel;
 use lightyear::client::prediction::Predicted;
 use lightyear::prelude::*;
 use lightyear::prelude::client::{Confirmed, Rollback};
@@ -12,7 +13,7 @@ use lightyear::prelude::server::{ControlledBy, Replicate, ReplicationTarget, Syn
 use serde::{Deserialize, Serialize};
 
 use crate::{data::weapons::*, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
-use crate::prelude::{GameLayer, PREDICTION_REPLICATION_GROUP_ID};
+use crate::prelude::{GameLayer, WeaponFiredChannel, PREDICTION_REPLICATION_GROUP_ID};
 
 pub type WeaponId = u32;
 
@@ -34,6 +35,7 @@ impl Plugin for WeaponsPlugin {
         app.add_plugins(ConfigAssetLoaderPlugin::<WeaponsData>::new("data/weapons.ron"));
         app.add_systems(FixedUpdate, update_weapon_timers_system.run_if(resource_exists::<WeaponsData>));
 
+        app.add_observer(spawn_projectiles);
 
         // NOTE: keep around these debug systems for now
         // app.add_systems(PreUpdate, debug_projectiles_before_check_rollback
@@ -53,11 +55,9 @@ impl Plugin for WeaponsPlugin {
 }
 
 
-/// Component added on the projectile entity when a weapon is fired.
-/// We use this as a component and not an event because we need it on the entity itself
-/// (for interpolation + lag compensation)
+/// Event triggered when a weapon is fired
 /// Can be used to play a firing sound, etc.
-#[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Event, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WeaponFiredEvent {
     /// The identity of the shooter.
     pub shooter_id: UniqueIdentity,
@@ -67,8 +67,8 @@ pub struct WeaponFiredEvent {
     pub shooter_entity: Entity,
     /// The absolute origin of the fire. Used for knowing which location to spawn VFX & sounds.
     pub fire_origin: Vec3,
-    /// The direction of the shooter at the time of firing. Used for knowing which direction to spawn VFX.
-    pub fire_direction: Dir3,
+    /// The rotation of the shooter at the time of firing. Used for knowing which direction to spawn VFX.
+    pub shooter_rotation: Rotation,
     /// The tick at which the bullet was fired
     pub fire_tick: Tick,
 }
@@ -78,6 +78,29 @@ impl MapEntities for WeaponFiredEvent {
         self.shooter_entity = entity_mapper.map_entity(self.shooter_entity);
     }
 }
+
+
+/// Component added on the projectile entity when a weapon is fired.
+/// We use this as a component and not an event because we need it on the entity itself
+/// (for interpolation + lag compensation)
+/// Can be used to play a firing sound, etc.
+#[derive(Component, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProjectileInfo {
+    /// The identity of the shooter.
+    pub shooter_id: UniqueIdentity,
+    /// The entity that fired the weapon. Used for things like firing sounds & VFX following the shooter.
+    pub shooter_entity: Entity,
+    /// The index of the weapon that was fired.
+    pub weapon_index: u32,
+}
+
+impl MapEntities for ProjectileInfo {
+    fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
+        self.shooter_entity = entity_mapper.map_entity(self.shooter_entity);
+    }
+}
+
+
 
 /// Event that is sent when a projectile hits an entity.
 /// Can be used to spawn vfx and play sfx, apply damage, etc.
@@ -241,6 +264,7 @@ pub fn handle_shooting(
     identity: &UniqueIdentity,
     tick: Tick,
     is_server: bool,
+    mut to_clients: Option<&mut Events<ToClients<WeaponFiredEvent>>>,
     shooter_position: &Position,
     shooter_rotation: &Rotation,
     current_weapon_idx: WeaponId,
@@ -277,107 +301,73 @@ pub fn handle_shooting(
         if should_fire {
             match weapon_data.barrel_mode {
                 BarrelMode::Simultaneous => {
-                    let direction = shooter_rotation.0 * Vec3::NEG_Z;
-                    for (_i, barrel_position) in weapon_data.barrel_positions.iter().enumerate() {
-                        let rotated_barrel_pos = shooter_rotation * *barrel_position;
-                        let new_position = Position(shooter_position.0 + rotated_barrel_pos);
-                        let new_transform = Transform::from_translation(new_position.0)
-                            .with_rotation(Quat::from(*shooter_rotation));
-
-                        // TODO: spawn an initial-replicated bullet, with
-
-                        // we shoot a non-networked linear bullet
-                        // it's trajectory should be deterministic on the client and server
-                        // TODO: actually we will need to network the initial replication
-                        //  because we want to see enemy bullets fired in the interpolated timeline?
-                        // TODO: maybe enemy bullets can be sped up to be in the predicted timeline so that
-                        //  they can hit us, similar to what Piefayth does
-                        //info!("speed: {}", weapon_data.projectile.speed);
-
-                        let projectile_bundle = (
-                            WeaponFiredEvent {
-                                shooter_id: identity.clone(),
-                                weapon_index: current_weapon_idx,
-                                shooter_entity: shooting_entity,
-                                // we use the actual fire origin for this projectile, not the shooter's origin
-                                fire_origin: new_position.0,
-                                fire_direction: Dir3::new_unchecked(direction),
-                                fire_tick: tick,
-                            },
-                            Projectile,
-                            RigidBody::Dynamic,
-                            new_position,
-                            // include the Transform because the renderer will modify Transform.scale
-                            new_transform,
-                            LinearVelocity(direction * weapon_data.projectile.speed),
-                            DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once)),
-                            // NOTE: we include collisions with players so that we can play VFX on the client, independently
-                            //  from hit data received from the server
-                            CollisionLayers::new([GameLayer::Projectile], [GameLayer::Ship, GameLayer::Wall]),
-                            DisabledComponents::default()
-                                .disable_all()
-                                .enable::<WeaponFiredEvent>()
-                        );
-                        debug!(?tick, "Shooting projectile at pos: {:?}", new_position);
-                        if is_server {
-                            if let UniqueIdentity::Player(client_id) = identity {
-                                commands.spawn((
-                                    projectile_bundle,
-                                    Replicate {
-                                        target: ReplicationTarget {
-                                            target: NetworkTarget::AllExceptSingle(*client_id),
-                                        },
-                                        sync: SyncTarget {
-                                            // NOTE: we could Prespawn the projectile on the client, but actually I think it's ok not too.
-                                            //  there could be an off chance where the projectile doesn't get spawned correctly on the client,
-                                            //  in which case the bullet will exist on the server but the visuals won't appear on the client.
-                                            //  If it's rare enough it should be fine. We can comment-this out to re-enable prediction
-                                            //
-                                            // the bullet is predicted for the client who shot it
-                                            // prediction: NetworkTarget::Single(*client_id),
-                                            // TODO: we don't want to interpolate bullet states because it's too expensive!
-                                            // the bullet is interpolated for other clients
-                                            interpolation: NetworkTarget::AllExceptSingle(*client_id),
-                                            ..default()
-                                        },
-                                        controlled_by: ControlledBy {
-                                            target: NetworkTarget::Single(*client_id),
-                                            ..default()
-                                        },
-                                        // NOTE: if using prediction, all predicted entities need to have the same replication group
-                                        //  maybe the group should be set per replication_target? for non-predicted clients we could use a different group...
-                                        // group: ReplicationGroup::new_id(PREDICTION_REPLICATION_GROUP_ID),
-                                        ..default()
-                                    },
-                                    // NOTE: see above, maybe predicting the projectile is not necessary
-                                    // PreSpawnedPlayerObject::default_with_salt(i as u64),
-                                    // OverrideTargetComponent::<PreSpawnedPlayerObject>::new(NetworkTarget::Single(*client_id)),
-                                ));
-                            } else {
-                                commands.spawn((
-                                    projectile_bundle,
-                                    Replicate {
-                                        sync: SyncTarget {
-                                            interpolation: NetworkTarget::All,
-                                            ..default()
-                                        },
-                                        ..default()
-                                    }
-                                ));
-                            }
+                    // Trigger the event on the server and the client that fired the weapon
+                    // For the remote players we want to fire the event at a delay in the interpolation timeline
+                    let weapon_fired_event = WeaponFiredEvent {
+                        shooter_id: identity.clone(),
+                        weapon_index: current_weapon_idx,
+                        shooter_entity: shooting_entity,
+                        fire_origin: shooter_position.0,
+                        shooter_rotation: *shooter_rotation,
+                        fire_tick: tick,
+                    };
+                    commands.trigger(weapon_fired_event.clone());
+                    debug!(?tick, "Firing weapon: {:?}", weapon_fired_event);
+                    // also send an event for remote players
+                    if is_server {
+                        if let UniqueIdentity::Player(client_id) = identity {
+                            to_clients.as_mut().unwrap().send(ToClients::new_with_target::<WeaponFiredChannel>(
+                                weapon_fired_event, NetworkTarget::AllExceptSingle(*client_id)
+                            ));
                         } else {
-                            commands.spawn((
-                                projectile_bundle,
-                                // NOTE: see above, maybe predicting the projectile is not necessary
-                                // PreSpawnedPlayerObject::default_with_salt(i as u64),
+                            to_clients.as_mut().unwrap().send(ToClients::new_with_target::<WeaponFiredChannel>(
+                                weapon_fired_event, NetworkTarget::All
                             ));
                         }
                     }
+
                 }
                 BarrelMode::Sequential => {
                     // @todo-brian: implement sequential mode
                 }
             }
+        }
+    }
+}
+
+pub fn spawn_projectiles(
+    trigger: Trigger<WeaponFiredEvent>,
+    mut commands: Commands,
+    weapons_data: Res<WeaponsData>,
+) {
+    let weapon_fired_event = trigger.event();
+    if let Some(weapon_data) = weapons_data.weapons.get(&weapon_fired_event.weapon_index) {
+        // spawn the projectiles
+        let direction = weapon_fired_event.shooter_rotation.0 * Vec3::NEG_Z;
+        for (_i, barrel_position) in weapon_data.barrel_positions.iter().enumerate() {
+            let rotated_barrel_pos = weapon_fired_event.shooter_rotation * *barrel_position;
+            let new_position = Position(weapon_fired_event.fire_origin + rotated_barrel_pos);
+            commands.spawn((
+                ProjectileInfo {
+                    shooter_id: weapon_fired_event.shooter_id,
+                    shooter_entity: weapon_fired_event.shooter_entity,
+                    weapon_index: weapon_fired_event.weapon_index,
+                },
+                Projectile,
+                // TODO(cb): we shouldn't need to include this Transform, because we have a position->transform system
+                //  running in PostUpdate::PhysicsSet::SyncSet (which itself is before TransformPropagate) and we trigger
+                //  the WeaponFiredEvent before that set. However it seems that otherwise the entity is visually at (0.0, 0.0, 0.0)
+                //  for the first frame.
+                Transform::from_translation(new_position.0),
+                RigidBody::Dynamic,
+                new_position,
+                LinearVelocity(direction * weapon_data.projectile.speed),
+                DespawnAfter(Timer::new(Duration::from_millis(weapon_data.projectile.lifetime_millis), TimerMode::Once)),
+                // NOTE: we include collisions with players so that we can play VFX on the client, independently
+                //  from hit data received from the server
+                CollisionLayers::new([GameLayer::Projectile], [GameLayer::Ship, GameLayer::Wall]),
+            ));
+            debug!(?weapon_fired_event.fire_tick, "Shooting projectile at pos: {:?}", new_position);
         }
     }
 }
