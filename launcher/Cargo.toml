@@ -8,7 +8,7 @@ license.workspace = true
 default = ["client", "server"]
 client = ["gui", "dep:client", "renderer?/client", "lightyear_examples_common/client"]
 server = ["dep:server", "dep:lightyear_examples_common", "renderer?/server", "lightyear_examples_common/server"]
-gui = ["dep:renderer"]
+gui = ["dep:renderer", "shared/render"]
 
 
 [dependencies]
