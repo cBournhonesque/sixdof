@@ -3,14 +3,15 @@ name = "shared"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+render = ["bevy_trenchbroom/client"]
+
 [dependencies]
 bevy_trenchbroom.workspace = true
 bevy_config_stack.workspace = true
-lightyear_examples_common.workspace = true
 lightyear.workspace = true
 leafwing-input-manager.workspace = true
 bevy.workspace = true
 avian3d.workspace = true
-bevy_common_assets.workspace = true
 serde.workspace = true
-vfx.workspace = true

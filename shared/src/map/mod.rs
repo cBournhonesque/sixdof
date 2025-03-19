@@ -11,7 +11,7 @@ use crate::physics::GameLayer;
 #[derive(SolidClass, Component, Reflect)]
 #[no_register]
 #[reflect(Component)]
-#[geometry(GeometryProvider::new().smooth_by_default_angle().render().convex_collider())]
+#[geometry(GeometryProvider::new().smooth_by_default_angle().convex_collider())]
 pub struct Worldspawn;
 
 #[derive(Default)]
@@ -19,12 +19,13 @@ pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(feature = "render")]
         app.insert_resource(AmbientLight::NONE);
+
         app.insert_resource(PathfindingGraph::default());
-        app.add_plugins(TrenchBroomPlugin(
-            TrenchBroomConfig::new("sixdof")
-                .register_class::<Worldspawn>()
-        ));
+        let config = TrenchBroomConfig::new("sixdof")
+                .register_class::<Worldspawn>();
+        app.add_plugins(TrenchBroomPlugin(config));
         app.add_systems(Startup, load_map_system);
         app.add_systems(Update, add_map_colliders);
         //app.add_systems(Update, generate_pathfinding_nodes_system);
