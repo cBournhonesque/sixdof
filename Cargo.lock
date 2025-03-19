@@ -1221,9 +1221,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_materialize"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20040879c95d5f3210eafd7fc00d64e9e75b5cc7eddbedfc752bd9c73b8b12e2"
+checksum = "9b7309299cf4caf0bf915582a2e3dd5fbd1b564c72611a5f464e6c85ca7f2d23"
 dependencies = [
  "bevy",
  "serde",
@@ -1608,13 +1608,13 @@ dependencies = [
 [[package]]
 name = "bevy_trenchbroom"
 version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00ed5bb471e9b65df4c4b6313de1578577f6bab75466e73af66e8d145d7bf49c"
+source = "git+https://github.com/Noxmore/bevy_trenchbroom.git?branch=headless#995e58902c02bbca8f6be1c315d8babce94ff618"
 dependencies = [
  "anyhow",
  "avian3d",
  "bevy",
  "bevy_materialize",
+ "bevy_mesh",
  "bevy_reflect",
  "bevy_trenchbroom_macros",
  "default-struct-builder",
@@ -1632,13 +1632,13 @@ dependencies = [
  "serde",
  "strum",
  "thiserror 2.0.12",
+ "wgpu-types",
 ]
 
 [[package]]
 name = "bevy_trenchbroom_macros"
 version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d705a6b59b24c75bb34f71b84249fb5625a53298e0737870613fa1a799e67993"
+source = "git+https://github.com/Noxmore/bevy_trenchbroom.git?branch=headless#995e58902c02bbca8f6be1c315d8babce94ff618"
 dependencies = [
  "heck",
  "proc-macro2",

@@ -11,24 +11,20 @@ use crate::physics::GameLayer;
 #[derive(SolidClass, Component, Reflect)]
 #[no_register]
 #[reflect(Component)]
-#[geometry(GeometryProvider::new().smooth_by_default_angle().render().convex_collider())]
+#[geometry(GeometryProvider::new().smooth_by_default_angle().convex_collider())]
 pub struct Worldspawn;
 
 #[derive(Default)]
-pub struct MapPlugin {
-    pub(crate) headless: bool
-}
+pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
+        #[cfg(feature = "render")]
+        app.insert_resource(AmbientLight::NONE);
+
         app.insert_resource(PathfindingGraph::default());
-        let mut config = TrenchBroomConfig::new("sixdof")
+        let config = TrenchBroomConfig::new("sixdof")
                 .register_class::<Worldspawn>();
-        if self.headless {
-            config.is_server = true;
-        } else {
-            app.insert_resource(AmbientLight::NONE);
-        }
         app.add_plugins(TrenchBroomPlugin(config));
         app.add_systems(Startup, load_map_system);
         app.add_systems(Update, add_map_colliders);
