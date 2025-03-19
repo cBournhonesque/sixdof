@@ -15,14 +15,11 @@ pub const TICK_RATE: f64 = 64.0;
 pub const REPLICATION_INTERVAL: Duration = Duration::from_millis(20);
 pub const ASSETS_HOTRELOAD: bool = true;
 
-pub const SERVER_ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5001));
+pub const SERVER_ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(20, 246, 111, 101), 5001));
 pub const PROTOCOL_ID: u64 = 0;
 pub const PRIVATE_KEY: [u8; 32] = [0; 32];
-pub const LINK_CONDITIONER: Option<LinkConditionerConfig> = Some(LinkConditionerConfig {
-    incoming_latency: Duration::from_millis(50),
-    incoming_jitter: Duration::from_millis(5),
-    incoming_loss: 0.05,
-});
+pub const LINK_CONDITIONER: Option<LinkConditionerConfig> = None;
+    
 
 pub(crate) fn get_assets_path() -> String {
     const ASSETS_PATH: &'static str = "../assets";
@@ -71,7 +68,7 @@ pub(crate) fn server_config() -> ServerConfig {
         shared: shared_config(),
         net: vec![build_server_netcode_config(
             ServerTransport::WebTransportServer {
-                server_addr: SERVER_ADDR,
+                server_addr: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 5001)),
                 certificate: (&WebTransportCertificateSettings::FromFile {
                     cert: "certificates/cert.pem".to_string(),
                     key: "certificates/key.pem".to_string(),
