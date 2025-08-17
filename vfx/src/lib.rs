@@ -10,9 +10,10 @@ pub mod prelude {
 use std::time::Duration;
 
 use avian3d::prelude::{SpatialQuery, SpatialQueryFilter};
-use bevy::{
-    pbr::{ExtendedMaterial, MaterialExtension, MaterialExtensionKey, MaterialExtensionPipeline, NotShadowCaster, NotShadowReceiver}, 
-    prelude::*, render::{mesh::MeshVertexBufferLayoutRef, render_resource::{AsBindGroup, AsBindGroupShaderType, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, CompareFunction, DepthBiasState, DepthStencilState, RenderPipelineDescriptor, Sampler, ShaderRef, ShaderStages, ShaderType, SpecializedMeshPipelineError, StencilState, TextureFormat, TextureSampleType, TextureViewDimension}, renderer::RenderDevice}, utils::HashMap};
+use bevy::pbr::*;
+use bevy::prelude::*;
+use bevy::render::*;
+use bevy::platform::collections::HashMap;
 use data::*;
 use material::*;
 use rand::{rngs::ThreadRng, Rng};
@@ -133,7 +134,7 @@ fn spawn_emitter_system(
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, SoftParticleMaterialExtension>>>,
     mut events: EventReader<SpawnVfxEmitterEvent>,
 ) {
-    let Ok(camera_transform) = camera_transform.get_single() else { return };
+    let Ok(camera_transform) = camera_transform.single() else { return };
     for event in events.read() {
         spawn_vfx_emitter(
             &mut commands, 
@@ -328,7 +329,7 @@ fn particle_despawn_system(
 ) {
     for (entity, mut lifetime) in &mut particles {
         if lifetime.0.finished() {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
     }
 }
@@ -337,7 +338,7 @@ fn billboard_system(
     mut billboards: Query<&mut Transform, With<VfxBillboard>>,
     camera: Query<&Transform, (With<Camera>, Without<VfxBillboard>)>,
 ) {
-    let Ok(camera_transform) = camera.get_single() else { return };
+    let Ok(camera_transform) = camera.single() else { return };
     for mut transform in &mut billboards {
         transform.rotation = camera_transform.rotation;
     }
@@ -361,7 +362,7 @@ fn tick_continuous_emitter_system(
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, SoftParticleMaterialExtension>>>,
     mut continuous_emitters: Query<(Entity, &Transform, &mut VfxContinuousEmitter), Without<Camera>>,
 ) {
-    let Ok(camera_transform) = camera_transform.get_single() else { return };
+    let Ok(camera_transform) = camera_transform.single() else { return };
     for (entity, transform, mut continuous_emitter) in &mut continuous_emitters {
         continuous_emitter.timer.tick(time.delta());
         if continuous_emitter.timer.finished() {
@@ -383,7 +384,7 @@ fn tick_continuous_emitter_system(
         }
 
         if continuous_emitter.count_left <= 0 {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
     }
 }

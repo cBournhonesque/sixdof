@@ -1,14 +1,14 @@
 use bevy::log::{Level, LogPlugin};
 use bevy::prelude::*;
-use bevy::utils::Duration;
+use core::time::Duration;
 use bevy::window::{CursorOptions, PresentMode};
 #[cfg(feature = "client")]
 use lightyear::prelude::client::*;
 #[cfg(feature = "server")]
-use lightyear::prelude::server::{self, ServerConfig, ServerTransport};
+use lightyear::prelude::server::*;
 use lightyear::prelude::*;
 #[cfg(feature = "server")]
-use lightyear_examples_common::settings::WebTransportCertificateSettings;
+use lightyear_examples_common::server::WebTransportCertificateSettings;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 pub const TICK_RATE: f64 = 64.0;
@@ -16,6 +16,7 @@ pub const REPLICATION_INTERVAL: Duration = Duration::from_millis(20);
 pub const ASSETS_HOTRELOAD: bool = true;
 
 pub const SERVER_ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5001));
+pub const LOCAL_SERVER_ADDR: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 5001));
 pub const PROTOCOL_ID: u64 = 0;
 pub const PRIVATE_KEY: [u8; 32] = [0; 32];
 pub const LINK_CONDITIONER: Option<LinkConditionerConfig> = Some(LinkConditionerConfig {
@@ -37,50 +38,64 @@ pub(crate) fn get_assets_path() -> String {
         .to_string()
 }
 
-pub(crate) fn shared_config() -> SharedConfig {
-    SharedConfig {
-        client_replication_send_interval: REPLICATION_INTERVAL,
-        server_replication_send_interval: REPLICATION_INTERVAL,
-        tick: TickConfig {
-            tick_duration: Duration::from_secs_f64(1.0 / TICK_RATE),
-        },
-    }
-}
-
 #[cfg(feature = "client")]
-pub(crate) fn client_config(client_id: u64) -> ClientConfig {
-    ClientConfig {
-        shared: shared_config(),
-        net: build_client_netcode_config(
+pub(crate) fn client(client_id: u64) -> impl Bundle {
+    let client_addr = SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), 0);
+    let auth = Authentication::Manual {
+            server_addr: SERVER_ADDR,
             client_id,
-            ClientTransport::WebTransportClient {
-                // port of 0 means that the OS will find a random port
-                client_addr: SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), 0),
-                server_addr: SERVER_ADDR,
-                #[cfg(target_family = "wasm")]
-                certificate_digest: include_str!("../../certificates/digest.txt").to_string(),
-            },
-        ),
+            private_key: PRIVATE_KEY,
+            protocol_id: PROTOCOL_ID,
+    };
+    let netcode_config = client::NetcodeConfig {
+        // Make sure that the server times out clients when their connection is closed
+        client_timeout_secs: 3,
+        token_expire_secs: -1,
         ..default()
-    }
+    };
+    let certificate_digest = {
+        #[cfg(target_family = "wasm")]
+        {
+            include_str!("../../certificates/digest.txt").to_string()
+        }
+        #[cfg(not(target_family = "wasm"))]
+        {
+            "".to_string()
+        }
+    };
+    let conditioner = LINK_CONDITIONER.map(|c| RecvLinkConditioner::new(c));
+    (
+        Client::default(),
+        Link::new(conditioner),
+        LocalAddr(client_addr),
+        PeerAddr(SERVER_ADDR),
+        ReplicationReceiver::default(),
+        PredictionManager::default(),
+        InterpolationManager::default(),
+        NetcodeClient::new(auth, netcode_config).unwrap(),
+        WebTransportClientIo { certificate_digest },
+        Name::from("Client"),
+    )
 }
 
 #[cfg(feature = "server")]
-pub(crate) fn server_config() -> ServerConfig {
-    ServerConfig {
-        shared: shared_config(),
-        net: vec![build_server_netcode_config(
-            ServerTransport::WebTransportServer {
-                server_addr: SERVER_ADDR,
-                certificate: (&WebTransportCertificateSettings::FromFile {
-                    cert: "certificates/cert.pem".to_string(),
-                    key: "certificates/key.pem".to_string(),
-                })
-                    .into(),
-            },
-        )],
-        ..default()
-    }
+pub(crate) fn server() -> impl Bundle {
+    let certificate = &WebTransportCertificateSettings::FromFile {
+        cert: "certificates/cert.pem".to_string(),
+        key: "certificates/key.pem".to_string(),
+    };
+    (
+        LocalAddr(LOCAL_SERVER_ADDR),
+        NetcodeServer::new(server::NetcodeConfig {
+            protocol_id: PROTOCOL_ID,
+            private_key: PRIVATE_KEY,
+            ..Default::default()
+        }),
+        WebTransportServerIo {
+            certificate: certificate.into(),
+        },
+        Name::from("Server"),
+    )
 }
 
 #[cfg(feature = "gui")]
@@ -107,46 +122,5 @@ pub(crate) fn log_plugin() -> LogPlugin {
         level: Level::INFO,
         filter: "wgpu=error,bevy_render=info,bevy_ecs=warn,bevy_time=warn".to_string(),
         ..default()
-    }
-}
-
-#[cfg(feature = "server")]
-/// Build a netcode config for the server
-pub(crate) fn build_server_netcode_config(transport: ServerTransport) -> server::NetConfig {
-    server::NetConfig::Netcode {
-        config: server::NetcodeConfig::default()
-            .with_protocol_id(PROTOCOL_ID)
-            .with_key(PRIVATE_KEY),
-        io: server::IoConfig {
-            transport,
-            conditioner: LINK_CONDITIONER,
-            ..default()
-        },
-    }
-}
-
-#[cfg(feature = "client")]
-/// Build a netcode config for the client
-pub(crate) fn build_client_netcode_config(
-    client_id: u64,
-    transport_config: ClientTransport,
-) -> NetConfig {
-    NetConfig::Netcode {
-        auth: Authentication::Manual {
-            server_addr: SERVER_ADDR,
-            client_id,
-            private_key: PRIVATE_KEY,
-            protocol_id: PROTOCOL_ID,
-        },
-        config: NetcodeConfig {
-            // Make sure that the server times out clients when their connection is closed
-            client_timeout_secs: 3,
-            ..default()
-        },
-        io: IoConfig {
-            transport: transport_config,
-            conditioner: LINK_CONDITIONER,
-            compression: CompressionConfig::None,
-        },
     }
 }

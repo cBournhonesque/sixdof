@@ -1,12 +1,13 @@
+use std::time::Duration;
 use crate::settings;
 use bevy::asset::AssetPlugin;
 use bevy::diagnostic::DiagnosticsPlugin;
-use bevy::hierarchy::HierarchyPlugin;
 use bevy::prelude::*;
 use bevy::render::mesh::MeshPlugin;
 use bevy::scene::ScenePlugin;
 use bevy::state::app::StatesPlugin;
 use lightyear::prelude::server::*;
+use crate::settings::TICK_RATE;
 
 pub struct ServerApp(App);
 
@@ -42,19 +43,21 @@ impl ServerApp {
             ScenePlugin,
             settings::log_plugin(),
             StatesPlugin,
-            HierarchyPlugin,
             DiagnosticsPlugin,
         ));
 
-        app.add_plugins(ServerPlugins {
-            config: settings::server_config(),
-        });
+        let tick_duration =  Duration::from_secs_f64(1.0 / TICK_RATE);
+        app.add_plugins(ServerPlugins { tick_duration });
         app.add_plugins(shared::SharedPlugin {
             headless: !cfg!(feature = "gui"),
         });
         app.add_plugins(server::ServerPlugin);
         #[cfg(feature = "gui")]
         app.add_plugins(renderer::RendererPlugin);
+
+        // spawn server
+        app.world_mut().spawn(settings::server());
+
         Self(app)
     }
 

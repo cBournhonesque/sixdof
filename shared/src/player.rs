@@ -1,7 +1,8 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
-use lightyear::prelude::{*, client::*};
+use lightyear::connection::client_of::ClientOf;
+use lightyear::prelude::*;
 use serde::{Deserialize, Serialize};
 use crate::{prelude::PlayerInput, ships::{move_ship, Ship, ShipsData}};
 
@@ -18,15 +19,12 @@ impl Plugin for PlayerPlugin {
 /// Print the inputs at FixedUpdate, after they have been updated on the client/server
 /// Also prints the Transform before `move_player` is applied (inputs handled)
 pub fn debug_input(
-    tick_manager: Res<TickManager>,
-    rollback: Option<Res<Rollback>>,
+    timeline: Single<(&LocalTimeline, Has<Rollback>), Without<ClientOf>>,
     query: Query<(Entity, &ActionState<PlayerInput>, (&Transform, &Position, &Rotation)),
         Or<(With<Predicted>, With<Replicating>)>>
 ) {
-    let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
-        tick_manager.tick_or_rollback_tick(r.as_ref())
-    });
-    let is_rollback = rollback.map_or(false, |r| r.is_rollback());
+    let (timeline, is_rollback) = timeline.into_inner();
+    let tick = timeline.tick();
     for (entity, action_state, info) in query.iter() {
         let look = action_state.axis_pair(&PlayerInput::Look);
         info!(
@@ -42,17 +40,14 @@ pub fn debug_input(
 
 /// Print the transform after physics have been applied (and position/rotation have been synced to Transform)
 pub fn debug_after_sync(
-    tick_manager: Res<TickManager>,
-    rollback: Option<Res<Rollback>>,
+    timeline: Single<(&LocalTimeline, Has<Rollback>), Without<ClientOf>>,
     query: Query<
         (Entity, &ActionState<PlayerInput>, (&Transform, &Position, &Rotation, &LinearVelocity, &AngularVelocity)),
         (With<PlayerShip>, Or<(With<Predicted>, With<Replicating>)>)
     >
 ) {
-    let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
-        tick_manager.tick_or_rollback_tick(r.as_ref())
-    });
-    let is_rollback = rollback.map_or(false, |r| r.is_rollback());
+    let (timeline, is_rollback) = timeline.into_inner();
+    let tick = timeline.tick();
     for (entity, action_state, info) in query.iter() {
         let look = action_state.axis_pair(&PlayerInput::Look);
         info!(

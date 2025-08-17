@@ -1,19 +1,17 @@
-use std::time::Duration;
+use core::time::Duration;
 
 use avian3d::prelude::*;
-use bevy::{prelude::*, utils::HashMap};
+use bevy::{prelude::*, platform::collections::HashMap};
 use bevy::ecs::entity::MapEntities;
 use bevy_config_stack::prelude::{ConfigAssetLoadedEvent, ConfigAssetLoaderPlugin};
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::channel::builder::EntityActionsChannel;
-use lightyear::client::prediction::Predicted;
+use lightyear::connection::client_of::ClientOf;
+use lightyear::core::history_buffer::HistoryBuffer;
 use lightyear::prelude::*;
-use lightyear::prelude::client::{Confirmed, Rollback};
-use lightyear::prelude::server::{ControlledBy, Replicate, ReplicationTarget, SyncTarget};
 use serde::{Deserialize, Serialize};
 
 use crate::{data::weapons::*, prelude::{PlayerInput, UniqueIdentity}, utils::DespawnAfter};
-use crate::prelude::{GameLayer, WeaponFiredChannel, PREDICTION_REPLICATION_GROUP_ID};
+use crate::prelude::{GameLayer, WeaponFiredChannel};
 
 pub type WeaponId = u32;
 
@@ -75,7 +73,7 @@ pub struct WeaponFiredEvent {
 
 impl MapEntities for WeaponFiredEvent {
     fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
-        self.shooter_entity = entity_mapper.map_entity(self.shooter_entity);
+        self.shooter_entity = entity_mapper.get_mapped(self.shooter_entity);
     }
 }
 
@@ -96,7 +94,7 @@ pub struct ProjectileInfo {
 
 impl MapEntities for ProjectileInfo {
     fn map_entities<M: EntityMapper>(&mut self, entity_mapper: &mut M) {
-        self.shooter_entity = entity_mapper.map_entity(self.shooter_entity);
+        self.shooter_entity = entity_mapper.get_mapped(self.shooter_entity);
     }
 }
 
@@ -112,7 +110,7 @@ pub struct ProjectileHitEvent {
     pub entity_hit: Option<Entity>,
 }
 
-#[derive(Component, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Component, Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct CurrentWeaponIndex(pub WeaponId);
 
 impl CurrentWeaponIndex {
@@ -145,7 +143,7 @@ impl CurrentWeaponIndex {
     }
 }
 
-#[derive(Component, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Component, Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct WeaponInventory {
     pub weapons: HashMap<WeaponId, Weapon>,
 }
@@ -171,7 +169,7 @@ impl WeaponInventory {
 /// @todo-brian: maybe this can eventually be a component too, 
 /// so that if we die and drop the weapon, it can be picked up 
 /// by someone else with the exact state it was left off with.
-#[derive(Component, Default, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Component, Default, Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct Weapon {
     pub fire_timer_auto: Timer,
     pub fire_timer_burst: Timer,
@@ -264,7 +262,7 @@ pub fn handle_shooting(
     identity: &UniqueIdentity,
     tick: Tick,
     is_server: bool,
-    mut to_clients: Option<&mut Events<ToClients<WeaponFiredEvent>>>,
+    sender: Option<(&mut ServerMultiMessageSender, &Server)>,
     shooter_position: &Position,
     shooter_rotation: &Rotation,
     current_weapon_idx: WeaponId,
@@ -314,16 +312,17 @@ pub fn handle_shooting(
                     commands.trigger(weapon_fired_event.clone());
                     debug!(?tick, "Firing weapon: {:?}", weapon_fired_event);
                     // also send an event for remote players
-                    if is_server {
-                        if let UniqueIdentity::Player(client_id) = identity {
-                            to_clients.as_mut().unwrap().send(ToClients::new_with_target::<WeaponFiredChannel>(
-                                weapon_fired_event, NetworkTarget::AllExceptSingle(*client_id)
-                            ));
+                    if is_server && let Some((sender, server)) = sender {
+                        let target = if let UniqueIdentity::Player(client_id) = identity {
+                            NetworkTarget::AllExceptSingle(*client_id)
                         } else {
-                            to_clients.as_mut().unwrap().send(ToClients::new_with_target::<WeaponFiredChannel>(
-                                weapon_fired_event, NetworkTarget::All
-                            ));
-                        }
+                            NetworkTarget::All
+                        };
+                        sender.send::<WeaponFiredEvent, WeaponFiredChannel>(
+                            &weapon_fired_event,
+                            server,
+                            &target
+                        ).unwrap();
                     }
 
                 }
@@ -375,15 +374,12 @@ pub fn spawn_projectiles(
 /// Print the inputs at FixedUpdate, after they have been updated on the client/server
 /// Also prints the Transform before `move_player` is applied (inputs handled)
 pub fn debug_projectiles(
-    tick_manager: Res<TickManager>,
-    rollback: Option<Res<Rollback>>,
+    timeline: Single<(&LocalTimeline, Has<Rollback>), Or<(With<Client>, Without<ClientOf>)>>,
     query: Query<(Entity, (&Position, Option<&HistoryBuffer<Position>>, &LinearVelocity)),
-        (Or<(With<Predicted>, With<PreSpawnedPlayerObject>, With<Replicating>)>, With<Projectile>)>
+        (Or<(With<Predicted>, With<PreSpawned>, With<Replicating>)>, With<Projectile>)>
 ) {
-    let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
-        tick_manager.tick_or_rollback_tick(r.as_ref())
-    });
-    let is_rollback = rollback.map_or(false, |r| r.is_rollback());
+    let (timeline, is_rollback) = timeline.into_inner();
+    let tick = timeline.tick();
     for (entity, info) in query.iter() {
         info!(
             ?is_rollback,
@@ -398,15 +394,12 @@ pub fn debug_projectiles(
 /// Print the inputs at FixedUpdate, after they have been updated on the client/server
 /// Also prints the Transform before `move_player` is applied (inputs handled)
 pub fn debug_projectiles_before_check_rollback(
-    tick_manager: Res<TickManager>,
-    rollback: Option<Res<Rollback>>,
+    timeline: Single<(&LocalTimeline, Has<Rollback>), Or<(With<Client>, Without<ClientOf>)>>,
     query: Query<(Entity, (&Position, Option<&HistoryBuffer<Position>>, &LinearVelocity)),
-        (Or<(With<Predicted>, With<PreSpawnedPlayerObject>, With<Replicating>)>, With<Projectile>)>
+        (Or<(With<Predicted>, With<PreSpawned>, With<Replicating>)>, With<Projectile>)>
 ) {
-    let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
-        tick_manager.tick_or_rollback_tick(r.as_ref())
-    });
-    let is_rollback = rollback.map_or(false, |r| r.is_rollback());
+    let (timeline, is_rollback) = timeline.into_inner();
+    let tick = timeline.tick();
     for (entity, info) in query.iter() {
         info!(
             ?is_rollback,
@@ -420,15 +413,12 @@ pub fn debug_projectiles_before_check_rollback(
 
 /// Print the value of the projectile right after confirmed is added, after Receive and PredictionSpawn
 pub fn debug_projectiles_on_confirmed_added(
-    tick_manager: Res<TickManager>,
-    rollback: Option<Res<Rollback>>,
+    timeline: Single<(&LocalTimeline, Has<Rollback>), Or<(With<Client>, Without<ClientOf>)>>,
     query: Query<(Entity, (&Confirmed, &Position)),
         (Added<Confirmed>, With<Projectile>)>
 ) {
-    let tick = rollback.as_ref().map_or(tick_manager.tick(), |r| {
-        tick_manager.tick_or_rollback_tick(r.as_ref())
-    });
-    let is_rollback = rollback.map_or(false, |r| r.is_rollback());
+    let (timeline, is_rollback) = timeline.into_inner();
+    let tick = timeline.tick();
     for (entity, info) in query.iter() {
         info!(
             ?is_rollback,

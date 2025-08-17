@@ -1,8 +1,7 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use leafwing_input_manager::prelude::*;
-use lightyear::shared::replication::components::Controlled;
-use lightyear::prelude::{client::*};
+use lightyear::prelude::{client::*, *};
 use shared::player::PlayerShip;
 use shared::prelude::{PlayerInput};
 use shared::ships::get_shared_ship_components;
@@ -26,7 +25,7 @@ impl Plugin for PlayerPlugin {
         // make sure that client cannot apply inputs before the connection is synced
         // we add the system in Last so that on the first time the InputMap is spawned, we don't immediately
         // send an InputMessage to the server
-        app.add_systems(Last, handle_predicted_spawn.run_if(is_synced));
+        app.add_systems(Last, handle_predicted_spawn);
     }
 }
 
@@ -35,6 +34,7 @@ impl Plugin for PlayerPlugin {
 /// Handle a newly spawned Predicted player:
 fn handle_predicted_spawn(
     mut commands: Commands,
+    _: Single<(), (With<Client>, With<IsSynced<InputTimeline>>)>,
     predicted_player: Query<Entity, (With<Controlled>, With<PlayerShip>, With<Predicted>, Without<InputMap<PlayerInput>>)>
 ) {
     for entity in predicted_player.iter() {

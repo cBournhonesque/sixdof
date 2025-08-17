@@ -3,6 +3,7 @@ name = "sfx"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 kira.workspace = true
@@ -11,7 +12,7 @@ mint.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
-bevy_flycam = "0.15.0"
+bevy_flycam = "0.16.0"
 
 [lints]
 workspace = true

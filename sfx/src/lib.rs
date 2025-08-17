@@ -9,7 +9,7 @@ pub mod prelude {
 }
 
 use asset::{SfxAsset, SfxAssetLoader};
-use bevy::{prelude::*, utils::{HashMap, HashSet}};
+use bevy::{prelude::*, platform::collections::{HashMap, HashSet}};
 use kira::{
     effect::{delay::DelayBuilder, eq_filter::EqFilterBuilder, filter::{FilterBuilder, FilterHandle}, reverb::ReverbBuilder, EffectBuilder}, listener::ListenerHandle, sound::{static_sound::{StaticSoundData, StaticSoundHandle}, EndPosition, PlaybackPosition, PlaybackState, Region}, track::{self, SendTrackBuilder, SendTrackHandle, SpatialTrackBuilder, SpatialTrackDistances, SpatialTrackHandle, TrackBuilder, TrackHandle, TrackPlaybackState}, AudioManager, AudioManagerSettings, Capacities, Decibels, DefaultBackend, Easing, Mapping, Mix, Tween, Value
 };
@@ -461,7 +461,7 @@ fn despawn_finished_sfx_system(
     for (entity, mut timer, mut emitter) in query.iter_mut() {
         timer.0.tick(time.delta());
         if timer.0.finished() {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
             //info!("Removed emitter component from entity {} after {} seconds", entity, timer.0.elapsed_secs());
         }
     }

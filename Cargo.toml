@@ -12,7 +12,8 @@ members = [
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+rust-version = "1.88"
 license = "MIT OR Apache-2.0 OR CC0-1.0"
 
 [workspace.dependencies]
@@ -21,17 +22,21 @@ shared = { path = "shared" }
 vfx = { path = "vfx" }
 sfx = { path = "sfx" }
 
-lightyear_examples_common = { version = "0.19", default-features = false }
-lightyear_avian = { git = "https://github.com/cBournhonesque/lightyear.git", branch = "main", features = [
+lightyear_examples_common = { version = "0.23", features = ["netcode"], default-features = false }
+lightyear_avian3d = { git = "https://github.com/cBournhonesque/lightyear.git", branch = "main", features = [
     "lag_compensation",
-    "3d"
 ] }
-lightyear = { git = "https://github.com/cBournhonesque/lightyear.git", branch = "main", default-features = false, features = [
+lightyear = { git = "https://github.com/cBournhonesque/lightyear.git", branch = "main", features = [
     "leafwing",
     "avian3d",
+    "crossbeam",
+    "netcode",
     "webtransport",
+    "frame_interpolation",
+    "interpolation",
+    "prediction"
 ] }
-bevy = { version = "0.15.2", default-features = false, features = [
+bevy = { version = "0.16", default-features = false, features = [
     "multi_threaded",
     "bevy_state",
     "serialize",
@@ -43,7 +48,7 @@ bevy = { version = "0.15.2", default-features = false, features = [
     "file_watcher",
 ] }
 bevy_config_stack = { git = "https://github.com/BrianWiz/bevy_config_stack.git", branch = "main", package = "bevy_config_stack" }
-avian3d = { version = "0.2.0", default-features = false, features = [
+avian3d = { version = "0.3.0", default-features = false, features = [
     "3d",
     "f32",
     "parry-f32",
@@ -53,11 +58,11 @@ avian3d = { version = "0.2.0", default-features = false, features = [
     "serialize",
     "enhanced-determinism"
 ] }
-leafwing-input-manager = { version = "0.16", default-features = false, features = [
+leafwing-input-manager = { version = "0.17", default-features = false, features = [
     "keyboard",
     "mouse"
 ] }
-bevy_common_assets = { version = "0.12.0", default-features = false, features = [
+bevy_common_assets = { version = "0.13.0", default-features = false, features = [
     "ron"
 ] }
 mint = "0.5.9"
@@ -72,14 +77,10 @@ bevy_egui = { version = "0.33.0", default-features = false, features = [
     "default_fonts",
     "render",
 ] }
-bevy-inspector-egui = { git = "https://github.com/blip-radar/bevy-inspector-egui.git", branch = "egui-0.30", default-features = false, features = [
-    "bevy_pbr",
-    "bevy_image",
-    "bevy_render",
-    "egui_open_url",
-] }
-bevy_rich_text3d = "0.2.0"
-bevy_trenchbroom = { git = "https://github.com/Noxmore/bevy_trenchbroom.git", branch = "headless", default-features = false, features = ["avian", "auto_register"] }
+bevy-inspector-egui = { version = "0.33" }
+bevy_rich_text3d = "0.4"
+bevy_trenchbroom = { version = "0.9.2", default-features = false, features = ["avian"] }
+#bevy_trenchbroom = { git = "https://github.com/Noxmore/bevy_trenchbroom.git", branch = "headless", default-features = false, features = ["avian", "auto_register"] }
 rand = "0.9.0"
 
 # Idiomatic Bevy code often triggers these lints, and the CI workflow treats them as errors.

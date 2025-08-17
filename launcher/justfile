@@ -1,0 +1,12 @@
+server:
+    cargo run -- server
+
+client:
+    cargo run -- client
+
+
+server_log:
+    rm -rf SL && cargo run -- server 2>&1 | tee SL
+
+client_log:
+    rm -rf CL1 && cargo run -- client -c 1 2>&1 | tee CL1

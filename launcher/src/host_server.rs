@@ -1,16 +1,14 @@
+use std::time::Duration;
 use crate::settings;
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
 use bevy::DefaultPlugins;
-use lightyear::prelude::{client::ClientPlugins, client::NetConfig, server::ServerPlugins};
+use lightyear::prelude::{client::ClientPlugins, server::ServerPlugins, Client, LinkOf};
+use crate::settings::TICK_RATE;
 
 pub struct HostServer(App);
 impl HostServer {
     pub fn new(client_id: u64) -> Self {
-        let mut client_config = settings::client_config(client_id);
-        client_config.net = NetConfig::Local { id: client_id };
-        let mut server_config = settings::server_config();
-
         // gui app
         let mut app = App::new();
         app.add_plugins(
@@ -26,16 +24,22 @@ impl HostServer {
                 .set(settings::log_plugin())
                 .set(settings::window_plugin()),
         );
-        app.add_plugins(ClientPlugins {
-            config: client_config,
-        });
-        app.add_plugins(ServerPlugins {
-            config: server_config,
-        });
+        let tick_duration =  Duration::from_secs_f64(1.0 / TICK_RATE);
+        app.add_plugins(ClientPlugins { tick_duration });
+        app.add_plugins(ServerPlugins { tick_duration });
         app.add_plugins(shared::SharedPlugin { headless: false });
         app.add_plugins(client::ClientPlugin);
         app.add_plugins(server::ServerPlugin);
         app.add_plugins(renderer::RendererPlugin);
+
+        // spawn server
+        let server = app.world_mut().spawn(settings::server()).id();
+        // spawn host client
+        app.world_mut().spawn((
+            Client::default(),
+            Name::new("HostClient"),
+            LinkOf { server },
+        ));
         Self(app)
     }
 

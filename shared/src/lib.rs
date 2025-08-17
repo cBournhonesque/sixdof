@@ -15,7 +15,7 @@ pub mod data;
 pub mod ships;
 
 pub mod prelude {
-    pub use crate::network::{protocol::*, settings::*};
+    pub use crate::network::{protocol::*};
     pub use crate::physics::*;
     pub use crate::weapons::*;
     pub use crate::map::*;

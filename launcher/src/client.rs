@@ -1,7 +1,11 @@
+use core::time::Duration;
 use crate::settings;
 use bevy::asset::AssetPlugin;
+use bevy::image::ImageSamplerDescriptor;
 use bevy::prelude::*;
-use lightyear::client::plugin::ClientPlugins;
+use bevy_trenchbroom::util::ImageSamplerRepeatExt;
+use lightyear::prelude::client::ClientPlugins;
+use crate::settings::TICK_RATE;
 
 pub struct ClientApp(App);
 
@@ -22,15 +26,18 @@ impl ClientApp {
                 .set(settings::window_plugin())
                 // for bevy_trenchbroom
                 .set(ImagePlugin {
-                    default_sampler: bevy_trenchbroom::util::repeating_image_sampler(true),
+                    default_sampler: ImageSamplerDescriptor::default().repeat(),
                 })
         );
-        app.add_plugins(ClientPlugins {
-            config: settings::client_config(client_id),
-        });
+        let tick_duration =  Duration::from_secs_f64(1.0 / TICK_RATE);
+        app.add_plugins(ClientPlugins { tick_duration });
         app.add_plugins(shared::SharedPlugin { headless: false });
         app.add_plugins(client::ClientPlugin);
         app.add_plugins(renderer::RendererPlugin);
+
+        // spawn client
+        app.world_mut().spawn(settings::client(client_id));
+
         Self(app)
     }
 
