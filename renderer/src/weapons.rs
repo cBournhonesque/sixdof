@@ -7,13 +7,12 @@ use avian3d::prelude::{Collider, LinearVelocity, PhysicsSet, Position, Rotation,
 use bevy::color::palettes::basic::{BLUE, YELLOW};
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
-use bevy::utils::{Duration, HashMap};
+use core::time::Duration;
+use bevy::platform::collections::HashMap;
 use bevy_config_stack::prelude::ConfigAssetLoadedEvent;
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::client::prediction::Predicted;
-use lightyear::prelude::client::{Confirmed, Interpolated, VisualInterpolateStatus};
-use lightyear::prelude::{ClientId, Replicating, Tick};
-use lightyear::shared::replication::components::Controlled;
+use lightyear::frame_interpolation::FrameInterpolate;
+use lightyear::prelude::*;
 use lightyear::utils::ready_buffer::ReadyBuffer;
 use rand::Rng;
 use shared::bot::BotShip;
@@ -44,9 +43,9 @@ struct ProjectileVisualsCache {
 }
 
 fn setup_projectile_visuals_cache_system(
-    mut commands: Commands,
+    // mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
     mut cache: ResMut<ProjectileVisualsCache>,
 ) {
     let quad = meshes.add(Mesh::from(Rectangle::default()));
@@ -64,7 +63,7 @@ fn spawn_projectile_visuals_observer(
     mut projectile: Query<(&mut Transform, &ProjectileInfo), With<Projectile>>,
     mut asset_server: ResMut<AssetServer>,
 ) {
-    let entity = trigger.entity();
+    let entity = trigger.target();
 
     let weapons_data = if let Some(weapons_data) = weapons_data { 
         weapons_data 
@@ -114,7 +113,7 @@ fn spawn_projectile_visuals_observer(
                     InheritedVisibility::default(),
                     Visibility::default(),
                     // TODO: this is only necessary for Predicted projectiles, not interpolated ones!
-                    VisualInterpolateStatus::<Transform>::default(),
+                    FrameInterpolate::<Transform>::default(),
                     Mesh3d(quad.clone()),
                     // @todo-brian: We should probably have a separate material for projectiles, so we're not using PBR.
                     // But at least right now they get affected by fog and stuff, so maybe it's fine.

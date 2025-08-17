@@ -1,9 +1,10 @@
 use avian3d::prelude::{AngularVelocity, LinearVelocity};
-use bevy::{diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, pbr::NotShadowCaster, prelude::*, utils::HashMap};
+use bevy::{diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin}, pbr::NotShadowCaster, prelude::*, platform::collections::HashMap};
+use bevy::ecs::relationship::RelatedSpawnerCommands;
 use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
-use bevy_rich_text3d::{Text3d, Text3dPlugin, Text3dStyling, TextAtlas};
-
-use lightyear::{client::prediction::diagnostics::PredictionMetrics, prelude::client::Predicted, shared::replication::components::Controlled};
+use bevy_rich_text3d::{LoadFonts, Text3d, Text3dPlugin, Text3dStyling, TextAtlas};
+use lightyear::prediction::diagnostics::PredictionMetrics;
+use lightyear::prelude::*;
 use serde::Deserialize;
 use shared::weapons::{CurrentWeaponIndex, WeaponInventory, WeaponsData};
 
@@ -19,7 +20,10 @@ impl Plugin for HudPlugin {
         app.add_plugins(Text3dPlugin {
             default_atlas_dimension: (1024, 1024),
             load_system_fonts: true,
-            load_font_directories: vec!["../assets/fonts".to_owned()],
+            ..default()
+        });
+        app.insert_resource(LoadFonts {
+            font_directories: vec!["../assets/fonts".to_owned()],
             ..default()
         });
         app.add_plugins(FrameTimeDiagnosticsPlugin::default());
@@ -81,7 +85,7 @@ fn prediction_metrics_system(
     mut text_query: Query<&mut Text, With<PredictionMetricsText>>,
 ) {
     if let Some(prediction_metrics) = prediction_metrics {
-        if let Ok(mut text) = text_query.get_single_mut() {
+        if let Ok(mut text) = text_query.single_mut() {
             if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
                 text.0 = format!("FPS: {}\nRollbacks: {}\nRollback Ticks: {}",
                     fps.smoothed().unwrap_or(0.0).round(),
@@ -137,7 +141,7 @@ pub fn spawn_3d_hud(
     asset_server: &AssetServer,
     mut meshes: &mut Assets<Mesh>,
     mut materials: &mut Assets<StandardMaterial>,
-    ship: &mut ChildBuilder,
+    ship: &mut RelatedSpawnerCommands<ChildOf>,
     weapons_data: &WeaponsData,
 ) {
     ship.spawn((
@@ -210,9 +214,9 @@ fn camera_sway_system(
     mut camera_query: Query<(&mut Transform, Option<&mut GForceData>), (With<Camera3d>, Without<PlayerShip>)>,
     mut commands: Commands,
 ) {
-    if let Ok((ship_linear_velocity, ship_angular_velocity, children, ship_transform)) = player_ship_query.get_single() {
+    if let Ok((ship_linear_velocity, ship_angular_velocity, children, ship_transform)) = player_ship_query.single() {
         for child in children.iter() {
-            if let Ok((mut camera_transform, g_force_opt)) = camera_query.get_mut(*child) {
+            if let Ok((mut camera_transform, g_force_opt)) = camera_query.get_mut(child) {
                 let current_vel = ship_transform.rotation.inverse() * ship_linear_velocity.0;
                 let current_ang = ship_transform.rotation.inverse() * ship_angular_velocity.0;
                 
@@ -262,7 +266,7 @@ fn camera_sway_system(
                         config.head_recenter_speed * dt
                     );
                 } else {
-                    commands.entity(*child).insert(GForceData {
+                    commands.entity(child).insert(GForceData {
                         prev_linear_velocity: current_vel,
                         prev_angular_velocity: current_ang,
                     });
@@ -281,13 +285,13 @@ fn crosshair_system(
     mut crosshair_textures: ResMut<CrosshairTextures>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut crosshair: Query<(&Crosshair, &MeshMaterial3d<StandardMaterial>)>,
+    mut crosshair: Single<(&Crosshair, &MeshMaterial3d<StandardMaterial>)>,
     mut current_weapon_idx: Query<&CurrentWeaponIndex, (With<Predicted>, Or<(Changed<CurrentWeaponIndex>, Added<CurrentWeaponIndex>)>)>,
     weapons_data: Res<WeaponsData>,
 ) {
-    let Ok(current_weapon_idx) = current_weapon_idx.get_single() else { return };
+    let Ok(current_weapon_idx) = current_weapon_idx.single() else { return };
 
-    let (crosshair, mut image) = crosshair.single_mut();
+    let (crosshair, mut image) = crosshair.into_inner();
     if let Some(weapon_behavior) = weapons_data.weapons.get(&current_weapon_idx.0) {
         if let Some(material) = materials.get_mut(image.0.id()) {
             material.base_color = weapon_behavior.crosshair.color;
@@ -310,10 +314,10 @@ fn update_stats_system(
     mut controlled_player: Query<(&WeaponInventory, &CurrentWeaponIndex), (With<PlayerShip>, With<Predicted>)>,
     mut ammo_text: Query<&mut Text3d, With<AmmoText>>,
 ) {
-    let Ok((weapon_inventory, current_weapon_idx)) = controlled_player.get_single() else { return };
+    let Ok((weapon_inventory, current_weapon_idx)) = controlled_player.single() else { return };
 
     if let Some(weapon) = weapon_inventory.weapons.get(&current_weapon_idx.0) {
-        if let Ok(mut ammo_text) = ammo_text.get_single_mut() {
+        if let Ok(mut ammo_text) = ammo_text.single_mut() {
             *ammo_text = Text3d::new(weapon.ammo_left.to_string());
         }
     }

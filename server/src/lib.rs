@@ -2,9 +2,8 @@ mod player;
 mod bot;
 mod weapons;
 
-use bevy::app::{App, Startup};
-use bevy::prelude::{Commands, Plugin};
-use lightyear::prelude::server::ServerCommandsExt;
+use bevy::prelude::*;
+use lightyear::prelude::server::*;
 
 pub struct ServerPlugin;
 
@@ -14,7 +13,7 @@ impl Plugin for ServerPlugin {
 
         // PLUGINS
         app.add_plugins(bot::BotPlugin);
-        app.add_plugins(lightyear_avian::prelude::LagCompensationPlugin);
+        app.add_plugins(lightyear_avian3d::prelude::LagCompensationPlugin);
         app.add_plugins(player::PlayerPlugin);
         app.add_plugins(weapons::WeaponsPlugin);
 
@@ -23,6 +22,8 @@ impl Plugin for ServerPlugin {
     }
 }
 
-fn server_start(mut commands: Commands) {
-    commands.start_server();
+fn server_start(
+    server: Single<Entity, With<Server>>,
+    mut commands: Commands) {
+    commands.entity(server.into_inner()).trigger(Start);
 }

@@ -1,13 +1,13 @@
+/// HostServer where one thread runs the client and one thread runs the server
+use core::time::Duration;
 use crate::settings;
-/// ListenServer where one thread runs the client and one thread runs the server
 use bevy::asset::AssetPlugin;
 use bevy::diagnostic::DiagnosticsPlugin;
-use bevy::hierarchy::HierarchyPlugin;
 use bevy::prelude::*;
 use bevy::state::app::StatesPlugin;
-use lightyear::prelude::client::{ClientPlugins, ClientTransport};
-use lightyear::prelude::server::{ServerPlugins, ServerTransport};
-use lightyear::transport::LOCAL_SOCKET;
+use lightyear::prelude::client::{ClientPlugins};
+use lightyear::prelude::server::{ServerPlugins};
+use crate::settings::TICK_RATE;
 
 pub struct Separate {
     client: App,
@@ -15,25 +15,8 @@ pub struct Separate {
 }
 impl Separate {
     pub fn new(client_id: u64) -> Self {
-        let mut client_config = settings::client_config(client_id);
         // we will communicate between the client and server apps via channels
-        let (from_server_send, from_server_recv) = crossbeam_channel::unbounded();
-        let (to_server_send, to_server_recv) = crossbeam_channel::unbounded();
-        let transport_config = ClientTransport::LocalChannel {
-            recv: from_server_recv,
-            send: to_server_send,
-        };
-        client_config.net = settings::build_client_netcode_config(client_id, transport_config);
-
-        let mut server_config = settings::server_config();
-        server_config
-            .net
-            .push(settings::build_server_netcode_config(
-                ServerTransport::Channels {
-                    // even if we communicate via channels, we need to provide a socket address for the client
-                    channels: vec![(LOCAL_SOCKET, to_server_recv, from_server_send)],
-                },
-            ));
+        let (crossbeam_client, crossbeam_server) = lightyear::crossbeam::CrossbeamIo::new_pair();
 
         // gui app
         let mut client_app = App::new();
@@ -55,18 +38,20 @@ impl Separate {
             MinimalPlugins,
             settings::log_plugin(),
             StatesPlugin,
-            HierarchyPlugin,
             DiagnosticsPlugin,
         ));
-        client_app.add_plugins(ClientPlugins {
-            config: client_config,
-        });
-        server_app.add_plugins(ServerPlugins {
-            config: server_config,
-        });
+        let tick_duration =  Duration::from_secs_f64(1.0 / TICK_RATE);
+        client_app.add_plugins(ClientPlugins { tick_duration });
+        server_app.add_plugins(ServerPlugins { tick_duration });
         client_app.add_plugins(shared::SharedPlugin { headless: false });
-        server_app.add_plugins(shared::SharedPlugin { headless: false });
+        server_app.add_plugins(shared::SharedPlugin { headless: true });
         client_app.add_plugins(renderer::RendererPlugin);
+
+        // spawn server
+        server_app.world_mut().spawn(settings::server());
+
+        // TODO: spawn local client and client_of using crossbeam IO
+
         Self {
             client: client_app,
             server: server_app,

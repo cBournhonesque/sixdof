@@ -1,3 +1,4 @@
+#![allow(unused)]
 use bevy::{prelude::*, scene::SceneInstance};
 use avian3d::prelude::*;
 
@@ -89,19 +90,19 @@ fn connect_nodes(graph: &mut PathfindingGraph, spatial_query: &SpatialQuery) {
     }
 }
 
-pub fn draw_pathfinding_graph_system(
-    graph: Res<PathfindingGraph>,
-    mut gizmos: Gizmos,
-) {
-    // Draw each node
-    // for (i, pos) in graph.nodes.iter().enumerate() {
-    //     // Draw the node as a small sphere
-    //     gizmos.sphere(*pos, 0.2, Color::srgb(1.0, 0.0, 0.0));
-        
-    //     // Draw connections
-    //     for &conn_idx in &graph.connections[i] {
-    //         let other_pos = graph.nodes[conn_idx];
-    //         gizmos.line(*pos, other_pos, Color::srgb(0.0, 1.0, 0.0));
-    //     }
-    // }
-}
+// pub fn draw_pathfinding_graph_system(
+//     graph: Res<PathfindingGraph>,
+//     mut gizmos: Gizmos,
+// ) {
+//     // Draw each node
+//     // for (i, pos) in graph.nodes.iter().enumerate() {
+//     //     // Draw the node as a small sphere
+//     //     gizmos.sphere(*pos, 0.2, Color::srgb(1.0, 0.0, 0.0));
+//
+//     //     // Draw connections
+//     //     for &conn_idx in &graph.connections[i] {
+//     //         let other_pos = graph.nodes[conn_idx];
+//     //         gizmos.line(*pos, other_pos, Color::srgb(0.0, 1.0, 0.0));
+//     //     }
+//     // }
+// }

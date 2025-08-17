@@ -1,12 +1,13 @@
 [package]
 name = "server"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 shared = { path = "../shared", default-features = false }
 lightyear.workspace = true
-lightyear_avian.workspace = true
+lightyear_avian3d.workspace = true
 bevy.workspace = true
 avian3d.workspace = true
 leafwing-input-manager.workspace = true

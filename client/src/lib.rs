@@ -3,9 +3,8 @@ mod player;
 mod bot;
 mod weapon;
 
-use bevy::app::{App, Startup};
-use bevy::prelude::{Commands, Plugin};
-use lightyear::prelude::client::ClientCommandsExt;
+use bevy::prelude::*;
+use lightyear::prelude::*;
 
 pub struct ClientPlugin;
 
@@ -22,6 +21,8 @@ impl Plugin for ClientPlugin {
     }
 }
 
-fn connect_client(mut commands: Commands) {
-    commands.connect_client();
+fn connect_client(
+    client: Single<Entity, With<Client>>,
+    mut commands: Commands) {
+    commands.entity(client.into_inner()).trigger(Connect);
 }

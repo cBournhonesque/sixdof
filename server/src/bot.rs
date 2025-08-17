@@ -1,8 +1,7 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use lightyear::prelude::*;
-use lightyear::prelude::server::*;
-use lightyear_avian::prelude::LagCompensationHistory;
+use lightyear_avian3d::prelude::LagCompensationHistory;
 use shared::bot::{BotShip, BotAttackKind};
 use shared::player::PlayerShip;
 use shared::prelude::{Damageable, GameLayer, UniqueIdentity};
@@ -85,19 +84,10 @@ fn spawn_bot(mut commands: Commands, mut bot_manager: ResMut<BotManager>) {
     commands.spawn(
         (
             Name::from("Bot"),
-            Replicate {
-                sync: SyncTarget {
-                    interpolation: NetworkTarget::All,
-                    ..default()
-                },
-                // in case the renderer is enabled on the server, we don't want the visuals to be replicated!
-                hierarchy: ReplicateHierarchy {
-                    enabled: false,
-                    recursive: false,
-                },
-                // TODO: all predicted entities must be part of the same replication group
-                ..default()
-            },
+            Replicate::to_clients(NetworkTarget::All),
+            InterpolationTarget::to_clients(NetworkTarget::All),
+            // in case the renderer is enabled on the server, we don't want the visuals to be replicated!
+            DisableReplicateHierarchy,
             UniqueIdentity::Bot(bot_manager.next_bot_id),
             BotShip {
                 wish_dir: Vec3::ZERO,
@@ -256,7 +246,7 @@ fn target_tracking_system(
 
         // We also exclude children of the bot, because we don't want to target the bot itself at all.
         // And LagCompensationHistory is a child of the bot too.
-        let mut excluded_entities = children.iter().map(|child| *child).collect::<Vec<Entity>>();
+        let mut excluded_entities = children.collection().clone();
         excluded_entities.push(bot_entity);
 
         for (player_entity, player_position) in players.iter() {

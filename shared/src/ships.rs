@@ -1,7 +1,7 @@
 use avian3d::prelude::{AngularVelocity, CoefficientCombine, Collider, CollisionLayers, Friction, LinearVelocity, RigidBody, Rotation};
 use bevy::ecs::bundle::Bundle;
 use bevy::prelude::*;
-use bevy::utils::HashMap;
+use bevy::platform::collections::HashMap;
 use bevy_config_stack::prelude::ConfigAssetLoaderPlugin;
 use serde::{Deserialize, Serialize};
 

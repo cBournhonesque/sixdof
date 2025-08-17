@@ -11,9 +11,9 @@ mod physics;
 use avian3d::prelude::PhysicsDebugPlugin;
 use bevy::ecs::query::QueryFilter;
 use bevy::prelude::*;
-use lightyear::client::interpolation::VisualInterpolationPlugin;
-use lightyear::prelude::client::{Interpolated, Predicted};
-use lightyear::prelude::server::ReplicationTarget;
+use bevy_inspector_egui::bevy_egui;
+use lightyear::frame_interpolation::FrameInterpolationPlugin;
+use lightyear::prelude::*;
 
 pub struct RendererPlugin;
 
@@ -25,7 +25,7 @@ pub struct VisibleFilter {
     a: Or<(
         With<Predicted>,
         With<Interpolated>,
-        With<ReplicationTarget>,
+        With<Replicate>,
     )>,
 }
 
@@ -33,6 +33,7 @@ impl Plugin for RendererPlugin {
     fn build(&self, app: &mut App) {
         // PLUGINS
         // TODO: add option to disable inspector
+        app.add_plugins(bevy_egui::EguiPlugin::default());
         app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
         app.add_plugins(bot::BotPlugin);
         app.add_plugins(physics::PhysicsPlugin);
@@ -43,7 +44,7 @@ impl Plugin for RendererPlugin {
 
         #[cfg(feature = "client")]
         {
-            app.add_plugins(VisualInterpolationPlugin::<Transform>::default());
+            app.add_plugins(FrameInterpolationPlugin::<Transform>::default());
             app.add_plugins(hud::HudPlugin);
         }
 

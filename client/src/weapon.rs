@@ -1,15 +1,11 @@
-use std::time::Duration;
-use avian3d::collision::CollisionLayers;
-use avian3d::prelude::{LinearVelocity, PhysicsSet, Position, RigidBody, Rotation, SpatialQuery, SpatialQueryFilter};
-use bevy::{prelude::*};
+use avian3d::prelude::*;
+use bevy::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
-use lightyear::{shared::replication::components::Controlled};
-use lightyear::client::sync::SyncSet;
-use lightyear::prelude::{is_host_server, FromServer, MainSet, Tick, TickManager};
-use lightyear::prelude::client::*;
+use lightyear::connection::host::HostClient;
+use lightyear::prelude::*;
 use lightyear::utils::ready_buffer::ReadyBuffer;
 use shared::{prelude::{CurrentWeaponIndex, GameLayer, PlayerInput, UniqueIdentity}, weapons::{handle_shooting, Projectile, WeaponFiredEvent, WeaponInventory, WeaponsData}};
-use shared::prelude::{DespawnAfter, ProjectileInfo, Ship, WeaponsSet};
+use shared::prelude::{ProjectileInfo, Ship, WeaponsSet};
 
 pub(crate) struct WeaponPlugin;
 
@@ -18,18 +14,16 @@ impl Plugin for WeaponPlugin {
         app.init_resource::<WeaponFiredEventInterpolationBuffer>();
         // do not shoot a bullet twice if we are the host-server!
         app.add_systems(FixedUpdate, predicted_shoot_system
-            .in_set(WeaponsSet::Shoot)
-            .run_if(not(is_host_server)));
+            .in_set(WeaponsSet::Shoot));
 
         app.add_systems(PreUpdate, buffer_fire_weapon_event
-            .after(MainSet::ReceiveEvents));
+            .after(MessageSet::Receive));
         app.add_systems(PostUpdate, shoot_interpolated_bullets
             .in_set(WeaponsSet::Shoot)
             // the interpolation time is updated in the lightyear SyncSet
-            .after(SyncSet)
+            .after(SyncSet::Sync)
             // make sure that any Position is propagated to Transform
             .before(PhysicsSet::Sync)
-            .run_if(not(is_host_server))
         );
 
         // app.add_systems(FixedPostUpdate, (
@@ -57,9 +51,10 @@ fn predicted_shoot_system(
     fixed_time: Res<Time<Fixed>>,
     mut commands: Commands,
     weapons_data: Res<WeaponsData>,
-    rollback: Option<Res<Rollback>>,
+    // TODO(cb): we don't shoot again during a rollback because the bullets aren't predicted past the initial replication?
+    //  think about it
+    timeline: Single<&LocalTimeline, (With<Client>, Without<Rollback>, Without<HostClient>)>,
     non_predicted_controlled_player: Query<(&UniqueIdentity, &CurrentWeaponIndex), (With<Controlled>, Without<Predicted>)>,
-    tick_manager: Res<TickManager>,
     mut predicted_player: Query<(
         Entity,
         &Position,
@@ -68,14 +63,7 @@ fn predicted_shoot_system(
         &ActionState<PlayerInput>,
     ), With<Predicted>>,
 ) {
-    // TODO(cb): we don't shoot again during a rollback because the bullets aren't predicted past the initial replication?
-    //  think about it
-    let rolling_back = rollback.map_or(false, |r| r.is_rollback());
-    if rolling_back {
-        return;
-    }
-
-    let tick = tick_manager.tick();
+    let tick = timeline.tick();
     for (shooting_entity, position, rotation, mut inventory, action) in predicted_player.iter_mut() {
         // TODO: what is this? why don't we check the CurrentWeapon / Identity directly on the predicted entity?
         if let Some((identity, current_weapon_idx)) = non_predicted_controlled_player.iter().next() {
@@ -101,10 +89,10 @@ fn predicted_shoot_system(
 /// Store the events in a buffer until the interpolation tick matches the event tick
 fn buffer_fire_weapon_event(
     mut buffer: ResMut<WeaponFiredEventInterpolationBuffer>,
-    mut events: ResMut<Events<FromServer<WeaponFiredEvent>>>,
+    mut events: Single<&mut MessageReceiver<WeaponFiredEvent>, (With<Client>, With<Connected>)>,
 ) {
-    events.drain().for_each(|event| {
-        buffer.buffer.push(event.message.fire_tick, event.message);
+    events.receive().for_each(|event| {
+        buffer.buffer.push(event.fire_tick, event);
     })
 }
 
@@ -113,12 +101,11 @@ fn buffer_fire_weapon_event(
 /// the bullet at the correct time and position
 fn shoot_interpolated_bullets(
     mut commands: Commands,
-    tick_manager: Res<TickManager>,
-    connection: Res<ConnectionManager>,
+    timeline: Single<&InterpolationTimeline, (With<Client>, Without<HostClient>)>,
     mut buffer: ResMut<WeaponFiredEventInterpolationBuffer>,
     ship_query: Query<&Confirmed, With<Ship>>,
 ) {
-    let interpolate_tick = connection.interpolation_tick(tick_manager.as_ref());
+    let interpolate_tick = timeline.tick();
     // we wait and only pop the fire events that are more recent than the interpolate_tick
     while let Some((_, mut fired_event)) = buffer.buffer.pop_item(&interpolate_tick)  {
         // the entity here is the Confirmed entity, and we need to get the interpolated entity.
@@ -161,7 +148,7 @@ fn projectile_predict_hit_detection_system(
             }.with_excluded_entities([projectile_info.shooter_entity])
         ) {
             // @todo-brian: do bouncy projectiles!
-            commands.entity(bullet_entity).despawn_recursive();
+            commands.entity(bullet_entity).despawn();
         }
     }
 }

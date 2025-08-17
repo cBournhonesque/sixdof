@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use lightyear::prelude::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BotShip {

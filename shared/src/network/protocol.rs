@@ -2,13 +2,12 @@ use bevy::prelude::*;
 use leafwing_input_manager::Actionlike;
 use lightyear::prelude::*;
 use avian3d::prelude::*;
-use lightyear::prelude::client::{ComponentSyncMode, LerpFn};
-use lightyear::utils::avian3d::{position, rotation};
+use lightyear::prelude::input::{leafwing, InputConfig};
 use crate::player::{PlayerRespawnTimer, PlayerShip};
 use crate::prelude::{Damageable, Projectile, UniqueIdentity, WeaponFiredEvent};
 use crate::ships::Ship;
 use crate::weapons::{CurrentWeaponIndex, WeaponInventory};
-use lightyear::utils::bevy::TransformLinearInterpolation;
+use serde::{Deserialize, Serialize};
 use crate::bot::BotShip;
 
 /// Networking model:
@@ -22,7 +21,6 @@ use crate::bot::BotShip;
 pub struct ProtocolPlugin;
 
 
-#[derive(Channel)]
 pub struct WeaponFiredChannel;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy, Hash, Reflect, Actionlike)]
@@ -55,10 +53,10 @@ impl Plugin for ProtocolPlugin {
         app.add_channel::<WeaponFiredChannel>(ChannelSettings {
             mode: ChannelMode::UnorderedReliable(ReliableSettings::default()),
             ..default()
-        });
+        }).add_direction(NetworkDirection::ServerToClient);
 
         // Inputs
-        app.add_plugins(LeafwingInputPlugin::<PlayerInput> {
+        app.add_plugins(leafwing::InputPlugin::<PlayerInput> {
             config: InputConfig::<PlayerInput> {
                 // enable lag compensation for player inputs
                 lag_compensation: true,
@@ -67,65 +65,61 @@ impl Plugin for ProtocolPlugin {
         });
 
         // Messages
-        app.register_message::<WeaponFiredEvent>(ChannelDirection::ServerToClient)
+        app.add_message::<WeaponFiredEvent>()
+            .add_direction(NetworkDirection::ServerToClient)
             .add_map_entities();
 
         // Components
-        app.register_component::<Name>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Once)
-            .add_interpolation(ComponentSyncMode::Once);
+        app.register_component::<Name>()
+            .add_prediction(PredictionMode::Once)
+            .add_interpolation(InterpolationMode::Once);
 
-        app.register_component::<Projectile>(ChannelDirection::ServerToClient)
-            .add_interpolation(ComponentSyncMode::Once);
+        app.register_component::<Projectile>()
+            .add_interpolation(InterpolationMode::Once);
         
-        app.register_component::<PlayerShip>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Simple)
-            .add_interpolation(ComponentSyncMode::Simple);
+        app.register_component::<PlayerShip>()
+            .add_prediction(PredictionMode::Simple)
+            .add_interpolation(InterpolationMode::Simple);
         
-        app.register_component::<Ship>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Once);
+        app.register_component::<Ship>()
+            .add_prediction(PredictionMode::Once);
 
-        app.register_component::<BotShip>(ChannelDirection::ServerToClient)
-            .add_interpolation(ComponentSyncMode::Once);
+        app.register_component::<BotShip>()
+            .add_interpolation(InterpolationMode::Once);
 
-        app.register_component::<PlayerRespawnTimer>(ChannelDirection::ServerToClient);
+        app.register_component::<PlayerRespawnTimer>();
         
         // Fully replicated, but not visual, so no need for lerp/corrections:
-        app.register_component::<LinearVelocity>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full);
+        app.register_component::<LinearVelocity>()
+            .add_prediction(PredictionMode::Full);
 
-        app.register_component::<AngularVelocity>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full);
+        app.register_component::<AngularVelocity>()
+            .add_prediction(PredictionMode::Full);
 
-        app.register_component::<ExternalForce>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full);
+        app.register_component::<ExternalForce>()
+            .add_prediction(PredictionMode::Full);
 
-        app.register_component::<ExternalImpulse>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full);
+        app.register_component::<ExternalImpulse>()
+            .add_prediction(PredictionMode::Full);
 
-        app.register_component::<WeaponInventory>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Once);
+        app.register_component::<WeaponInventory>()
+            .add_prediction(PredictionMode::Once);
 
-        app.register_component::<Position>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full)
-            .add_interpolation_fn(position::lerp)
-            .add_interpolation(ComponentSyncMode::Full)
-            .add_correction_fn(position::lerp);
+        app.register_component::<Position>()
+            .add_prediction(PredictionMode::Full)
+            .add_linear_interpolation_fn()
+            .add_interpolation(InterpolationMode::Full)
+            .add_linear_correction_fn();
 
-        app.register_component::<Rotation>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full)
-            .add_interpolation_fn(rotation::lerp)
-            .add_interpolation(ComponentSyncMode::Full)
-            .add_correction_fn(rotation::lerp);
+        app.register_component::<Rotation>()
+            .add_prediction(PredictionMode::Full)
+            .add_linear_interpolation_fn()
+            .add_interpolation(InterpolationMode::Full)
+            .add_linear_correction_fn();
 
-        // do not replicate Transform but make sure to register an interpolation function
-        // for it so that we can do visual interpolation
-        app.add_interpolation::<Transform>(ComponentSyncMode::None);
-        app.add_interpolation_fn::<Transform>(TransformLinearInterpolation::lerp);
-
-        app.register_component::<UniqueIdentity>(ChannelDirection::ServerToClient);        
-        app.register_component::<Damageable>(ChannelDirection::ServerToClient);
-        app.register_component::<CurrentWeaponIndex>(ChannelDirection::ServerToClient)
-            .add_prediction(ComponentSyncMode::Full);
+        app.register_component::<UniqueIdentity>();
+        app.register_component::<Damageable>();
+        app.register_component::<CurrentWeaponIndex>()
+            .add_prediction(PredictionMode::Full);
     }
 }

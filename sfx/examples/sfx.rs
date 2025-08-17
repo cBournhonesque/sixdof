@@ -1,5 +1,4 @@
-use std::time::{Duration, Instant};
-
+use core::time::{Duration};
 use bevy::prelude::*;
 use sfx::prelude::*;
 use bevy_flycam::{FlyCam, NoCameraPlayerPlugin};
@@ -103,9 +102,9 @@ fn spawn_sfx_system(
     mouse_input: Res<ButtonInput<MouseButton>>,
     mut sfx_manager: ResMut<SfxManager>,
     mut timers: ResMut<Timers>,
-    mut cameras: Query<(Entity, &Transform), With<Camera3d>>,
+    mut cameras: Single<(Entity, &Transform), With<Camera3d>>,
 ) {
-    let (camera_entity, camera_transform) = cameras.single();
+    let (camera_entity, camera_transform) = cameras.into_inner();
     timers.shoot_timer.tick(time.delta());
     timers.cannon_timer.tick(time.delta());
     if mouse_input.pressed(MouseButton::Left) {

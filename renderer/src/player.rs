@@ -3,8 +3,9 @@ use sfx::prelude::SfxListener;
 use bevy::color::palettes::basic::BLUE;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
-use lightyear::prelude::client::{Predicted, PredictionSet, VisualInterpolateStatus};
-use lightyear::shared::replication::components::Controlled;
+use lightyear::frame_interpolation::FrameInterpolate;
+use lightyear::prelude::*;
+use lightyear::prelude::PredictionSet;
 use shared::player::PlayerShip;
 use shared::weapons::WeaponsData;
 #[cfg(feature = "client")]
@@ -29,11 +30,11 @@ impl Plugin for PlayerPlugin {
 
 fn toggle_mouse_pointer_system(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut windows: Single<&mut Window, With<PrimaryWindow>>,
 ) {
-    let mut window = windows.single_mut();
+    let mut window = windows.into_inner();
     if keyboard_input.just_pressed(KeyCode::Tab) {
-        toggle_mouse_pointer(&mut window);
+        toggle_mouse_pointer(window.as_mut());
     }
 }
 
@@ -71,17 +72,18 @@ fn spawn_visuals(
     mut meshes: ResMut<Assets<Mesh>>,
     // mut atomized_materials: ResMut<Assets<AtomizedMaterial>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    mut windows: Single<&mut Window, With<PrimaryWindow>>,
     asset_server: Res<AssetServer>,
     weapons_data: Res<WeaponsData>,
 ) {
     for (parent, is_controlled, is_predicted) in query.iter() {
         commands.entity(parent).insert(Visibility::default());
 
+        // TODO: we need to frame-interpolate Position and Rotation!
         // TODO: don't do this in host-server mode!
         // add visual interpolation on the predicted entity
         if is_predicted {
-            commands.entity(parent).insert(VisualInterpolateStatus::<Transform>::default());
+            commands.entity(parent).insert(FrameInterpolate::<Transform>::default());
         }
 
         if !is_controlled {
@@ -97,8 +99,7 @@ fn spawn_visuals(
                 })),
             ));
         } else {
-            let mut window = windows.single_mut();
-            mouse_pointer_off(&mut window);
+            mouse_pointer_off(windows.as_mut());
 
             // spawn a camera for 1-st person view
             commands.entity(parent).with_children(|parent| {
